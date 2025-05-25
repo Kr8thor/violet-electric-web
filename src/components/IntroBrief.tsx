@@ -1,18 +1,11 @@
-
 import { Button } from '@/components/ui/button';
-
 const IntroBrief = () => {
-  return (
-    <section className="py-24 bg-gradient-to-b from-white to-gray-50">
+  return <section className="py-24 bg-gradient-to-b from-white to-gray-50 bg-zinc-100">
       <div className="container-max section-padding">
         <div className="grid lg:grid-cols-2 gap-16 items-center">
           <div className="animate-fade-in">
             <div className="relative">
-              <img 
-                src="https://images.unsplash.com/photo-1581091226825-a6a2a5aee158?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80"
-                alt="Violet Rainwater"
-                className="rounded-2xl shadow-2xl"
-              />
+              <img alt="Violet Rainwater" className="rounded-2xl shadow-2xl" src="/lovable-uploads/420a7493-73b2-4bfe-9a3a-9ad3693c0b9a.jpg" />
               <div className="absolute -bottom-6 -right-6 w-24 h-24 bg-violet-100 rounded-full opacity-60"></div>
               <div className="absolute -top-6 -left-6 w-16 h-16 bg-luminous-100 rounded-full opacity-60"></div>
             </div>
@@ -42,17 +35,12 @@ const IntroBrief = () => {
               </div>
             </div>
             
-            <Button 
-              variant="outline" 
-              className="border-violet-200 text-violet-700 hover:bg-violet-50 px-6 py-3 rounded-full transition-all duration-300"
-            >
+            <Button variant="outline" className="border-violet-200 text-violet-700 hover:bg-violet-50 px-6 py-3 rounded-full transition-all duration-300">
               Learn More About Violet
             </Button>
           </div>
         </div>
       </div>
-    </section>
-  );
+    </section>;
 };
-
 export default IntroBrief;

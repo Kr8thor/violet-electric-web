@@ -1,19 +1,12 @@
-
 import { Link } from 'react-router-dom';
-
 const Footer = () => {
-  return (
-    <footer className="bg-gray-900 text-white py-16">
+  return <footer className="bg-gray-900 text-white py-16">
       <div className="container-max section-padding">
         <div className="grid md:grid-cols-4 gap-12">
           {/* Brand */}
           <div className="md:col-span-2">
             <div className="flex items-center space-x-3 mb-4">
-              <img 
-                src="/lovable-uploads/4a037212-f4a5-420d-ad52-9064e5032e1d.png" 
-                alt="Violet Rainwater Logo" 
-                className="h-10 w-auto"
-              />
+              <img src="/lovable-uploads/4a037212-f4a5-420d-ad52-9064e5032e1d.png" alt="Violet Rainwater Logo" className="h-10 w-auto" />
               <h3 className="text-2xl font-bold gradient-text">Violet Rainwater</h3>
             </div>
             <p className="text-gray-400 leading-relaxed mb-6">
@@ -74,17 +67,13 @@ const Footer = () => {
 
         <div className="border-t border-gray-800 mt-12 pt-8 text-center">
           <div className="flex flex-col md:flex-row justify-between items-center">
-            <p className="text-gray-400 mb-4 md:mb-0">
-              © 2024 Violet Rainwater. All rights reserved.
-            </p>
+            <p className="text-gray-400 mb-4 md:mb-0">© 2025 Violet Rainwater. All rights reserved.</p>
             <button className="luminous-button px-6 py-2 rounded-full">
               Book Violet
             </button>
           </div>
         </div>
       </div>
-    </footer>
-  );
+    </footer>;
 };
-
 export default Footer;
