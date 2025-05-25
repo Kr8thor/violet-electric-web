@@ -1,19 +1,34 @@
-
 import Navigation from '@/components/Navigation';
 import Footer from '@/components/Footer';
 import { Button } from '@/components/ui/button';
-
 const About = () => {
-  const channels = [
-    { number: 1, name: "Vision", description: "Clarity of purpose and direction", color: "from-violet-400 to-violet-600" },
-    { number: 2, name: "Voice", description: "Authentic self-expression", color: "from-violet-500 to-violet-700" },
-    { number: 3, name: "Vibration", description: "Energy and emotional state", color: "from-violet-600 to-violet-800" },
-    { number: 4, name: "Value", description: "Core beliefs and principles", color: "from-violet-700 to-violet-900" },
-    { number: 5, name: "Velocity", description: "Momentum and action", color: "from-luminous-400 to-luminous-600" }
-  ];
-
-  return (
-    <div className="min-h-screen bg-white">
+  const channels = [{
+    number: 1,
+    name: "Vision",
+    description: "Clarity of purpose and direction",
+    color: "from-violet-400 to-violet-600"
+  }, {
+    number: 2,
+    name: "Voice",
+    description: "Authentic self-expression",
+    color: "from-violet-500 to-violet-700"
+  }, {
+    number: 3,
+    name: "Vibration",
+    description: "Energy and emotional state",
+    color: "from-violet-600 to-violet-800"
+  }, {
+    number: 4,
+    name: "Value",
+    description: "Core beliefs and principles",
+    color: "from-violet-700 to-violet-900"
+  }, {
+    number: 5,
+    name: "Velocity",
+    description: "Momentum and action",
+    color: "from-luminous-400 to-luminous-600"
+  }];
+  return <div className="min-h-screen bg-white">
       <Navigation />
       
       {/* Hero Section */}
@@ -35,11 +50,7 @@ const About = () => {
         <div className="container-max section-padding">
           <div className="grid lg:grid-cols-2 gap-16 items-center">
             <div>
-              <img 
-                src="https://images.unsplash.com/photo-1581092795360-fd1ca04f0952?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80"
-                alt="Violet's Journey"
-                className="rounded-2xl shadow-2xl"
-              />
+              <img alt="Violet's Journey" className="rounded-2xl shadow-2xl" src="/lovable-uploads/6a0584a7-03ac-4755-971b-23554b180595.jpg" />
             </div>
             <div className="space-y-6">
               <h2 className="text-4xl font-bold text-gray-800 mb-6">Her Journey</h2>
@@ -88,12 +99,9 @@ const About = () => {
           </div>
 
           <div className="grid md:grid-cols-5 gap-8 mb-16">
-            {channels.map((channel, index) => (
-              <div 
-                key={index}
-                className="group text-center animate-fade-in hover:scale-105 transition-all duration-300"
-                style={{ animationDelay: `${index * 0.1}s` }}
-              >
+            {channels.map((channel, index) => <div key={index} className="group text-center animate-fade-in hover:scale-105 transition-all duration-300" style={{
+            animationDelay: `${index * 0.1}s`
+          }}>
                 <div className={`bg-gradient-to-b ${channel.color} w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4 text-white font-bold text-xl group-hover:shadow-lg transition-all duration-300`}>
                   {channel.number}
                 </div>
@@ -103,8 +111,7 @@ const About = () => {
                 <p className="text-gray-600 text-sm">
                   {channel.description}
                 </p>
-              </div>
-            ))}
+              </div>)}
           </div>
 
           <div className="text-center">
@@ -150,10 +157,7 @@ const About = () => {
               <Button className="luminous-button px-8 py-4 text-lg rounded-full">
                 Book Violet to Speak
               </Button>
-              <Button 
-                variant="outline" 
-                className="px-8 py-4 text-lg rounded-full border-violet-200 text-violet-700 hover:bg-violet-50"
-              >
+              <Button variant="outline" className="px-8 py-4 text-lg rounded-full border-violet-200 text-violet-700 hover:bg-violet-50">
                 Download Speaker Kit
               </Button>
             </div>
@@ -162,8 +166,6 @@ const About = () => {
       </section>
 
       <Footer />
-    </div>
-  );
+    </div>;
 };
-
 export default About;
