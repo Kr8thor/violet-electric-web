@@ -9,7 +9,7 @@ const Hero = () => {
           className="absolute inset-0 bg-cover" 
           style={{
             backgroundImage: "url('/lovable-uploads/693ead34-c2b8-464b-b462-5fac93257ea3.png')",
-            backgroundPosition: "center 75%" // Move image down further to show the person's head completely
+            backgroundPosition: "center 25%" // Move focal point up to show the person's head completely
           }}
         ></div>
         <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent py-0 rounded my-0"></div>
