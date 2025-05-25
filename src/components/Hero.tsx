@@ -1,3 +1,4 @@
+
 import { Button } from '@/components/ui/button';
 
 const Hero = () => {
@@ -6,10 +7,12 @@ const Hero = () => {
       {/* Background Image */}
       <div className="absolute inset-0">
         <div 
-          className="absolute inset-0 bg-cover" 
+          className="absolute inset-0" 
           style={{
             backgroundImage: "url('/lovable-uploads/693ead34-c2b8-464b-b462-5fac93257ea3.png')",
-            backgroundPosition: "center 25%" // Move focal point up to show the person's head completely
+            backgroundPosition: "center 20%",
+            backgroundSize: "cover",
+            backgroundRepeat: "no-repeat"
           }}
         ></div>
         <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent py-0 rounded my-0"></div>
