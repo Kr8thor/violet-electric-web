@@ -9,8 +9,8 @@ const Hero = () => {
         <div 
           className="absolute inset-0" 
           style={{
-            backgroundImage: "url('/lovable-uploads/693ead34-c2b8-464b-b462-5fac93257ea3.png')",
-            backgroundPosition: "center 20%",
+            backgroundImage: "url('/lovable-uploads/db99bb06-8af5-493c-9a66-64f92671d552.png')",
+            backgroundPosition: "center 30%",
             backgroundSize: "cover",
             backgroundRepeat: "no-repeat"
           }}
@@ -42,7 +42,7 @@ const Hero = () => {
             <Button 
               variant="outline" 
               className="px-8 py-4 text-lg rounded-full border-2 border-white/30 hover:bg-white/10 transition-all duration-300 backdrop-blur-sm text-purple-300"
-              onClick={() => window.open('https://www.youtube.com/watch?v=dQw4w9WgXcQ', '_blank')}
+              onClick={() => window.open('https://www.youtube.com/watch?v=AG2emkNGwVY', '_blank')}
             >
               Watch Violet in Action
             </Button>

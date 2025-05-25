@@ -61,28 +61,37 @@ const KeyHighlights = () => {
           ))}
         </div>
 
-        {/* Testimonial Preview */}
-        <div className="mt-24 bg-gradient-to-r from-gray-50 to-violet-50 rounded-3xl p-12 text-center">
-          <div className="max-w-4xl mx-auto">
-            <blockquote className="text-2xl md:text-3xl font-light text-gray-700 mb-8 leading-relaxed italic">
-              "Violet's Channel V™ framework didn't just change our team's performance—it transformed 
-              how we see ourselves and our potential. The results were immediate and lasting."
-            </blockquote>
-            <div className="flex items-center justify-center space-x-4">
-              <div className="w-12 h-12 bg-violet-200 rounded-full"></div>
-              <div>
-                <p className="font-semibold text-gray-800">Sarah Chen</p>
-                <p className="text-gray-600">CEO, Innovation Labs</p>
+        {/* Enhanced Testimonial Preview with Image */}
+        <div className="mt-24 bg-gradient-to-r from-gray-50 to-violet-50 rounded-3xl p-12">
+          <div className="max-w-6xl mx-auto">
+            <div className="grid md:grid-cols-2 gap-12 items-center">
+              <div className="text-left">
+                <blockquote className="text-2xl md:text-3xl font-light text-gray-700 mb-8 leading-relaxed italic">
+                  "Violet's Channel V™ framework didn't just change our team's performance—it transformed 
+                  how we see ourselves and our potential. The results were immediate and lasting."
+                </blockquote>
+                <div className="flex items-center space-x-4 mb-8">
+                  <div className="w-12 h-12 bg-violet-200 rounded-full"></div>
+                  <div>
+                    <p className="font-semibold text-gray-800">Sarah Chen</p>
+                    <p className="text-gray-600">CEO, Innovation Labs</p>
+                  </div>
+                </div>
+                <a 
+                  href="/testimonials"
+                  className="inline-flex items-center text-violet-600 hover:text-violet-800 font-medium transition-colors duration-200"
+                >
+                  Explore Impact Stories
+                  <span className="ml-2">→</span>
+                </a>
               </div>
-            </div>
-            <div className="mt-8">
-              <a 
-                href="/testimonials"
-                className="inline-flex items-center text-violet-600 hover:text-violet-800 font-medium transition-colors duration-200"
-              >
-                Explore Impact Stories
-                <span className="ml-2">→</span>
-              </a>
+              <div className="relative">
+                <img 
+                  src="/lovable-uploads/19e5a6ae-fc42-49a0-a27b-c0c680d038f5.png" 
+                  alt="Violet in professional setting"
+                  className="rounded-2xl shadow-lg w-full h-auto object-cover"
+                />
+              </div>
             </div>
           </div>
         </div>

@@ -2,6 +2,7 @@
 import Navigation from '@/components/Navigation';
 import Footer from '@/components/Footer';
 import { Button } from '@/components/ui/button';
+import { Card, CardContent } from '@/components/ui/card';
 
 const Testimonials = () => {
   const testimonials = [
@@ -42,6 +43,19 @@ const Testimonials = () => {
     }
   ];
 
+  const videoTestimonials = [
+    {
+      id: "AG2emkNGwVY",
+      title: "Client Success Story - Leadership Transformation",
+      description: "See how Violet's Channel V framework transformed this organization's leadership team."
+    },
+    {
+      id: "-VNT0WBwTy0",
+      title: "Event Organizer Testimonial - Impact & Results",
+      description: "Event organizers share their experience working with Violet and the lasting impact on attendees."
+    }
+  ];
+
   // Separate featured testimonials
   const featuredTestimonials = testimonials.filter(t => t.featured);
   const regularTestimonials = testimonials.filter(t => !t.featured);
@@ -60,6 +74,55 @@ const Testimonials = () => {
           <p className="text-xl text-gray-600 max-w-3xl mx-auto leading-relaxed">
             Real results from organizations that have experienced Violet's transformative approach.
           </p>
+        </div>
+      </section>
+
+      {/* Video Testimonials Section */}
+      <section className="py-16 bg-gradient-to-r from-violet-50 to-luminous-50">
+        <div className="container-max section-padding">
+          <h2 className="text-3xl font-bold mb-12 text-center text-gray-800">Video Testimonials</h2>
+          
+          <div className="grid md:grid-cols-2 gap-8 mb-12">
+            {videoTestimonials.map((video, index) => (
+              <Card key={index} className="overflow-hidden shadow-lg">
+                <CardContent className="p-0">
+                  <div className="aspect-video">
+                    <iframe
+                      src={`https://www.youtube.com/embed/${video.id}`}
+                      title={video.title}
+                      frameBorder="0"
+                      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                      allowFullScreen
+                      className="w-full h-full"
+                    ></iframe>
+                  </div>
+                  <div className="p-6">
+                    <h3 className="text-xl font-semibold mb-2 text-gray-800">{video.title}</h3>
+                    <p className="text-gray-600">{video.description}</p>
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+
+          {/* Image Gallery */}
+          <div className="grid md:grid-cols-3 gap-6">
+            <img 
+              src="/lovable-uploads/df91c47d-18ff-4d95-a356-c490edd044d7.png" 
+              alt="Violet speaking on stage"
+              className="rounded-lg shadow-md w-full h-48 object-cover"
+            />
+            <img 
+              src="/lovable-uploads/29a03ec4-c15c-4c54-978d-bd7897ed2055.png" 
+              alt="Violet in professional setting"
+              className="rounded-lg shadow-md w-full h-48 object-cover"
+            />
+            <img 
+              src="/lovable-uploads/87e9efae-1889-4106-be44-4eef8be7cab8.png" 
+              alt="Violet in corporate environment"
+              className="rounded-lg shadow-md w-full h-48 object-cover"
+            />
+          </div>
         </div>
       </section>
 
@@ -109,6 +172,25 @@ const Testimonials = () => {
                 </div>
               </div>
             ))}
+          </div>
+        </div>
+      </section>
+
+      {/* Additional Images Section */}
+      <section className="py-16 bg-gradient-to-r from-gray-50 to-violet-50">
+        <div className="container-max section-padding">
+          <h2 className="text-3xl font-bold mb-12 text-center text-gray-800">Violet in Action</h2>
+          <div className="grid md:grid-cols-2 gap-8">
+            <img 
+              src="/lovable-uploads/b915b2ba-9f64-45f7-b031-be6ce3816e80.png" 
+              alt="Violet with materials in garden setting"
+              className="rounded-lg shadow-lg w-full h-64 object-cover"
+            />
+            <img 
+              src="/lovable-uploads/8d50f04a-9549-473a-9acd-16d4e4e15a32.png" 
+              alt="Violet relaxing in garden"
+              className="rounded-lg shadow-lg w-full h-64 object-cover"
+            />
           </div>
         </div>
       </section>
