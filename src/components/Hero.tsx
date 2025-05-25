@@ -1,11 +1,18 @@
+
 import { Button } from '@/components/ui/button';
+
 const Hero = () => {
-  return <section className="relative min-h-screen flex items-end justify-center overflow-hidden">
+  return (
+    <section className="relative min-h-screen flex items-end justify-center overflow-hidden">
       {/* Background Image */}
       <div className="absolute inset-0">
-        <div className="absolute inset-0 bg-cover bg-center" style={{
-        backgroundImage: "url('/lovable-uploads/693ead34-c2b8-464b-b462-5fac93257ea3.png')"
-      }}></div>
+        <div 
+          className="absolute inset-0 bg-cover bg-center" 
+          style={{
+            backgroundImage: "url('/lovable-uploads/693ead34-c2b8-464b-b462-5fac93257ea3.png')",
+            backgroundPosition: "center 30%" // Move image down to properly frame the person
+          }}
+        ></div>
         <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent py-0 rounded my-0"></div>
       </div>
 
@@ -24,10 +31,17 @@ const Hero = () => {
           </p>
 
           <div className="flex flex-col sm:flex-row gap-6 justify-center items-center">
-            <Button className="luminous-button px-8 py-4 text-lg rounded-full">
+            <Button 
+              className="luminous-button px-8 py-4 text-lg rounded-full"
+              onClick={() => window.location.href = '/contact'}
+            >
               Book Violet
             </Button>
-            <Button variant="outline" className="px-8 py-4 text-lg rounded-full border-2 border-white/30 hover:bg-white/10 transition-all duration-300 backdrop-blur-sm text-purple-300">
+            <Button 
+              variant="outline" 
+              className="px-8 py-4 text-lg rounded-full border-2 border-white/30 hover:bg-white/10 transition-all duration-300 backdrop-blur-sm text-purple-300"
+              onClick={() => window.open('https://www.youtube.com/watch?v=dQw4w9WgXcQ', '_blank')}
+            >
               Watch Violet in Action
             </Button>
           </div>
@@ -40,6 +54,8 @@ const Hero = () => {
           <div className="w-1 h-3 bg-white/70 rounded-full mt-2 animate-pulse"></div>
         </div>
       </div>
-    </section>;
+    </section>
+  );
 };
+
 export default Hero;
