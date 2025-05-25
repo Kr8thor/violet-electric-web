@@ -19,7 +19,12 @@ const Navigation = () => {
       <div className="container-max section-padding">
         <div className="flex items-center justify-between h-20">
           {/* Logo */}
-          <Link to="/" className="flex items-center space-x-2">
+          <Link to="/" className="flex items-center space-x-3">
+            <img 
+              src="/lovable-uploads/4a037212-f4a5-420d-ad52-9064e5032e1d.png" 
+              alt="Violet Rainwater Logo" 
+              className="h-12 w-auto"
+            />
             <span className="text-2xl font-bold gradient-text">Violet Rainwater</span>
           </Link>
 

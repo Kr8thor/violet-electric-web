@@ -8,7 +8,14 @@ const Footer = () => {
         <div className="grid md:grid-cols-4 gap-12">
           {/* Brand */}
           <div className="md:col-span-2">
-            <h3 className="text-2xl font-bold gradient-text mb-4">Violet Rainwater</h3>
+            <div className="flex items-center space-x-3 mb-4">
+              <img 
+                src="/lovable-uploads/4a037212-f4a5-420d-ad52-9064e5032e1d.png" 
+                alt="Violet Rainwater Logo" 
+                className="h-10 w-auto"
+              />
+              <h3 className="text-2xl font-bold gradient-text">Violet Rainwater</h3>
+            </div>
             <p className="text-gray-400 leading-relaxed mb-6">
               Transforming potential with neuroscience and heart. 
               Change the channel. Change your life.
