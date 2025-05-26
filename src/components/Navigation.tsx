@@ -21,7 +21,7 @@ const Navigation = () => {
   }];
   return <nav className="fixed top-0 left-0 right-0 z-50 bg-white/95 backdrop-blur-sm border-b border-gray-100">
       <div className="container-max section-padding">
-        <div className="flex items-center justify-between h-20 bg-gray-400">
+        <div className="flex items-center justify-between h-20 bg-purple-200">
           {/* Logo */}
           <Link to="/" className="flex items-center space-x-3">
             <img src="/lovable-uploads/4a037212-f4a5-420d-ad52-9064e5032e1d.png" alt="Violet Rainwater Logo" className="h-12 w-auto" />
