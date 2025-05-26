@@ -1,34 +1,44 @@
+
 import Navigation from '@/components/Navigation';
 import Footer from '@/components/Footer';
 import { Button } from '@/components/ui/button';
+
 const About = () => {
-  const channels = [{
-    number: 1,
-    name: "Vision",
-    description: "Clarity of purpose and direction",
-    color: "from-violet-400 to-violet-600"
-  }, {
-    number: 2,
-    name: "Voice",
-    description: "Authentic self-expression",
-    color: "from-violet-500 to-violet-700"
-  }, {
-    number: 3,
-    name: "Vibration",
-    description: "Energy and emotional state",
-    color: "from-violet-600 to-violet-800"
-  }, {
-    number: 4,
-    name: "Value",
-    description: "Core beliefs and principles",
-    color: "from-violet-700 to-violet-900"
-  }, {
-    number: 5,
-    name: "Velocity",
-    description: "Momentum and action",
-    color: "from-luminous-400 to-luminous-600"
-  }];
-  return <div className="min-h-screen bg-white">
+  const channels = [
+    {
+      number: 1,
+      name: "Vision",
+      description: "Clarity of purpose and direction",
+      color: "from-violet-400 to-violet-600"
+    },
+    {
+      number: 2,
+      name: "Voice",
+      description: "Authentic self-expression",
+      color: "from-violet-500 to-violet-700"
+    },
+    {
+      number: 3,
+      name: "Vibration",
+      description: "Energy and emotional state",
+      color: "from-violet-600 to-violet-800"
+    },
+    {
+      number: 4,
+      name: "Value",
+      description: "Core beliefs and principles",
+      color: "from-violet-700 to-violet-900"
+    },
+    {
+      number: 5,
+      name: "Velocity",
+      description: "Momentum and action",
+      color: "from-blush-400 to-blush-600"
+    }
+  ];
+
+  return (
+    <div className="min-h-screen bg-white">
       <Navigation />
       
       {/* Hero Section */}
@@ -37,7 +47,7 @@ const About = () => {
           <h1 className="text-5xl md:text-6xl font-bold mb-6 text-gray-800">
             The Story of <span className="gradient-text">Transformation</span>
           </h1>
-          <div className="w-24 h-1 bg-gradient-to-r from-violet-500 to-luminous-400 mx-auto mb-8"></div>
+          <div className="w-24 h-1 bg-gradient-to-r from-violet-600 to-blush-400 mx-auto mb-8"></div>
           <p className="text-xl text-gray-600 max-w-3xl mx-auto leading-relaxed">
             Every transformation begins with a single decision to change the channel. 
             This is Violet's story, and the framework that's changing lives worldwide.
@@ -50,7 +60,11 @@ const About = () => {
         <div className="container-max section-padding">
           <div className="grid lg:grid-cols-2 gap-16 items-center">
             <div>
-              <img alt="Violet's Journey" className="rounded-2xl shadow-2xl" src="/lovable-uploads/6a0584a7-03ac-4755-971b-23554b180595.jpg" />
+              <img 
+                alt="Violet's Journey" 
+                className="rounded-2xl shadow-2xl" 
+                src="/lovable-uploads/6a0584a7-03ac-4755-971b-23554b180595.jpg" 
+              />
             </div>
             <div className="space-y-6">
               <h2 className="text-4xl font-bold text-gray-800 mb-6">Her Journey</h2>
@@ -72,7 +86,7 @@ const About = () => {
       </section>
 
       {/* Mission & Impact */}
-      <section className="py-24 bg-gradient-to-r from-violet-50 to-luminous-50">
+      <section className="py-24 bg-gradient-to-r from-blush-50 to-luminous-50">
         <div className="container-max section-padding text-center">
           <h2 className="text-4xl md:text-5xl font-bold mb-8 text-gray-800">
             Mission & Impact
@@ -95,13 +109,16 @@ const About = () => {
               A revolutionary 5-channel system that transforms how you think, feel, and perform. 
               Each channel builds upon the next, creating systematic and sustainable change.
             </p>
-            <div className="w-24 h-1 bg-gradient-to-r from-violet-500 to-luminous-400 mx-auto mt-6"></div>
+            <div className="w-24 h-1 bg-gradient-to-r from-violet-600 to-blush-400 mx-auto mt-6"></div>
           </div>
 
           <div className="grid md:grid-cols-5 gap-8 mb-16">
-            {channels.map((channel, index) => <div key={index} className="group text-center animate-fade-in hover:scale-105 transition-all duration-300" style={{
-            animationDelay: `${index * 0.1}s`
-          }}>
+            {channels.map((channel, index) => (
+              <div 
+                key={index} 
+                className="group text-center animate-fade-in hover:scale-105 transition-all duration-300" 
+                style={{ animationDelay: `${index * 0.1}s` }}
+              >
                 <div className={`bg-gradient-to-b ${channel.color} w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4 text-white font-bold text-xl group-hover:shadow-lg transition-all duration-300`}>
                   {channel.number}
                 </div>
@@ -111,7 +128,8 @@ const About = () => {
                 <p className="text-gray-600 text-sm">
                   {channel.description}
                 </p>
-              </div>)}
+              </div>
+            ))}
           </div>
 
           <div className="text-center">
@@ -157,7 +175,7 @@ const About = () => {
               <Button className="luminous-button px-8 py-4 text-lg rounded-full">
                 Book Violet to Speak
               </Button>
-              <Button variant="outline" className="px-8 py-4 text-lg rounded-full border-violet-200 text-violet-700 hover:bg-violet-50">
+              <Button variant="outline" className="px-8 py-4 text-lg rounded-full border-blush-200 text-violet-700 hover:bg-blush-50">
                 Download Speaker Kit
               </Button>
             </div>
@@ -166,6 +184,8 @@ const About = () => {
       </section>
 
       <Footer />
-    </div>;
+    </div>
+  );
 };
+
 export default About;

@@ -28,7 +28,7 @@ const KeyHighlights = () => {
           <h2 className="text-4xl md:text-5xl font-bold mb-6 text-gray-800">
             Where Science Meets <span className="gradient-text">Transformation</span>
           </h2>
-          <div className="w-24 h-1 bg-gradient-to-r from-violet-500 to-luminous-400 mx-auto"></div>
+          <div className="w-24 h-1 bg-gradient-to-r from-violet-600 to-blush-400 mx-auto"></div>
         </div>
 
         <div className="grid md:grid-cols-3 gap-12">
@@ -38,7 +38,7 @@ const KeyHighlights = () => {
               className="group text-center animate-fade-in hover:scale-105 transition-all duration-300"
               style={{ animationDelay: `${index * 0.2}s` }}
             >
-              <div className="bg-gradient-to-br from-violet-50 to-luminous-50 w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-6 group-hover:shadow-lg transition-all duration-300">
+              <div className="bg-gradient-to-br from-blush-50 to-luminous-50 w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-6 group-hover:shadow-lg transition-all duration-300">
                 <span className="text-3xl">{highlight.icon}</span>
               </div>
               
@@ -52,7 +52,7 @@ const KeyHighlights = () => {
               
               <a 
                 href={highlight.link}
-                className="inline-flex items-center text-violet-600 hover:text-violet-800 font-medium transition-colors duration-200"
+                className="inline-flex items-center text-violet-600 hover:text-blush-600 font-medium transition-colors duration-200"
               >
                 Learn More 
                 <span className="ml-2 transform transition-transform group-hover:translate-x-1">→</span>
@@ -62,7 +62,7 @@ const KeyHighlights = () => {
         </div>
 
         {/* Enhanced Testimonial Preview with Image */}
-        <div className="mt-24 bg-gradient-to-r from-gray-50 to-violet-50 rounded-3xl p-12">
+        <div className="mt-24 bg-gradient-to-r from-gray-50 to-blush-50 rounded-3xl p-12">
           <div className="max-w-6xl mx-auto">
             <div className="grid md:grid-cols-2 gap-12 items-center">
               <div className="text-left">
@@ -71,7 +71,7 @@ const KeyHighlights = () => {
                   how we see ourselves and our potential. The results were immediate and lasting."
                 </blockquote>
                 <div className="flex items-center space-x-4 mb-8">
-                  <div className="w-12 h-12 bg-violet-200 rounded-full"></div>
+                  <div className="w-12 h-12 bg-blush-200 rounded-full"></div>
                   <div>
                     <p className="font-semibold text-gray-800">Sarah Chen</p>
                     <p className="text-gray-600">CEO, Innovation Labs</p>
@@ -79,7 +79,7 @@ const KeyHighlights = () => {
                 </div>
                 <a 
                   href="/testimonials"
-                  className="inline-flex items-center text-violet-600 hover:text-violet-800 font-medium transition-colors duration-200"
+                  className="inline-flex items-center text-violet-600 hover:text-blush-600 font-medium transition-colors duration-200"
                 >
                   Explore Impact Stories
                   <span className="ml-2">→</span>

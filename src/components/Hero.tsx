@@ -9,8 +9,8 @@ const Hero = () => {
         <div 
           className="absolute inset-0" 
           style={{
-            backgroundImage: "url('/lovable-uploads/db99bb06-8af5-493c-9a66-64f92671d552.png')",
-            backgroundPosition: "center 30%",
+            backgroundImage: "url('/lovable-uploads/b915b2ba-9f64-45f7-b031-be6ce3816e80.png')",
+            backgroundPosition: "center 20%",
             backgroundSize: "cover",
             backgroundRepeat: "no-repeat"
           }}
@@ -22,7 +22,7 @@ const Hero = () => {
       <div className="relative z-10 container-max section-padding text-center pb-20 md:pb-32">
         <div className="max-w-4xl mx-auto animate-fade-in">
           <h1 className="text-4xl md:text-6xl lg:text-7xl font-bold mb-6 leading-tight text-white">
-            <span className="bg-gradient-to-r from-violet-300 to-violet-100 bg-clip-text text-transparent">Change the Channel.</span>
+            <span className="bg-gradient-to-r from-luminous-300 to-blush-300 bg-clip-text text-transparent">Change the Channel.</span>
             <br />
             <span className="text-white">Change Your Life.</span>
           </h1>
@@ -41,7 +41,7 @@ const Hero = () => {
             </Button>
             <Button 
               variant="outline" 
-              className="px-8 py-4 text-lg rounded-full border-2 border-white/30 hover:bg-white/10 transition-all duration-300 backdrop-blur-sm text-purple-300"
+              className="px-8 py-4 text-lg rounded-full border-2 border-white/30 hover:bg-white/10 transition-all duration-300 backdrop-blur-sm text-blush-300"
               onClick={() => window.open('https://www.youtube.com/watch?v=AG2emkNGwVY', '_blank')}
             >
               Watch Violet in Action

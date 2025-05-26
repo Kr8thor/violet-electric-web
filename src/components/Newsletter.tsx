@@ -13,7 +13,7 @@ const Newsletter = () => {
   };
 
   return (
-    <section className="py-24 bg-gradient-to-r from-gray-50 to-violet-50">
+    <section className="py-24 bg-gradient-to-r from-gray-50 to-blush-50">
       <div className="container-max section-padding">
         <div className="max-w-4xl mx-auto text-center">
           <h2 className="text-4xl md:text-5xl font-bold mb-6 text-gray-800">
@@ -30,7 +30,7 @@ const Newsletter = () => {
               placeholder="Enter your email address"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              className="flex-1 px-6 py-4 text-lg rounded-full border-2 border-violet-200 focus:border-violet-400 transition-colors duration-300"
+              className="flex-1 px-6 py-4 text-lg rounded-full border-2 border-blush-200 focus:border-violet-400 transition-colors duration-300"
               required
             />
             <Button 

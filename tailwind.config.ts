@@ -63,7 +63,7 @@ export default {
 					border: 'hsl(var(--sidebar-border))',
 					ring: 'hsl(var(--sidebar-ring))'
 				},
-				// Custom brand colors for Violet's site
+				// Updated custom brand colors for Violet's site
 				violet: {
 					50: '#f8f7ff',
 					100: '#f0edff',
@@ -71,23 +71,36 @@ export default {
 					300: '#d1c4ff',
 					400: '#b39dff',
 					500: '#9674ff',
-					600: '#7c3aed',
-					700: '#6b21a8',
-					800: '#581c87',
+					600: '#5e2664',
+					700: '#5e2664',
+					800: '#5e2664',
 					900: '#3b0764',
 					950: '#1e0338'
 				},
 				luminous: {
-					50: '#fffbf0',
-					100: '#fff7e1',
-					200: '#ffecc2',
-					300: '#ffdd98',
-					400: '#ffc766',
-					500: '#ffb238',
+					50: '#fff9f5',
+					100: '#fef3ec',
+					200: '#fde4d3',
+					300: '#fcd1b4',
+					400: '#ffc6b4',
+					500: '#ffc6b4',
 					600: '#f89e1b',
 					700: '#e87c0f',
 					800: '#c7620f',
 					900: '#a55015',
+				},
+				// New custom colors
+				blush: {
+					50: '#fef7f5',
+					100: '#fdeee9',
+					200: '#fbd9d1',
+					300: '#f7beb0',
+					400: '#f19b8a',
+					500: '#ed9ba1',
+					600: '#e66f7a',
+					700: '#d84c5f',
+					800: '#b23c4d',
+					900: '#94334a',
 				}
 			},
 			borderRadius: {

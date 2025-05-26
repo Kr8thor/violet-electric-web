@@ -26,10 +26,10 @@ const UniqueValue = () => {
           <h2 className="text-4xl md:text-5xl font-bold mb-6">
             Why Choose Violet?
           </h2>
-          <p className="text-xl text-violet-200 max-w-3xl mx-auto leading-relaxed">
+          <p className="text-xl text-blush-200 max-w-3xl mx-auto leading-relaxed">
             Four foundational pillars that set Violet apart as a transformational speaker and coach
           </p>
-          <div className="w-24 h-1 bg-gradient-to-r from-luminous-400 to-luminous-500 mx-auto mt-6"></div>
+          <div className="w-24 h-1 bg-gradient-to-r from-luminous-400 to-blush-400 mx-auto mt-6"></div>
         </div>
 
         <div className="grid md:grid-cols-2 gap-12 max-w-6xl mx-auto">
@@ -41,14 +41,14 @@ const UniqueValue = () => {
             >
               <div className="bg-white/10 backdrop-blur-sm rounded-2xl p-8 h-full border border-white/20 hover:bg-white/15 transition-all duration-300 hover:scale-105">
                 <div className="flex items-start space-x-4">
-                  <div className="bg-luminous-400 text-violet-900 w-8 h-8 rounded-full flex items-center justify-center font-bold text-lg flex-shrink-0 mt-1">
+                  <div className="bg-blush-400 text-violet-900 w-8 h-8 rounded-full flex items-center justify-center font-bold text-lg flex-shrink-0 mt-1">
                     {index + 1}
                   </div>
                   <div>
                     <h3 className="text-xl font-bold mb-4 text-luminous-100">
                       {pillar.title}
                     </h3>
-                    <p className="text-violet-200 leading-relaxed">
+                    <p className="text-blush-200 leading-relaxed">
                       {pillar.description}
                     </p>
                   </div>
@@ -60,8 +60,8 @@ const UniqueValue = () => {
 
         <div className="text-center mt-16">
           <div className="inline-flex items-center space-x-4 bg-white/10 backdrop-blur-sm rounded-full px-8 py-4 border border-white/20">
-            <span className="text-luminous-200 font-medium">Ready to transform your event?</span>
-            <button className="bg-luminous-400 hover:bg-luminous-500 text-violet-900 px-6 py-2 rounded-full font-semibold transition-all duration-300 hover:scale-105">
+            <span className="text-blush-200 font-medium">Ready to transform your event?</span>
+            <button className="bg-blush-400 hover:bg-blush-500 text-violet-900 px-6 py-2 rounded-full font-semibold transition-all duration-300 hover:scale-105">
               Book Violet Today
             </button>
           </div>
