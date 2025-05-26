@@ -30,7 +30,7 @@ const Navigation = () => {
 
           {/* Desktop Navigation */}
           <div className="hidden md:flex items-center space-x-8">
-            {navItems.map(item => <Link key={item.name} to={item.href} className="text-gray-600 hover:text-violet-700 font-medium transition-colors duration-200 relative group">
+            {navItems.map(item => <Link key={item.name} to={item.href} className="text-white hover:text-white font-medium transition-colors duration-200 relative group">
                 {item.name}
                 <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-violet-700 transition-all duration-300 group-hover:w-full"></span>
               </Link>)}
