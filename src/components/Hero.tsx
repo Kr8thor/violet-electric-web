@@ -10,7 +10,7 @@ const Hero = () => {
           className="absolute inset-0" 
           style={{
             backgroundImage: "url('/lovable-uploads/b915b2ba-9f64-45f7-b031-be6ce3816e80.png')",
-            backgroundPosition: "center 20%",
+            backgroundPosition: "center 30%",
             backgroundSize: "cover",
             backgroundRepeat: "no-repeat"
           }}
@@ -47,13 +47,6 @@ const Hero = () => {
               Watch Violet in Action
             </Button>
           </div>
-        </div>
-      </div>
-
-      {/* Decorative scroll indicator */}
-      <div className="absolute bottom-10 left-1/2 transform -translate-x-1/2 animate-bounce">
-        <div className="w-6 h-10 border-2 border-white/50 rounded-full flex justify-center">
-          <div className="w-1 h-3 bg-white/70 rounded-full mt-2 animate-pulse"></div>
         </div>
       </div>
     </section>
