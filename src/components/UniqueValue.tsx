@@ -1,26 +1,18 @@
-
 const UniqueValue = () => {
-  const pillars = [
-    {
-      title: "Neuroscience-Backed Approach",
-      description: "Every strategy is grounded in cutting-edge brain research and proven behavioral science principles."
-    },
-    {
-      title: "Authentic Leadership Style",
-      description: "Genuine, heart-centered communication that creates deep connection and lasting transformation."
-    },
-    {
-      title: "Measurable Results",
-      description: "Tangible outcomes that drive performance, engagement, and organizational success."
-    },
-    {
-      title: "Channel V™ Framework",
-      description: "A proprietary 5-channel system that creates systematic, sustainable change from within."
-    }
-  ];
-
-  return (
-    <section className="py-24 bg-gradient-to-b from-violet-900 to-violet-800 text-white">
+  const pillars = [{
+    title: "Neuroscience-Backed Approach",
+    description: "Every strategy is grounded in cutting-edge brain research and proven behavioral science principles."
+  }, {
+    title: "Authentic Leadership Style",
+    description: "Genuine, heart-centered communication that creates deep connection and lasting transformation."
+  }, {
+    title: "Measurable Results",
+    description: "Tangible outcomes that drive performance, engagement, and organizational success."
+  }, {
+    title: "Channel V™ Framework",
+    description: "A proprietary 5-channel system that creates systematic, sustainable change from within."
+  }];
+  return <section className="py-24 bg-gradient-to-b from-[#5e2664] to-violet-800 text-white\n">
       <div className="container-max section-padding">
         <div className="text-center mb-16">
           <h2 className="text-4xl md:text-5xl font-bold mb-6">
@@ -33,12 +25,9 @@ const UniqueValue = () => {
         </div>
 
         <div className="grid md:grid-cols-2 gap-12 max-w-6xl mx-auto">
-          {pillars.map((pillar, index) => (
-            <div 
-              key={index}
-              className="group animate-fade-in"
-              style={{ animationDelay: `${index * 0.15}s` }}
-            >
+          {pillars.map((pillar, index) => <div key={index} className="group animate-fade-in" style={{
+          animationDelay: `${index * 0.15}s`
+        }}>
               <div className="bg-white/10 backdrop-blur-sm rounded-2xl p-8 h-full border border-white/20 hover:bg-white/15 transition-all duration-300 hover:scale-105">
                 <div className="flex items-start space-x-4">
                   <div className="bg-blush-400 text-violet-900 w-8 h-8 rounded-full flex items-center justify-center font-bold text-lg flex-shrink-0 mt-1">
@@ -54,8 +43,7 @@ const UniqueValue = () => {
                   </div>
                 </div>
               </div>
-            </div>
-          ))}
+            </div>)}
         </div>
 
         <div className="text-center mt-16">
@@ -67,8 +55,6 @@ const UniqueValue = () => {
           </div>
         </div>
       </div>
-    </section>
-  );
+    </section>;
 };
-
 export default UniqueValue;
