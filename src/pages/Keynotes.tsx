@@ -46,7 +46,7 @@ const Keynotes = () => {
             className="absolute inset-0" 
             style={{
               backgroundImage: "url('/lovable-uploads/420a7493-73b2-4bfe-9a3a-9ad3693c0b9a.jpg')",
-              backgroundPosition: "center 25%",
+              backgroundPosition: "center 60%",
               backgroundSize: "cover",
               backgroundRepeat: "no-repeat"
             }}
