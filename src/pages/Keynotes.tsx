@@ -1,4 +1,3 @@
-
 import Navigation from '@/components/Navigation';
 import Footer from '@/components/Footer';
 import { Button } from '@/components/ui/button';
@@ -38,22 +37,47 @@ const Keynotes = () => {
     <div className="min-h-screen bg-white">
       <Navigation />
       
-      {/* Hero Section */}
-      <section className="pt-32 pb-16 bg-gradient-to-b from-gray-50 to-white">
-        <div className="container-max section-padding text-center">
-          <h1 className="text-5xl md:text-6xl font-bold mb-6 text-gray-800">
-            Transformative <span className="gradient-text">Keynotes</span>
-          </h1>
-          <div className="w-24 h-1 bg-gradient-to-r from-violet-500 to-luminous-400 mx-auto mb-8"></div>
-          <p className="text-xl text-gray-600 max-w-3xl mx-auto leading-relaxed">
-            Powerful, science-backed presentations that inspire lasting change.
-            Each keynote is customized to meet your organization's specific needs and objectives.
-          </p>
+      {/* Hero Section with Background Image */}
+      <section className="relative min-h-[70vh] flex items-center justify-center overflow-hidden">
+        {/* Background Image */}
+        <div className="absolute inset-0">
+          <div 
+            className="absolute inset-0" 
+            style={{
+              backgroundImage: "url('/lovable-uploads/420a7493-73b2-4bfe-9a3a-9ad3693c0b9a.jpg')",
+              backgroundPosition: "center center",
+              backgroundSize: "cover",
+              backgroundRepeat: "no-repeat"
+            }}
+          ></div>
+          <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/40 to-black/60"></div>
+        </div>
+
+        {/* Content */}
+        <div className="relative z-10 container-max section-padding text-center">
+          <div className="max-w-4xl mx-auto animate-fade-in">
+            <h1 className="text-5xl md:text-6xl lg:text-7xl font-bold mb-6 leading-tight">
+              <span className="bg-gradient-to-r from-luminous-300 to-blush-300 bg-clip-text text-transparent">Transformative</span>
+              <br />
+              <span className="text-white">Keynotes</span>
+            </h1>
+            <div className="w-24 h-1 bg-gradient-to-r from-violet-400 to-luminous-400 mx-auto mb-8"></div>
+            <p className="text-xl md:text-2xl text-gray-100 max-w-3xl mx-auto leading-relaxed mb-8">
+              Powerful, science-backed presentations that inspire lasting change.
+              Each keynote is customized to meet your organization's specific needs and objectives.
+            </p>
+            <Button 
+              className="luminous-button px-8 py-4 text-lg rounded-full"
+              onClick={() => window.location.href = '/contact'}
+            >
+              Book Violet Now
+            </Button>
+          </div>
         </div>
       </section>
 
       {/* Keynotes Listing */}
-      <section className="py-24">
+      <section className="py-24 bg-white">
         <div className="container-max section-padding">
           <div className="space-y-20">
             {keynotes.map((keynote, index) => (
