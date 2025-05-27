@@ -1,3 +1,4 @@
+
 import Navigation from '@/components/Navigation';
 import Footer from '@/components/Footer';
 import { Button } from '@/components/ui/button';
@@ -38,23 +39,23 @@ const Keynotes = () => {
       <Navigation />
       
       {/* Hero Section with Background Image */}
-      <section className="relative min-h-[70vh] flex items-center justify-center overflow-hidden">
+      <section className="relative min-h-screen flex items-center justify-center overflow-hidden">
         {/* Background Image */}
         <div className="absolute inset-0">
           <div 
             className="absolute inset-0" 
             style={{
               backgroundImage: "url('/lovable-uploads/420a7493-73b2-4bfe-9a3a-9ad3693c0b9a.jpg')",
-              backgroundPosition: "center center",
+              backgroundPosition: "center 20%",
               backgroundSize: "cover",
               backgroundRepeat: "no-repeat"
             }}
           ></div>
-          <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/40 to-black/60"></div>
+          <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/30 to-black/50"></div>
         </div>
 
         {/* Content */}
-        <div className="relative z-10 container-max section-padding text-center">
+        <div className="relative z-10 container-max section-padding text-center flex flex-col justify-center min-h-screen pt-32">
           <div className="max-w-4xl mx-auto animate-fade-in">
             <h1 className="text-5xl md:text-6xl lg:text-7xl font-bold mb-6 leading-tight">
               <span className="bg-gradient-to-r from-luminous-300 to-blush-300 bg-clip-text text-transparent">Transformative</span>
