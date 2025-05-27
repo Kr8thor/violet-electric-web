@@ -35,7 +35,7 @@ const IntroBrief = () => {
               </div>
             </div>
             
-            <Button variant="outline" className="border-blush-300 px-6 py-3 rounded-full transition-all duration-300 mx-[150px] bg-violet-600 hover:bg-violet-500 text-violet-600">
+            <Button variant="outline" className="border-blush-300 px-6 py-3 rounded-full transition-all duration-300 mx-[150px] bg-violet-600 hover:bg-violet-500 text-slate-50">
               Learn More About Violet
             </Button>
           </div>
