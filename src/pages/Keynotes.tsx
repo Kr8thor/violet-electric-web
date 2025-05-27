@@ -1,4 +1,5 @@
 
+
 import Navigation from '@/components/Navigation';
 import Footer from '@/components/Footer';
 import { Button } from '@/components/ui/button';
@@ -39,14 +40,14 @@ const Keynotes = () => {
       <Navigation />
       
       {/* Hero Section with Background Image */}
-      <section className="relative min-h-screen flex items-center justify-center overflow-hidden">
+      <section className="relative min-h-screen flex items-end justify-center overflow-hidden">
         {/* Background Image */}
         <div className="absolute inset-0">
           <div 
             className="absolute inset-0" 
             style={{
               backgroundImage: "url('/lovable-uploads/420a7493-73b2-4bfe-9a3a-9ad3693c0b9a.jpg')",
-              backgroundPosition: "center 20%",
+              backgroundPosition: "center 10%",
               backgroundSize: "cover",
               backgroundRepeat: "no-repeat"
             }}
@@ -55,7 +56,7 @@ const Keynotes = () => {
         </div>
 
         {/* Content */}
-        <div className="relative z-10 container-max section-padding text-center flex flex-col justify-center min-h-screen pt-32">
+        <div className="relative z-10 container-max section-padding text-center pb-20">
           <div className="max-w-4xl mx-auto animate-fade-in">
             <h1 className="text-5xl md:text-6xl lg:text-7xl font-bold mb-6 leading-tight">
               <span className="bg-gradient-to-r from-luminous-300 to-blush-300 bg-clip-text text-transparent">Transformative</span>
@@ -146,3 +147,4 @@ const Keynotes = () => {
 };
 
 export default Keynotes;
+
