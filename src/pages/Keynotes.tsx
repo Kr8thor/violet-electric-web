@@ -1,3 +1,4 @@
+
 import Navigation from '@/components/Navigation';
 import Footer from '@/components/Footer';
 import { Button } from '@/components/ui/button';
@@ -45,7 +46,7 @@ const Keynotes = () => {
             className="absolute inset-0" 
             style={{
               backgroundImage: "url('/lovable-uploads/420a7493-73b2-4bfe-9a3a-9ad3693c0b9a.jpg')",
-              backgroundPosition: "center -30%",
+              backgroundPosition: "center -20%",
               backgroundSize: "cover",
               backgroundRepeat: "no-repeat"
             }}
