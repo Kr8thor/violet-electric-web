@@ -1,6 +1,8 @@
+
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Link } from 'react-router-dom';
+
 const Navigation = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const navItems = [{
@@ -19,8 +21,10 @@ const Navigation = () => {
     name: 'Contact',
     href: '/contact'
   }];
-  return <nav className="fixed top-0 left-0 right-0 z-50 bg-white/95 backdrop-blur-sm border-b border-gray-100">
-      <div className="container-max section-padding bg-violet-600">
+
+  return (
+    <nav className="fixed top-0 left-0 right-0 z-50 bg-violet-600 w-full">
+      <div className="container-max section-padding">
         <div className="flex items-center justify-between h-20">
           {/* Logo */}
           <Link to="/" className="flex items-center space-x-3">
@@ -30,10 +34,12 @@ const Navigation = () => {
 
           {/* Desktop Navigation */}
           <div className="hidden md:flex items-center space-x-8">
-            {navItems.map(item => <Link key={item.name} to={item.href} className="text-white hover:text-white font-medium transition-colors duration-200 relative group">
+            {navItems.map(item => (
+              <Link key={item.name} to={item.href} className="text-white hover:text-white font-medium transition-colors duration-200 relative group">
                 {item.name}
                 <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-violet-700 transition-all duration-300 group-hover:w-full"></span>
-              </Link>)}
+              </Link>
+            ))}
             <Button className="luminous-button px-6 py-2 rounded-full">
               Book Violet
             </Button>
@@ -42,23 +48,29 @@ const Navigation = () => {
           {/* Mobile Menu Button */}
           <button className="md:hidden p-2" onClick={() => setIsMenuOpen(!isMenuOpen)}>
             <div className="w-6 h-6 flex flex-col justify-center items-center">
-              <span className={`bg-gray-800 block transition-all duration-300 ease-out h-0.5 w-6 rounded-sm ${isMenuOpen ? 'rotate-45 translate-y-1' : '-translate-y-0.5'}`}></span>
-              <span className={`bg-gray-800 block transition-all duration-300 ease-out h-0.5 w-6 rounded-sm my-0.5 ${isMenuOpen ? 'opacity-0' : 'opacity-100'}`}></span>
-              <span className={`bg-gray-800 block transition-all duration-300 ease-out h-0.5 w-6 rounded-sm ${isMenuOpen ? '-rotate-45 -translate-y-1' : 'translate-y-0.5'}`}></span>
+              <span className={`bg-white block transition-all duration-300 ease-out h-0.5 w-6 rounded-sm ${isMenuOpen ? 'rotate-45 translate-y-1' : '-translate-y-0.5'}`}></span>
+              <span className={`bg-white block transition-all duration-300 ease-out h-0.5 w-6 rounded-sm my-0.5 ${isMenuOpen ? 'opacity-0' : 'opacity-100'}`}></span>
+              <span className={`bg-white block transition-all duration-300 ease-out h-0.5 w-6 rounded-sm ${isMenuOpen ? '-rotate-45 -translate-y-1' : 'translate-y-0.5'}`}></span>
             </div>
           </button>
         </div>
 
         {/* Mobile Menu */}
-        {isMenuOpen && <div className="md:hidden py-4 border-t border-gray-100">
-            {navItems.map(item => <Link key={item.name} to={item.href} className="block py-3 text-gray-600 hover:text-violet-700 font-medium transition-colors duration-200" onClick={() => setIsMenuOpen(false)}>
+        {isMenuOpen && (
+          <div className="md:hidden py-4 border-t border-violet-700">
+            {navItems.map(item => (
+              <Link key={item.name} to={item.href} className="block py-3 text-white hover:text-violet-200 font-medium transition-colors duration-200" onClick={() => setIsMenuOpen(false)}>
                 {item.name}
-              </Link>)}
+              </Link>
+            ))}
             <Button className="luminous-button w-full mt-4 rounded-full">
               Book Violet
             </Button>
-          </div>}
+          </div>
+        )}
       </div>
-    </nav>;
+    </nav>
+  );
 };
+
 export default Navigation;
