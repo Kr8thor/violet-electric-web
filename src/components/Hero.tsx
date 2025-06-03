@@ -42,7 +42,7 @@ const Hero = () => {
             <Button 
               variant="outline" 
               className="px-8 py-4 text-lg rounded-full border-2 border-white/30 hover:bg-white/10 transition-all duration-300 backdrop-blur-sm text-blush-300"
-              onClick={() => window.open('https://www.youtube.com/watch?v=AG2emkNGwVY', '_blank')}
+              onClick={() => window.open('https://www.youtube.com/@VioletRainwater', '_blank')}
             >
               Watch Violet in Action
             </Button>
