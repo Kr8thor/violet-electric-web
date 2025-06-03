@@ -1,0 +1,14 @@
+/*
+Theme Name: Violet Electric
+Theme URI: https://violetrainwater.com/
+Author: Your Name
+Author URI: https://violetrainwater.com/
+Description: Custom theme for Violet Electric, fully integrated with WordPress and styled with Tailwind CSS.
+Version: 1.0
+License: GNU General Public License v2 or later
+License URI: http://www.gnu.org/licenses/gpl-2.0.html
+Text Domain: violet-electric
+Tags: tailwind, custom, multipage
+*/
+
+@import url('https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css'); 
