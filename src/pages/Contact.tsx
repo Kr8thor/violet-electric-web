@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import Navigation from '@/components/Navigation';
 import Footer from '@/components/Footer';
@@ -41,10 +40,27 @@ const Contact = () => {
     e.preventDefault();
     console.log('Form submitted:', formData);
     
+    // Create mailto link with form data
+    const subject = encodeURIComponent(`Speaking Inquiry from ${formData.name}`);
+    const body = encodeURIComponent(`
+Name: ${formData.name}
+Email: ${formData.email}
+Company: ${formData.company}
+Phone: ${formData.phone}
+Event Type: ${formData.eventType}
+Event Date: ${formData.eventDate}
+
+Message:
+${formData.message}
+    `);
+    
+    const mailtoLink = `mailto:violet@violetrainmaker.com?subject=${subject}&body=${body}`;
+    window.location.href = mailtoLink;
+    
     // Display success toast
     toast({
-      title: "Inquiry Sent!",
-      description: "Thank you for your interest. We'll be in touch with you shortly.",
+      title: "Email Client Opened!",
+      description: "Your default email client should now open with the inquiry details. Please send the email to complete your request.",
     });
     
     // Reset form
@@ -204,8 +220,8 @@ const Contact = () => {
                     <Mail className="w-5 h-5 text-violet-600 mt-1 mr-3" />
                     <div>
                       <p className="font-medium text-gray-900">Email</p>
-                      <a href="mailto:bookings@violetrainwater.com" className="text-violet-600 hover:text-violet-800">
-                        bookings@violetrainwater.com
+                      <a href="mailto:violet@violetrainmaker.com" className="text-violet-600 hover:text-violet-800">
+                        violet@violetrainmaker.com
                       </a>
                     </div>
                   </div>

@@ -2,6 +2,8 @@ import Navigation from '@/components/Navigation';
 import Footer from '@/components/Footer';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
+import { Link } from 'react-router-dom';
+
 const Testimonials = () => {
   const testimonials = [{
     quote: "Violet's presentation was nothing short of transformative. Her Channel V framework has become an essential part of our leadership development program, resulting in measurable improvements in communication, innovation, and team cohesion.",
@@ -34,6 +36,7 @@ const Testimonials = () => {
     company: "Transform Leadership Summit",
     featured: false
   }];
+  
   const videoTestimonials = [{
     id: "AG2emkNGwVY",
     title: "Client Success Story - Leadership Transformation",
@@ -47,6 +50,7 @@ const Testimonials = () => {
   // Separate featured testimonials
   const featuredTestimonials = testimonials.filter(t => t.featured);
   const regularTestimonials = testimonials.filter(t => !t.featured);
+  
   return <div className="min-h-screen bg-white">
       <Navigation />
       
@@ -153,13 +157,16 @@ const Testimonials = () => {
           <p className="text-xl text-gray-600 mb-10 max-w-3xl mx-auto">
             Experience the transformative power of Violet's keynotes and workshops at your next event.
           </p>
-          <Button className="luminous-button px-8 py-4 text-lg rounded-full">
-            Contact to Book
-          </Button>
+          <Link to="/contact">
+            <Button className="luminous-button px-8 py-4 text-lg rounded-full">
+              Contact to Book
+            </Button>
+          </Link>
         </div>
       </section>
 
       <Footer />
     </div>;
 };
+
 export default Testimonials;
