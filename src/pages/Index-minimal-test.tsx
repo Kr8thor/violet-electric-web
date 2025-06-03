@@ -1,3 +1,4 @@
+// MINIMAL WORDPRESS TEST - Keep your beautiful design!
 import Navigation from '@/components/Navigation';
 import Hero from '@/components/Hero';
 import IntroBrief from '@/components/IntroBrief';
@@ -6,13 +7,13 @@ import UniqueValue from '@/components/UniqueValue';
 import Newsletter from '@/components/Newsletter';
 import Footer from '@/components/Footer';
 
-// ONLY ADD: Small WordPress status test
+// Add WordPress status component ONLY
 import WordPressBackendStatus from '@/components/WordPressBackendStatus';
 
 const Index = () => {
   return (
     <div className="min-h-screen bg-white">
-      {/* Keep ALL your beautiful design */}
+      {/* Keep all your beautiful components */}
       <Navigation />
       <Hero />
       
@@ -22,8 +23,8 @@ const Index = () => {
       <Newsletter />
       <Footer />
       
-      {/* ONLY ADD: Small status indicator in bottom corner */}
-      <div className="fixed bottom-4 right-4 z-50 max-w-xs opacity-90">
+      {/* ONLY ADD: WordPress status indicator (tiny, bottom-right corner) */}
+      <div className="fixed bottom-4 right-4 z-50 max-w-xs">
         <WordPressBackendStatus />
       </div>
     </div>

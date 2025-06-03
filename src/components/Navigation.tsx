@@ -1,10 +1,12 @@
-
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Link } from 'react-router-dom';
+import { useWordPressSiteContent } from '@/hooks/useWordPressSiteContent';
 
 const Navigation = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const { siteTitle, loading } = useWordPressSiteContent();
+  
   const navItems = [{
     name: 'Home',
     href: '/'
@@ -26,13 +28,15 @@ const Navigation = () => {
     <nav className="fixed top-0 left-0 right-0 z-50 bg-violet-600 w-full">
       <div className="max-w-7xl mx-auto px-6 lg:px-8">
         <div className="flex items-center justify-between h-20">
-          {/* Logo */}
+          {/* Logo - WordPress-powered title but keep exact styling */}
           <Link to="/" className="flex items-center space-x-3">
             <img src="/lovable-uploads/4a037212-f4a5-420d-ad52-9064e5032e1d.png" alt="Violet Rainwater Logo" className="h-12 w-auto" />
-            <span className="text-2xl font-bold gradient-text text-slate-50">Violet Rainwater</span>
+            <span className="text-2xl font-bold gradient-text text-slate-50">
+              {loading ? 'Violet Rainwater' : siteTitle}
+            </span>
           </Link>
 
-          {/* Desktop Navigation */}
+          {/* Desktop Navigation - Keep exactly the same */}
           <div className="hidden md:flex items-center space-x-8">
             {navItems.map(item => (
               <Link key={item.name} to={item.href} className="text-white hover:text-white font-medium transition-colors duration-200 relative group">
@@ -45,7 +49,7 @@ const Navigation = () => {
             </Button>
           </div>
 
-          {/* Mobile Menu Button */}
+          {/* Mobile Menu Button - Keep exactly the same */}
           <button className="md:hidden p-2" onClick={() => setIsMenuOpen(!isMenuOpen)}>
             <div className="w-6 h-6 flex flex-col justify-center items-center">
               <span className={`bg-white block transition-all duration-300 ease-out h-0.5 w-6 rounded-sm ${isMenuOpen ? 'rotate-45 translate-y-1' : '-translate-y-0.5'}`}></span>
@@ -55,7 +59,7 @@ const Navigation = () => {
           </button>
         </div>
 
-        {/* Mobile Menu */}
+        {/* Mobile Menu - Keep exactly the same */}
         {isMenuOpen && (
           <div className="md:hidden py-4 border-t border-violet-700">
             {navItems.map(item => (

@@ -1,8 +1,11 @@
-
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { ApolloProvider } from "@apollo/client";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { client } from "./lib/graphql-client";
+
+// Keep your existing beautiful pages
 import Index from "./pages/Index";
 import About from "./pages/About";
 import Keynotes from "./pages/Keynotes";
@@ -10,23 +13,33 @@ import Testimonials from "./pages/Testimonials";
 import Contact from "./pages/Contact";
 import NotFound from "./pages/NotFound";
 
+// Debug component (remove in production)
+import WordPressBackendStatus from "./components/WordPressBackendStatus";
+
 const queryClient = new QueryClient();
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
-    <Toaster />
-    <Sonner />
-    <BrowserRouter>
-      <Routes>
-        <Route path="/" element={<Index />} />
-        <Route path="/about" element={<About />} />
-        <Route path="/keynotes" element={<Keynotes />} />
-        <Route path="/testimonials" element={<Testimonials />} />
-        <Route path="/contact" element={<Contact />} />
-        {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-        <Route path="*" element={<NotFound />} />
-      </Routes>
-    </BrowserRouter>
+    <ApolloProvider client={client}>
+      <Toaster />
+      <Sonner />
+      <BrowserRouter>
+        <Routes>
+          {/* Keep your exact same routing - just WordPress-powered content */}
+          <Route path="/" element={<Index />} />
+          <Route path="/about" element={<About />} />
+          <Route path="/keynotes" element={<Keynotes />} />
+          <Route path="/testimonials" element={<Testimonials />} />
+          <Route path="/contact" element={<Contact />} />
+          <Route path="*" element={<NotFound />} />
+        </Routes>
+
+        {/* Debug status - remove in production */}
+        <div className="fixed bottom-4 right-4 z-50">
+          <WordPressBackendStatus />
+        </div>
+      </BrowserRouter>
+    </ApolloProvider>
   </QueryClientProvider>
 );
 
