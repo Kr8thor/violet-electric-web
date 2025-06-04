@@ -59,14 +59,16 @@
   to = "/index.html"
   status = 200
 
-# Security headers
+# Security headers - FIXED for iframe embedding
 [[headers]]
   for = "/*"
   [headers.values]
-    X-Frame-Options = "DENY"
+    X-Frame-Options = "SAMEORIGIN"
     X-XSS-Protection = "1; mode=block"
     X-Content-Type-Options = "nosniff"
     Referrer-Policy = "strict-origin-when-cross-origin"
+    # Allow iframe embedding from WordPress admin
+    Content-Security-Policy = "frame-ancestors 'self' https://wp.violetrainwater.com https://violetrainwater.com"
 
 # Cache control for static assets
 [[headers]]
