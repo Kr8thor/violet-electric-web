@@ -1,6 +1,7 @@
 import Navigation from '@/components/Navigation';
 import Footer from '@/components/Footer';
 import { Button } from '@/components/ui/button';
+import { Link } from 'react-router-dom';
 
 const Keynotes = () => {
   const keynotes = [
@@ -66,12 +67,11 @@ const Keynotes = () => {
               Powerful, science-backed presentations that inspire lasting change.
               Each keynote is customized to meet your organization's specific needs and objectives.
             </p>
-            <Button 
-              className="luminous-button px-8 py-4 text-lg rounded-full"
-              onClick={() => window.location.href = '/contact'}
-            >
-              Book Violet Now
-            </Button>
+            <Link to="/contact">
+              <Button className="luminous-button px-8 py-4 text-lg rounded-full">
+                Book Violet Now
+              </Button>
+            </Link>
           </div>
         </div>
       </section>
@@ -108,12 +108,14 @@ const Keynotes = () => {
                   </div>
                   
                   <div className="pt-6">
-                    <Button 
-                      variant="outline" 
-                      className="border-violet-200 text-violet-700 hover:bg-violet-50"
-                    >
-                      Inquire About This Keynote
-                    </Button>
+                    <Link to="/contact">
+                      <Button 
+                        variant="outline" 
+                        className="border-violet-200 text-violet-700 hover:bg-violet-50"
+                      >
+                        Inquire About This Keynote
+                      </Button>
+                    </Link>
                   </div>
                 </div>
                 
@@ -132,9 +134,11 @@ const Keynotes = () => {
               Bring Violet's electrifying presence and transformative insights to your organization. 
               All keynotes can be customized for virtual or in-person delivery.
             </p>
-            <Button className="luminous-button px-8 py-4 text-lg rounded-full">
-              Book Violet
-            </Button>
+            <Link to="/contact">
+              <Button className="luminous-button px-8 py-4 text-lg rounded-full">
+                Book Violet
+              </Button>
+            </Link>
           </div>
         </div>
       </section>

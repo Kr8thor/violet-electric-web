@@ -1,7 +1,7 @@
-
 import Navigation from '@/components/Navigation';
 import Footer from '@/components/Footer';
 import { Button } from '@/components/ui/button';
+import { Link } from 'react-router-dom';
 
 const About = () => {
   const channels = [
@@ -172,9 +172,11 @@ const About = () => {
 
           <div className="text-center mt-16">
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
-              <Button className="luminous-button px-8 py-4 text-lg rounded-full">
-                Book Violet to Speak
-              </Button>
+              <Link to="/contact">
+                <Button className="luminous-button px-8 py-4 text-lg rounded-full">
+                  Book Violet to Speak
+                </Button>
+              </Link>
               <Button variant="outline" className="px-8 py-4 text-lg rounded-full border-blush-200 text-violet-700 hover:bg-blush-50">
                 Download Speaker Kit
               </Button>

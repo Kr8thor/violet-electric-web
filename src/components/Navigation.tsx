@@ -44,9 +44,11 @@ const Navigation = () => {
                 <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-violet-700 transition-all duration-300 group-hover:w-full"></span>
               </Link>
             ))}
-            <Button className="luminous-button px-6 py-2 rounded-full">
-              Book Violet
-            </Button>
+            <Link to="/contact">
+              <Button className="luminous-button px-6 py-2 rounded-full">
+                Book Violet
+              </Button>
+            </Link>
           </div>
 
           {/* Mobile Menu Button - Keep exactly the same */}
@@ -67,9 +69,11 @@ const Navigation = () => {
                 {item.name}
               </Link>
             ))}
-            <Button className="luminous-button w-full mt-4 rounded-full">
-              Book Violet
-            </Button>
+            <Link to="/contact" onClick={() => setIsMenuOpen(false)}>
+              <Button className="luminous-button w-full mt-4 rounded-full">
+                Book Violet
+              </Button>
+            </Link>
           </div>
         )}
       </div>
