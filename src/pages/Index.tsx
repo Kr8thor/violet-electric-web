@@ -7,7 +7,7 @@ import Newsletter from '@/components/Newsletter';
 import Footer from '@/components/Footer';
 
 // ONLY ADD: Small WordPress status test
-import WordPressBackendStatus from '@/components/WordPressBackendStatus';
+// import WordPressBackendStatus from '@/components/WordPressBackendStatus';
 
 const Index = () => {
   return (
@@ -23,9 +23,9 @@ const Index = () => {
       <Footer />
       
       {/* ONLY ADD: Small status indicator in bottom corner */}
-      <div className="fixed bottom-4 right-4 z-50 max-w-xs opacity-90">
+      {/* <div className="fixed bottom-4 right-4 z-50 max-w-xs opacity-90">
         <WordPressBackendStatus />
-      </div>
+      </div> */}
     </div>
   );
 };

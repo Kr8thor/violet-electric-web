@@ -14,7 +14,7 @@ import Contact from "./pages/Contact";
 import NotFound from "./pages/NotFound";
 
 // Debug component (remove in production)
-import WordPressBackendStatus from "./components/WordPressBackendStatus";
+// import WordPressBackendStatus from "./components/WordPressBackendStatus";
 
 // WordPress Editor Communication
 import WordPressEditor from "./components/WordPressEditor/EditingOverlay";
@@ -41,9 +41,9 @@ const App = () => (
         <WordPressEditor />
 
         {/* Debug status - remove in production */}
-        <div className="fixed bottom-4 right-4 z-50">
+        {/* <div className="fixed bottom-4 right-4 z-50">
           <WordPressBackendStatus />
-        </div>
+        </div> */}
       </BrowserRouter>
     </ApolloProvider>
   </QueryClientProvider>
