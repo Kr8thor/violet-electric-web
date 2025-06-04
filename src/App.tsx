@@ -16,6 +16,9 @@ import NotFound from "./pages/NotFound";
 // Debug component (remove in production)
 import WordPressBackendStatus from "./components/WordPressBackendStatus";
 
+// WordPress Editor Communication
+import WordPressEditor from "./components/WordPressEditor/EditingOverlay";
+
 const queryClient = new QueryClient();
 
 const App = () => (
@@ -33,6 +36,9 @@ const App = () => (
           <Route path="/contact" element={<Contact />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
+
+        {/* WordPress Editor Communication - Invisible component */}
+        <WordPressEditor />
 
         {/* Debug status - remove in production */}
         <div className="fixed bottom-4 right-4 z-50">
