@@ -18,6 +18,7 @@ import NotFound from "./pages/NotFound";
 
 // WordPress Editor Communication
 import WordPressEditor from "./components/WordPressEditor";
+import WordPressRichEditor from "./components/WordPressRichEditor";
 
 const queryClient = new QueryClient();
 
@@ -39,6 +40,9 @@ const App = () => (
 
         {/* WordPress Editor Communication - Invisible component */}
         <WordPressEditor />
+        
+        {/* Rich Text Editor - Enhanced editing capabilities */}
+        <WordPressRichEditor />
 
         {/* Debug status - remove in production */}
         {/* <div className="fixed bottom-4 right-4 z-50">

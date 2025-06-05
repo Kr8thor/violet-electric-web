@@ -1,0 +1,288 @@
+/* Rich Text Editor Toolbar Styles */
+.violet-editor-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 8px 12px;
+  background: white;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15), 
+              0 0 0 1px rgba(0, 0, 0, 0.05);
+  min-width: 500px;
+  animation: fadeInUp 0.2s ease-out;
+  backdrop-filter: blur(10px);
+  background: rgba(255, 255, 255, 0.95);
+}
+
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateX(-50%) translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+  }
+}
+
+.toolbar-section {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.toolbar-divider {
+  width: 1px;
+  height: 24px;
+  background: #e0e0e0;
+  margin: 0 4px;
+}
+
+.toolbar-btn {
+  width: 32px;
+  height: 32px;
+  border: none;
+  background: transparent;
+  border-radius: 4px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  color: #333;
+  transition: all 0.2s ease;
+  position: relative;
+}
+
+.toolbar-btn:hover {
+  background: #f0f0f0;
+  transform: scale(1.05);
+}
+
+.toolbar-btn:active {
+  transform: scale(0.95);
+  background: #e0e0e0;
+}
+
+.toolbar-select {
+  height: 32px;
+  padding: 4px 8px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  background: white;
+  font-size: 12px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  min-width: 100px;
+}
+
+.toolbar-select:hover {
+  border-color: #0073aa;
+}
+
+.toolbar-select:focus {
+  outline: none;
+  border-color: #0073aa;
+  box-shadow: 0 0 0 2px rgba(0, 115, 170, 0.1);
+}
+
+.toolbar-input {
+  width: 50px;
+  height: 32px;
+  padding: 4px 8px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  background: white;
+  font-size: 12px;
+  text-align: center;
+  transition: all 0.2s ease;
+}
+
+.toolbar-input:hover {
+  border-color: #0073aa;
+}
+
+.toolbar-input:focus {
+  outline: none;
+  border-color: #0073aa;
+  box-shadow: 0 0 0 2px rgba(0, 115, 170, 0.1);
+}
+
+/* Color Picker Styles */
+.color-picker-wrapper {
+  position: relative;
+}
+
+.color-btn span {
+  font-weight: bold;
+  font-size: 16px;
+}
+
+.color-picker-dropdown {
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  margin-top: 4px;
+  padding: 8px;
+  background: white;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  gap: 4px;
+  z-index: 1000;
+}
+
+.color-swatch {
+  width: 24px;
+  height: 24px;
+  border: 1px solid rgba(0, 0, 0, 0.1);
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.color-swatch:hover {
+  transform: scale(1.2);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+}
+
+/* Enhanced Editable Elements */
+[data-violet-editable="true"] {
+  transition: all 0.2s ease;
+  position: relative;
+}
+
+[data-violet-editable="true"]:hover {
+  background-color: rgba(0, 115, 170, 0.05);
+}
+
+[data-violet-editable="true"]:focus {
+  outline: 2px solid #0073aa !important;
+  outline-offset: 4px !important;
+  background-color: rgba(0, 115, 170, 0.02);
+}
+
+/* Floating toolbar arrow */
+.violet-editor-toolbar::before {
+  content: '';
+  position: absolute;
+  bottom: -8px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 0;
+  height: 0;
+  border-left: 8px solid transparent;
+  border-right: 8px solid transparent;
+  border-top: 8px solid white;
+  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.1));
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .violet-editor-toolbar {
+    min-width: auto;
+    max-width: 90vw;
+    flex-wrap: wrap;
+  }
+  
+  .toolbar-section {
+    flex-wrap: wrap;
+  }
+}
+
+/* Dark mode support */
+@media (prefers-color-scheme: dark) {
+  .violet-editor-toolbar {
+    background: rgba(30, 30, 30, 0.95);
+    border-color: #444;
+    color: #fff;
+  }
+  
+  .toolbar-btn {
+    color: #fff;
+  }
+  
+  .toolbar-btn:hover {
+    background: #444;
+  }
+  
+  .toolbar-select,
+  .toolbar-input {
+    background: #333;
+    border-color: #555;
+    color: #fff;
+  }
+  
+  .color-picker-dropdown {
+    background: #333;
+    border-color: #444;
+  }
+  
+  .violet-editor-toolbar::before {
+    border-top-color: #333;
+  }
+}
+
+/* Loading state */
+.violet-editor-loading {
+  opacity: 0.6;
+  pointer-events: none;
+}
+
+/* Success animation */
+@keyframes saveSuccess {
+  0% { transform: scale(1); }
+  50% { transform: scale(1.1); }
+  100% { transform: scale(1); }
+}
+
+.violet-save-success {
+  animation: saveSuccess 0.3s ease-out;
+}
+
+/* Alignment icons (better than text) */
+.toolbar-btn[title="Align Left"]::before {
+  content: '≡';
+  font-size: 18px;
+  transform: scaleX(-1);
+}
+
+.toolbar-btn[title="Align Center"]::before {
+  content: '≡';
+  font-size: 18px;
+}
+
+.toolbar-btn[title="Align Right"]::before {
+  content: '≡';
+  font-size: 18px;
+}
+
+.toolbar-btn[title="Justify"]::before {
+  content: '☰';
+  font-size: 18px;
+}
+
+/* Keyboard hints */
+.toolbar-btn[title*="Ctrl"]::after {
+  content: attr(title);
+  position: absolute;
+  bottom: -30px;
+  left: 50%;
+  transform: translateX(-50%) scale(0);
+  background: rgba(0, 0, 0, 0.8);
+  color: white;
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 11px;
+  white-space: nowrap;
+  pointer-events: none;
+  transition: all 0.2s ease;
+}
+
+.toolbar-btn[title*="Ctrl"]:hover::after {
+  transform: translateX(-50%) scale(1);
+}
