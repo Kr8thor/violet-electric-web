@@ -1,5 +1,5 @@
-// EditingOverlay.tsx - Phase 2 Complete Implementation with Inline Editing
-// This integrates Phase 1 enhanced detection with Phase 2 inline editing capabilities
+// Enhanced EditingOverlay.tsx - Fixed WordPress Communication
+// This fixes the direct editing issues with proper iframe communication
 
 import React, { useState, useCallback, useEffect, useRef, useMemo } from 'react';
 import { EnhancedFieldDetector, FieldDetection } from './EnhancedFieldDetector';
@@ -7,7 +7,7 @@ import { InlineEditor } from './InlineEditor';
 import { SaveStatusIndicator, useUnsavedChangesWarning } from './SaveStatusIndicator';
 import { useContentEditorPerformance } from './PerformanceHooks';
 
-// Types for the editing system
+// Enhanced types for better WordPress integration
 interface EditingState {
   activeField: string | null;
   inlineEditor: {
@@ -19,49 +19,48 @@ interface EditingState {
     position: { top: number; left: number; width: number; height: number };
   } | null;
   hoveredField: string | null;
+  wordPressConnected: boolean;
+  editModeActive: boolean;
 }
 
 interface EditingConfig {
   isEnabled: boolean;
   detectedFields: Map<HTMLElement, FieldDetection>;
   scanInProgress: boolean;
+  debugMode: boolean;
 }
 
-interface PerformanceState {
-  optimisticUpdates: Map<string, { original: string; current: string; timestamp: Date }>;
-  pendingSaves: Set<string>;
-  saveQueue: Array<{ fieldId: string; value: string; fieldType: string }>;
-}
-
-// Main EditingOverlay Component - Phase 2 Complete
+// Main EditingOverlay Component - Enhanced WordPress Integration
 export const EditingOverlay: React.FC = () => {
-  // Core state
+  // Enhanced state management
   const [config, setConfig] = useState<EditingConfig>({
     isEnabled: false,
     detectedFields: new Map(),
-    scanInProgress: false
+    scanInProgress: false,
+    debugMode: false
   });
   
   const [editingState, setEditingState] = useState<EditingState>({
     activeField: null,
     inlineEditor: null,
-    hoveredField: null
+    hoveredField: null,
+    wordPressConnected: false,
+    editModeActive: false
   });
 
-  // Refs
+  // Refs for better performance
   const detectorRef = useRef<EnhancedFieldDetector>();
   const fieldElementsRef = useRef<Map<string, HTMLElement>>(new Map());
-  const scanTimeoutRef = useRef<NodeJS.Timeout>();
   const observerRef = useRef<MutationObserver>();
+  const communicationRef = useRef<boolean>(false);
 
-  // Performance management with integrated hooks
+  // Performance management
   const performanceManager = useContentEditorPerformance(
     async (data: { fieldId: string; value: string; fieldType: string }) => {
-      // Send to WordPress
       await saveToWordPress(data.fieldId, data.value, data.fieldType);
       performanceManager.confirmSave(data.fieldId);
     },
-    1000 // 1 second debounce
+    1000
   );
 
   // Unsaved changes warning
@@ -72,31 +71,149 @@ export const EditingOverlay: React.FC = () => {
   // Initialize detector
   useEffect(() => {
     detectorRef.current = new EnhancedFieldDetector();
+    
+    // Debug logging
+    if (typeof window !== 'undefined') {
+      const isInIframe = window.parent !== window.self;
+      const hasEditParam = new URLSearchParams(window.location.search).has('edit_mode');
+      
+      console.log('🎨 Violet Editor: Component initialized', {
+        isInIframe,
+        hasEditParam,
+        url: window.location.href,
+        timestamp: new Date().toISOString()
+      });
+      
+      setConfig(prev => ({ ...prev, debugMode: isInIframe || hasEditParam }));
+    }
   }, []);
 
-  // Enhanced Field Detection (expanded from Phase 1)
+  // Enhanced Field Detection with WordPress compatibility
   const detectFieldType = useCallback((element: HTMLElement, text: string): FieldDetection => {
     if (!detectorRef.current) {
       return {
-        type: 'unknown',
-        confidence: 0,
+        type: 'generic_text',
+        confidence: 0.5,
         priority: 'low',
         editStrategy: 'inline',
-        description: 'Detector not initialized'
+        description: 'Generic text content'
       };
     }
-    return detectorRef.current.detectField(element);
+    
+    // Enhanced detection for WordPress editor compatibility
+    const tagName = element.tagName.toLowerCase();
+    const textLower = text.toLowerCase();
+    const classes = element.className.toLowerCase();
+    const id = element.id.toLowerCase();
+    
+    // Hero section detection
+    if (tagName === 'h1' || textLower.includes('change the channel') || 
+        textLower.includes('violet rainwater') || classes.includes('hero')) {
+      return {
+        type: 'hero_title',
+        confidence: 0.95,
+        priority: 'high',
+        editStrategy: 'inline',
+        description: 'Main hero title'
+      };
+    }
+    
+    if (textLower.includes('transform your potential') || 
+        textLower.includes('neuroscience-backed') ||
+        (classes.includes('hero') && tagName === 'p')) {
+      return {
+        type: 'hero_subtitle',
+        confidence: 0.9,
+        priority: 'high',
+        editStrategy: 'inline',
+        description: 'Hero subtitle text'
+      };
+    }
+    
+    if ((tagName === 'button' || tagName === 'a') && 
+        (textLower.includes('book') || textLower.includes('get started') || 
+         textLower.includes('learn more'))) {
+      return {
+        type: 'hero_cta',
+        confidence: 0.85,
+        priority: 'medium',
+        editStrategy: 'inline',
+        description: 'Call-to-action button'
+      };
+    }
+    
+    // Contact information
+    if (text.includes('@') && text.includes('.')) {
+      return {
+        type: 'contact_email',
+        confidence: 0.9,
+        priority: 'medium',
+        editStrategy: 'inline',
+        description: 'Email address'
+      };
+    }
+    
+    if (text.match(/[\d\s\(\)\-\+]{7,}/) && !text.includes('@')) {
+      return {
+        type: 'contact_phone',
+        confidence: 0.8,
+        priority: 'medium',
+        editStrategy: 'inline',
+        description: 'Phone number'
+      };
+    }
+    
+    // Navigation
+    if (element.closest('nav') || classes.includes('nav') || id.includes('nav')) {
+      return {
+        type: 'navigation_item',
+        confidence: 0.8,
+        priority: 'medium',
+        editStrategy: 'inline',
+        description: 'Navigation menu item'
+      };
+    }
+    
+    // SEO headings
+    if (tagName.startsWith('h') && (textLower.includes('about') || 
+        textLower.includes('service') || textLower.includes('contact'))) {
+      return {
+        type: 'seo_heading',
+        confidence: 0.8,
+        priority: 'medium',
+        editStrategy: 'inline',
+        description: 'SEO section heading'
+      };
+    }
+    
+    // Default fallback
+    return {
+      type: 'generic_text',
+      confidence: 0.6,
+      priority: 'low',
+      editStrategy: 'inline',
+      description: 'General text content'
+    };
   }, []);
 
-  // Get visual styling based on priority and confidence
-  const getVisualStyling = useCallback((priority: string, confidence: number, isHovered: boolean) => {
-    const baseOpacity = isHovered ? 0.8 : Math.min(0.6, confidence + 0.2);
-    const hoverOpacity = isHovered ? 0.2 : 0.05;
+  // Enhanced visual styling with better visibility
+  const getVisualStyling = useCallback((priority: string, confidence: number, isHovered: boolean, isActive: boolean) => {
+    if (isActive) {
+      return {
+        outline: '3px solid #00a32a',
+        backgroundColor: 'rgba(0, 163, 42, 0.1)',
+        cursor: 'text',
+        transition: 'all 0.2s ease-in-out'
+      };
+    }
+    
+    const baseOpacity = isHovered ? 0.8 : Math.min(0.7, confidence + 0.3);
+    const hoverOpacity = isHovered ? 0.15 : 0.05;
     
     const colors = {
-      high: { border: '239, 68, 68', bg: '239, 68, 68' }, // red
+      high: { border: '0, 115, 170', bg: '0, 115, 170' }, // WordPress blue
       medium: { border: '245, 158, 11', bg: '245, 158, 11' }, // amber
-      low: { border: '59, 130, 246', bg: '59, 130, 246' } // blue
+      low: { border: '107, 114, 128', bg: '107, 114, 128' } // gray
     };
 
     const color = colors[priority as keyof typeof colors] || colors.low;
@@ -110,41 +227,76 @@ export const EditingOverlay: React.FC = () => {
     };
   }, []);
 
-  // Scan for editable fields
+  // Enhanced field scanning with better element selection
   const scanForFields = useCallback(() => {
     if (!config.isEnabled || !detectorRef.current) return;
 
     setConfig(prev => ({ ...prev, scanInProgress: true }));
 
     try {
-      const detections = detectorRef.current.detectAllFields();
+      // Enhanced selectors for better detection
+      const selectors = [
+        'h1', 'h2', 'h3', 'h4', 'h5', 'h6',
+        'p:not(.violet-ignore)',
+        'span:not(.icon):not([class*="icon"]):not(.violet-ignore)',
+        'a:not(.violet-ignore)',
+        'button:not(.violet-ignore)',
+        '[data-editable="true"]',
+        '.editable-text'
+      ];
       
-      // Process detected fields
+      const newFieldMap = new Map<HTMLElement, FieldDetection>();
       fieldElementsRef.current.clear();
-      let index = 0;
-      detections.forEach((detection, element) => {
-        const fieldId = `field-${index}-${Date.now()}`;
-        fieldElementsRef.current.set(fieldId, element);
-        index++;
+      
+      let fieldIndex = 0;
+      
+      selectors.forEach(selector => {
+        const elements = document.querySelectorAll(selector);
+        elements.forEach((element: Element) => {
+          const htmlElement = element as HTMLElement;
+          const text = htmlElement.textContent?.trim() || '';
+          
+          // Enhanced filtering
+          if (text && 
+              text.length > 2 && 
+              text.length < 500 && 
+              !htmlElement.querySelector('img, svg, iframe, video') &&
+              !htmlElement.closest('script, style, noscript, .violet-ignore, .violet-editing-indicator') &&
+              !htmlElement.dataset.violetEditable &&
+              !htmlElement.classList.contains('violet-ignore')) {
+            
+            const detection = detectFieldType(htmlElement, text);
+            
+            // Only include fields with reasonable confidence
+            if (detection.confidence > 0.3) {
+              const fieldId = `field-${fieldIndex}-${Date.now()}`;
+              fieldElementsRef.current.set(fieldId, htmlElement);
+              newFieldMap.set(htmlElement, detection);
+              htmlElement.dataset.violetFieldId = fieldId;
+              htmlElement.dataset.violetEditable = 'true';
+              fieldIndex++;
+            }
+          }
+        });
       });
 
       setConfig(prev => ({
         ...prev,
-        detectedFields: detections,
+        detectedFields: newFieldMap,
         scanInProgress: false
       }));
 
-      console.log(`Phase 2: Detected ${detections.size} editable fields`);
+      console.log(`✅ Detected ${newFieldMap.size} editable fields`);
 
     } catch (error) {
-      console.error('Field detection error:', error);
+      console.error('❌ Field detection error:', error);
       setConfig(prev => ({ ...prev, scanInProgress: false }));
     }
-  }, [config.isEnabled]);
+  }, [config.isEnabled, detectFieldType]);
 
-  // Add visual indicators to elements
+  // Enhanced visual indicators
   const addVisualIndicators = useCallback(() => {
-    if (!config.isEnabled) return;
+    if (!config.isEnabled || !editingState.editModeActive) return;
 
     fieldElementsRef.current.forEach((element, fieldId) => {
       const text = element.textContent?.trim() || '';
@@ -152,33 +304,25 @@ export const EditingOverlay: React.FC = () => {
       const isHovered = editingState.hoveredField === fieldId;
       const isActive = editingState.activeField === fieldId;
       
-      // Remove existing styles
-      Object.assign(element.style, {
-        outline: '',
-        backgroundColor: '',
-        cursor: '',
-        transition: ''
-      });
-      
-      // Don't style active inline editing field
+      // Skip if inline editing is active
       if (isActive && editingState.inlineEditor) {
         return;
       }
       
-      // Apply visual styling
-      const styling = getVisualStyling(detection.priority, detection.confidence, isHovered);
+      // Apply enhanced styling
+      const styling = getVisualStyling(detection.priority, detection.confidence, isHovered, isActive);
       Object.assign(element.style, styling);
       
-      // Add tooltip on hover
+      // Enhanced tooltip
       if (isHovered) {
-        element.title = `✏️ ${detection.description} (${Math.round(detection.confidence * 100)}% confidence)`;
+        element.title = `✏️ ${detection.description} (${Math.round(detection.confidence * 100)}% confidence) - Click to edit`;
       } else {
         element.removeAttribute('title');
       }
     });
-  }, [config.isEnabled, editingState.hoveredField, editingState.activeField, detectFieldType, getVisualStyling]);
+  }, [config.isEnabled, editingState.editModeActive, editingState.hoveredField, editingState.activeField, editingState.inlineEditor, detectFieldType, getVisualStyling]);
 
-  // Event handlers
+  // Enhanced event handlers
   const handleFieldHover = useCallback((fieldId: string | null) => {
     setEditingState(prev => ({
       ...prev,
@@ -187,34 +331,19 @@ export const EditingOverlay: React.FC = () => {
   }, []);
 
   const handleFieldClick = useCallback((fieldId: string, element: HTMLElement) => {
+    if (!editingState.editModeActive) return;
+    
     const text = element.textContent?.trim() || '';
     const detection = detectFieldType(element, text);
     
-    console.log('Field clicked:', { fieldId, type: detection.type, strategy: detection.editStrategy, text });
+    console.log('🖱️ Field clicked for editing:', { 
+      fieldId, 
+      type: detection.type, 
+      text: text.substring(0, 50) + '...',
+      confidence: detection.confidence 
+    });
     
-    if (detection.editStrategy === 'modal') {
-      // Send to WordPress for modal editing
-      sendToWordPress('open-modal-editor', {
-        fieldId,
-        fieldType: detection.type,
-        content: text,
-        confidence: detection.confidence
-      });
-      return;
-    }
-    
-    if (detection.editStrategy === 'specialized') {
-      // Send to WordPress for specialized editing
-      sendToWordPress('open-specialized-editor', {
-        fieldId,
-        fieldType: detection.type,
-        element: element.outerHTML,
-        confidence: detection.confidence
-      });
-      return;
-    }
-    
-    // Inline editing - Phase 2 feature
+    // Always use inline editing for now (can be enhanced later)
     const rect = element.getBoundingClientRect();
     const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
     const scrollLeft = window.pageXOffset || document.documentElement.scrollLeft;
@@ -237,16 +366,27 @@ export const EditingOverlay: React.FC = () => {
       }
     }));
     
-    // Hide the original element
-    element.style.opacity = '0.2';
+    // Dim the original element
+    element.style.opacity = '0.3';
     
-  }, [detectFieldType]);
+    // Send edit request to WordPress
+    sendToWordPress('edit-request', {
+      fieldId,
+      fieldType: detection.type,
+      text,
+      confidence: detection.confidence,
+      element: element.tagName
+    });
+    
+  }, [editingState.editModeActive, detectFieldType]);
 
-  // Inline editor handlers
+  // Enhanced inline editor handlers
   const handleInlineEditorSave = useCallback(async (newValue: string) => {
     if (!editingState.inlineEditor) return;
     
     const { fieldId, element, initialValue, fieldType } = editingState.inlineEditor;
+    
+    console.log('💾 Saving content:', { fieldId, fieldType, newValue });
     
     // Optimistic update
     performanceManager.updateContent(fieldId, newValue, initialValue, fieldType);
@@ -262,6 +402,14 @@ export const EditingOverlay: React.FC = () => {
       inlineEditor: null
     }));
     
+    // Send to WordPress for saving
+    sendToWordPress('save-content', {
+      fieldId,
+      fieldType,
+      value: newValue,
+      originalValue: initialValue
+    });
+    
   }, [editingState.inlineEditor, performanceManager]);
 
   const handleInlineEditorCancel = useCallback(() => {
@@ -274,17 +422,27 @@ export const EditingOverlay: React.FC = () => {
       activeField: null,
       inlineEditor: null
     }));
+    
+    console.log('❌ Edit cancelled');
   }, [editingState.inlineEditor]);
 
-  // WordPress communication
+  // Enhanced WordPress communication
   const sendToWordPress = useCallback((action: string, data: any) => {
     if (window.parent && window.parent !== window) {
-      window.parent.postMessage({
+      const message = {
         type: `violet-${action}`,
-        data
-      }, '*');
+        data,
+        timestamp: new Date().toISOString(),
+        source: 'react-app'
+      };
+      
+      window.parent.postMessage(message, '*');
+      
+      if (config.debugMode) {
+        console.log('📤 Sent to WordPress:', message);
+      }
     }
-  }, []);
+  }, [config.debugMode]);
 
   const saveToWordPress = useCallback(async (fieldId: string, value: string, fieldType: string): Promise<void> => {
     return new Promise((resolve, reject) => {
@@ -294,8 +452,10 @@ export const EditingOverlay: React.FC = () => {
         if (event.data.type === 'violet-save-response' && event.data.id === messageId) {
           window.removeEventListener('message', handleResponse);
           if (event.data.success) {
+            console.log('✅ WordPress save successful');
             resolve();
           } else {
+            console.error('❌ WordPress save failed:', event.data.error);
             reject(new Error(event.data.error || 'Save failed'));
           }
         }
@@ -318,9 +478,9 @@ export const EditingOverlay: React.FC = () => {
     });
   }, [sendToWordPress]);
 
-  // Set up event listeners
+  // Enhanced event listeners
   useEffect(() => {
-    if (!config.isEnabled) return;
+    if (!config.isEnabled || !editingState.editModeActive) return;
 
     const handleClick = (e: MouseEvent) => {
       const target = e.target as HTMLElement;
@@ -337,6 +497,8 @@ export const EditingOverlay: React.FC = () => {
     };
 
     const handleMouseOver = (e: MouseEvent) => {
+      if (!editingState.editModeActive) return;
+      
       const target = e.target as HTMLElement;
       
       for (const [fieldId, element] of fieldElementsRef.current.entries()) {
@@ -355,35 +517,41 @@ export const EditingOverlay: React.FC = () => {
       document.removeEventListener('click', handleClick, true);
       document.removeEventListener('mouseover', handleMouseOver);
     };
-  }, [config.isEnabled, handleFieldClick, handleFieldHover]);
+  }, [config.isEnabled, editingState.editModeActive, handleFieldClick, handleFieldHover]);
 
   // Update visual indicators when state changes
   useEffect(() => {
     addVisualIndicators();
   }, [addVisualIndicators]);
 
-  // Scan for fields when editing is enabled
+  // Enhanced DOM observer
   useEffect(() => {
-    if (config.isEnabled) {
+    if (config.isEnabled && editingState.editModeActive) {
       scanForFields();
-      // Set up mutation observer to re-scan when DOM changes
+      
+      // Set up mutation observer
       observerRef.current = new MutationObserver(() => {
-        setTimeout(scanForFields, 100); // Debounce
+        setTimeout(scanForFields, 100);
       });
+      
       observerRef.current.observe(document.body, {
         childList: true,
-        subtree: true
+        subtree: true,
+        characterData: true
       });
     } else {
-      // Clear visual indicators
+      // Clear all editing styles
       fieldElementsRef.current.forEach((element) => {
         Object.assign(element.style, {
           outline: '',
           backgroundColor: '',
           cursor: '',
-          transition: ''
+          transition: '',
+          opacity: ''
         });
         element.removeAttribute('title');
+        delete element.dataset.violetFieldId;
+        delete element.dataset.violetEditable;
       });
       fieldElementsRef.current.clear();
       
@@ -397,29 +565,69 @@ export const EditingOverlay: React.FC = () => {
         observerRef.current.disconnect();
       }
     };
-  }, [config.isEnabled, scanForFields]);
+  }, [config.isEnabled, editingState.editModeActive, scanForFields]);
 
-  // Listen for WordPress messages
+  // Enhanced WordPress message handling
   useEffect(() => {
     const handleMessage = (event: MessageEvent) => {
+      // Enhanced security check
+      const allowedDomains = ['violetrainwater.com', 'wp.violetrainwater.com'];
+      const originDomain = event.origin.replace(/^https?:\/\//, '');
+      
+      if (!allowedDomains.some(domain => originDomain.includes(domain))) {
+        return;
+      }
+      
+      if (config.debugMode) {
+        console.log('📨 Received from WordPress:', event.data);
+      }
+      
       switch (event.data.type) {
-        case 'violet-enable-edit-mode':
+        case 'violet-enable-editing':
+          console.log('✏️ WordPress enabled editing mode');
+          setEditingState(prev => ({
+            ...prev,
+            editModeActive: true,
+            wordPressConnected: true
+          }));
           setConfig(prev => ({ ...prev, isEnabled: true }));
           break;
-        case 'violet-disable-edit-mode':
-          setConfig(prev => ({ ...prev, isEnabled: false }));
-          setEditingState({
+          
+        case 'violet-disable-editing':
+          console.log('🔒 WordPress disabled editing mode');
+          setEditingState(prev => ({
+            ...prev,
+            editModeActive: false,
             activeField: null,
             inlineEditor: null,
             hoveredField: null
-          });
+          }));
+          setConfig(prev => ({ ...prev, isEnabled: false }));
           break;
-        case 'violet-get-status':
-          sendToWordPress('status-response', {
-            editingEnabled: config.isEnabled,
-            fieldsDetected: fieldElementsRef.current.size,
-            optimisticUpdates: performanceManager.optimisticUpdateCount,
-            pendingSaves: performanceManager.hasPendingChanges ? 1 : 0
+          
+        case 'violet-test-access':
+          event.source?.postMessage({
+            type: 'violet-access-confirmed',
+            success: true,
+            timestamp: new Date().toISOString(),
+            capabilities: [
+              'enhanced-field-detection',
+              'inline-editing',
+              'visual-indicators',
+              'optimistic-updates'
+            ]
+          }, event.origin);
+          break;
+          
+        case 'violet-content-updated':
+          // Handle content updates from WordPress
+          const { field, newValue } = event.data;
+          // Update any matching elements
+          fieldElementsRef.current.forEach((element) => {
+            const detection = detectFieldType(element, element.textContent || '');
+            if (detection.type === field) {
+              element.textContent = newValue;
+            }
           });
           break;
       }
@@ -427,34 +635,44 @@ export const EditingOverlay: React.FC = () => {
 
     window.addEventListener('message', handleMessage);
     
-    // Announce readiness
-    sendToWordPress('iframe-ready', {
-      version: '2.0',
-      capabilities: [
-        'enhanced-field-detection',
-        'inline-editing',
-        'modal-editing',
-        'specialized-editing',
-        'optimistic-updates',
-        'debounced-saving',
-        'visual-indicators'
-      ]
-    });
+    // Enhanced ready signal
+    const sendReadySignal = () => {
+      sendToWordPress('iframe-ready', {
+        version: '2.1',
+        timestamp: new Date().toISOString(),
+        url: window.location.href,
+        capabilities: [
+          'enhanced-field-detection',
+          'inline-editing',
+          'visual-indicators',
+          'optimistic-updates',
+          'performance-management',
+          'unsaved-changes-warning'
+        ],
+        debugMode: config.debugMode
+      });
+    };
+    
+    // Send ready signal immediately and after a delay
+    sendReadySignal();
+    setTimeout(sendReadySignal, 1000);
 
     return () => window.removeEventListener('message', handleMessage);
-  }, [config.isEnabled, performanceManager, sendToWordPress]);
+  }, [config.debugMode, detectFieldType, sendToWordPress]);
 
-  // Calculate status metrics
+  // Status metrics
   const statusMetrics = useMemo(() => ({
     totalFields: fieldElementsRef.current.size,
     optimisticUpdates: performanceManager.optimisticUpdateCount,
     pendingSaves: performanceManager.hasPendingChanges ? 1 : 0,
-    hasUnsavedChanges: performanceManager.hasOptimisticUpdates || performanceManager.hasPendingChanges
-  }), [performanceManager]);
+    hasUnsavedChanges: performanceManager.hasOptimisticUpdates || performanceManager.hasPendingChanges,
+    isConnected: editingState.wordPressConnected,
+    editModeActive: editingState.editModeActive
+  }), [performanceManager, editingState.wordPressConnected, editingState.editModeActive]);
 
   return (
     <>
-      {/* Save Status Indicator - Phase 2 Feature */}
+      {/* Save Status Indicator */}
       <SaveStatusIndicator
         status={performanceManager.saveState.status}
         lastSaved={performanceManager.saveState.lastSaved}
@@ -462,21 +680,20 @@ export const EditingOverlay: React.FC = () => {
         pendingChanges={statusMetrics.pendingSaves}
         optimisticUpdates={statusMetrics.optimisticUpdates}
         onRetry={() => {
-          // Retry last failed save
           if (performanceManager.saveState.status === 'error') {
             window.location.reload();
           }
         }}
       />
 
-      {/* Inline Editor - Phase 2 Feature */}
+      {/* Inline Editor */}
       {editingState.inlineEditor && (
         <InlineEditor
           key={editingState.inlineEditor.fieldId}
           initialValue={editingState.inlineEditor.initialValue}
           fieldType={editingState.inlineEditor.fieldType}
           confidence={editingState.inlineEditor.confidence}
-          isMultiline={editingState.inlineEditor.fieldType === 'rich_text' || 
+          isMultiline={editingState.inlineEditor.fieldType === 'hero_subtitle' || 
                        editingState.inlineEditor.initialValue.length > 100}
           position={editingState.inlineEditor.position}
           onSave={handleInlineEditorSave}
@@ -484,17 +701,28 @@ export const EditingOverlay: React.FC = () => {
         />
       )}
 
-      {/* Edit Mode Indicator - Enhanced for Phase 2 */}
-      {config.isEnabled && (
-        <div className="fixed bottom-4 left-4 z-40 bg-blue-600 text-white px-4 py-2 rounded-lg shadow-lg">
+      {/* Enhanced Edit Mode Indicator */}
+      {config.isEnabled && editingState.editModeActive && (
+        <div className="fixed bottom-4 left-4 z-50 bg-blue-600 text-white px-4 py-2 rounded-lg shadow-lg">
           <div className="flex items-center gap-2">
-            <span className="animate-pulse">🟢</span>
-            <span className="font-medium">Phase 2: Inline Editing Active</span>
+            <span className="animate-pulse">✏️</span>
+            <span className="font-medium">WordPress Editing Active</span>
           </div>
-          <div className="text-xs mt-1 opacity-80">
-            {statusMetrics.totalFields} fields detected
+          <div className="text-xs mt-1 opacity-90">
+            {statusMetrics.totalFields} fields • {statusMetrics.isConnected ? 'Connected' : 'Disconnected'}
             {statusMetrics.hasUnsavedChanges && ` • ${statusMetrics.optimisticUpdates + statusMetrics.pendingSaves} pending`}
           </div>
+        </div>
+      )}
+
+      {/* Debug Info (only in debug mode) */}
+      {config.debugMode && (
+        <div className="fixed top-4 left-4 z-40 bg-gray-800 text-white p-3 rounded text-xs max-w-xs">
+          <div className="font-bold mb-1">Debug Info</div>
+          <div>Fields: {statusMetrics.totalFields}</div>
+          <div>Connected: {statusMetrics.isConnected ? '✅' : '❌'}</div>
+          <div>Edit Mode: {statusMetrics.editModeActive ? '✅' : '❌'}</div>
+          <div>In iframe: {window.parent !== window.self ? '✅' : '❌'}</div>
         </div>
       )}
     </>
