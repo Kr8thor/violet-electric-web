@@ -17,7 +17,7 @@ import NotFound from "./pages/NotFound";
 // import WordPressBackendStatus from "./components/WordPressBackendStatus";
 
 // WordPress Editor Communication
-import WordPressEditor from "./components/WordPressEditor/EditingOverlay";
+import WordPressEditor from "./components/WordPressEditor";
 
 const queryClient = new QueryClient();
 
