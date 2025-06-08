@@ -1,6 +1,6 @@
 /**
  * Content Storage Utility
- * Manages persisted content from WordPress editor
+ * Manages persisted content from WordPress editor with WordPress API integration
  */
 
 export interface VioletContent {
@@ -14,11 +14,73 @@ export interface VioletContent {
 }
 
 const STORAGE_KEY = 'violet-content';
+const WORDPRESS_API_URL = 'https://wp.violetrainwater.com/wp-json/violet/v1/content';
 
 /**
- * Get content value for a specific field
+ * Fetch content from WordPress REST API
  */
-export function getContent(field: string, defaultValue: string): string {
+async function fetchContentFromWordPress(): Promise<VioletContent> {
+  try {
+    const response = await fetch(WORDPRESS_API_URL, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    });
+    
+    if (!response.ok) {
+      throw new Error(`WordPress API error: ${response.status}`);
+    }
+    
+    const content = await response.json();
+    console.log('✅ Fetched content from WordPress:', content);
+    
+    // Save to localStorage as cache
+    if (typeof window !== 'undefined') {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(content));
+    }
+    
+    return content;
+  } catch (error) {
+    console.error('❌ Error fetching content from WordPress:', error);
+    
+    // Fallback to localStorage if WordPress is unavailable
+    if (typeof window !== 'undefined') {
+      try {
+        const saved = localStorage.getItem(STORAGE_KEY);
+        if (saved) {
+          console.log('📦 Using cached content from localStorage');
+          return JSON.parse(saved) as VioletContent;
+        }
+      } catch (e) {
+        console.error('Error loading cached content:', e);
+      }
+    }
+    
+    return {};
+  }
+}
+
+/**
+ * Get content value for a specific field (now fetches from WordPress)
+ */
+export async function getContent(field: string, defaultValue: string): Promise<string> {
+  if (typeof window === 'undefined') return defaultValue;
+  
+  try {
+    // First try to get from WordPress
+    const content = await fetchContentFromWordPress();
+    return content[field] || defaultValue;
+  } catch (error) {
+    console.error('Error loading content:', error);
+    return defaultValue;
+  }
+}
+
+/**
+ * Get content value synchronously (uses cached data)
+ */
+export function getContentSync(field: string, defaultValue: string): string {
   if (typeof window === 'undefined') return defaultValue;
   
   try {
@@ -28,16 +90,30 @@ export function getContent(field: string, defaultValue: string): string {
       return content[field] || defaultValue;
     }
   } catch (error) {
-    console.error('Error loading saved content:', error);
+    console.error('Error loading cached content:', error);
   }
   
   return defaultValue;
 }
 
 /**
- * Get all saved content
+ * Get all saved content (fetches from WordPress)
  */
-export function getAllContent(): VioletContent {
+export async function getAllContent(): Promise<VioletContent> {
+  if (typeof window === 'undefined') return {};
+  
+  try {
+    return await fetchContentFromWordPress();
+  } catch (error) {
+    console.error('Error loading content:', error);
+    return {};
+  }
+}
+
+/**
+ * Get all content synchronously (uses cached data)
+ */
+export function getAllContentSync(): VioletContent {
   if (typeof window === 'undefined') return {};
   
   try {
@@ -46,20 +122,21 @@ export function getAllContent(): VioletContent {
       return JSON.parse(saved) as VioletContent;
     }
   } catch (error) {
-    console.error('Error loading saved content:', error);
+    console.error('Error loading cached content:', error);
   }
   
   return {};
 }
 
+
 /**
- * Save content to localStorage
+ * Save content to localStorage (and sync to WordPress in editor mode)
  */
 export function saveContent(content: VioletContent): void {
   if (typeof window === 'undefined') return;
   
   try {
-    const existing = getAllContent();
+    const existing = getAllContentSync();
     const merged = { ...existing, ...content };
     localStorage.setItem(STORAGE_KEY, JSON.stringify(merged));
     
@@ -99,5 +176,27 @@ export function hasContent(): boolean {
     return saved !== null && saved !== '{}';
   } catch (error) {
     return false;
+  }
+}
+
+/**
+ * Initialize content loading from WordPress on app start
+ */
+export async function initializeContent(): Promise<VioletContent> {
+  if (typeof window === 'undefined') return {};
+  
+  try {
+    console.log('🔄 Initializing content from WordPress...');
+    const content = await fetchContentFromWordPress();
+    
+    // Dispatch event so components can update
+    window.dispatchEvent(new CustomEvent('violet-content-updated', {
+      detail: content
+    }));
+    
+    return content;
+  } catch (error) {
+    console.error('Error initializing content:', error);
+    return {};
   }
 }

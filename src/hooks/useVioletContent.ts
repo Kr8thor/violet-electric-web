@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { VioletContent, getAllContent } from '@/utils/contentStorage';
+import { VioletContent, getAllContentSync, initializeContent } from '@/utils/contentStorage';
 
 /**
  * Hook to use WordPress-managed content in React components
@@ -9,11 +9,26 @@ export function useVioletContent() {
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    // Load initial content
-    const loadContent = () => {
-      const savedContent = getAllContent();
-      setContent(savedContent);
-      setIsLoading(false);
+    // Load initial content from WordPress
+    const loadContent = async () => {
+      try {
+        // First load cached content immediately
+        const cachedContent = getAllContentSync();
+        setContent(cachedContent);
+        
+        // Then fetch fresh content from WordPress
+        const freshContent = await initializeContent();
+        setContent(freshContent);
+        
+        console.log('✅ Content loaded from WordPress:', freshContent);
+      } catch (error) {
+        console.error('❌ Error loading content:', error);
+        // Fallback to cached content
+        const cachedContent = getAllContentSync();
+        setContent(cachedContent);
+      } finally {
+        setIsLoading(false);
+      }
     };
 
     loadContent();
