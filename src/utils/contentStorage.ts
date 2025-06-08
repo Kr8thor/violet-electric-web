@@ -32,8 +32,23 @@ async function fetchContentFromWordPress(): Promise<VioletContent> {
       throw new Error(`WordPress API error: ${response.status}`);
     }
     
-    const content = await response.json();
-    console.log('✅ Fetched content from WordPress:', content);
+    const data = await response.json();
+    console.log('✅ Raw response from WordPress:', data);
+    
+    // CRITICAL FIX: Extract content from WordPress API response format
+    let content: VioletContent;
+    if (data.content && typeof data.content === 'object') {
+      // WordPress returns: { content: { hero_title: "...", ... } }
+      content = data.content;
+    } else if (typeof data === 'object' && !data.content) {
+      // Direct content format: { hero_title: "...", ... }
+      content = data;
+    } else {
+      console.warn('⚠️ Unexpected WordPress API response format:', data);
+      content = {};
+    }
+    
+    console.log('✅ Processed content from WordPress:', content);
     
     // Save to localStorage as cache
     if (typeof window !== 'undefined') {
