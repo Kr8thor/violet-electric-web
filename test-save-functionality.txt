@@ -1,0 +1,149 @@
+COMPLETE SAVE FUNCTIONALITY TEST
+================================
+
+After making the changes to WordPressEditor.tsx, follow these steps:
+
+1. BUILD AND DEPLOY YOUR REACT APP
+==================================
+```bash
+cd C:\Users\Leo\violet-electric-web
+npm run build
+# Deploy to Netlify or test locally
+```
+
+2. TEST THE SAVE FUNCTIONALITY
+==============================
+
+Step 1: Open WordPress Admin
+- Go to your WordPress admin panel
+- Navigate to "Edit Frontend"
+- Open browser console (F12)
+
+Step 2: Run this debug script in console:
+```javascript
+// Enable detailed logging
+window.violetDebugMode = true;
+
+// Override the log function for more visibility
+window.violetLog = function(msg, data) {
+    console.log('%c🎨 ' + msg, 'color: blue; font-weight: bold;', data || '');
+};
+
+// Listen for all messages
+window.addEventListener('message', function(event) {
+    if (event.data && event.data.type) {
+        console.log('%c📨 Message received: ' + event.data.type, 'color: green;', event.data);
+    }
+});
+
+console.log('Debug mode enabled. Now click "Enable Direct Editing" and edit some text.');
+```
+
+Step 3: Enable Editing and Make Changes
+- Click "Enable Direct Editing" button
+- Click on any text in the React iframe
+- Type some changes
+- Watch the console for messages
+
+You should see:
+- "Message received: violet-iframe-ready"
+- "Message received: violet-content-changed" (when you edit text)
+- "Content changed: {fieldType: 'hero_title', value: 'Your new text'}"
+- The save button should show a count like "Save All Changes (1)"
+
+Step 4: Test the Save
+- Click the red "Save All Changes" button
+- Watch console for save messages
+- Check if content persists after page refresh
+
+3. TROUBLESHOOTING
+==================
+
+If changes aren't detected:
+---------------------------
+Check browser console for errors. Run:
+```javascript
+// Check if iframe is accessible
+var iframe = document.getElementById('violet-site-iframe');
+console.log('Iframe found:', !!iframe);
+console.log('Iframe content window:', !!iframe.contentWindow);
+
+// Check pending changes
+console.log('Pending changes:', violetPendingChanges);
+
+// Manually trigger update
+violetUpdateSaveButton();
+```
+
+If save doesn't work:
+--------------------
+```javascript
+// Check save URL and nonce
+console.log('Batch save URL:', config.batchSaveUrl);
+console.log('Nonce:', config.nonce);
+
+// Try manual save
+if (Object.keys(violetPendingChanges).length > 0) {
+    violetSaveAllChanges();
+} else {
+    console.log('No changes to save');
+}
+```
+
+4. VERIFY CONTENT PERSISTENCE
+=============================
+
+After saving, check if content persists:
+
+In React app console:
+```javascript
+// Check localStorage
+console.log('Saved content:', localStorage.getItem('violet-content'));
+
+// Check if EditableText components are using saved content
+import { getAllContent } from '@/utils/contentStorage';
+console.log('All content:', getAllContent());
+```
+
+5. WORDPRESS FUNCTIONS.PHP UPDATE NEEDED
+========================================
+
+Make sure your functions.php includes the message handler for both types.
+In the violetHandleMessage function, ensure you have:
+
+```javascript
+case 'violet-content-changed':
+    if (data.data) {
+        violetPendingChanges[data.data.fieldType] = {
+            field_name: data.data.fieldType,
+            field_value: data.data.value,
+            field_type: data.data.fieldType
+        };
+        violetUpdateSaveButton();
+        violetLog('Content changed - tracking for save:', data.data);
+    }
+    break;
+```
+
+And in violetSaveAllChanges, ensure it sends the persist message:
+
+```javascript
+if (response.success) {
+    var iframe = document.getElementById('violet-site-iframe');
+    if (iframe && iframe.contentWindow) {
+        iframe.contentWindow.postMessage({
+            type: 'violet-persist-content',
+            content: violetPendingChanges,
+            timestamp: new Date().getTime()
+        }, config.netlifyOrigin);
+    }
+    // ... rest of success handling
+}
+```
+
+The complete flow should be:
+1. Edit text in React → sends 'violet-content-changed'
+2. WordPress tracks changes → updates save button
+3. Click save → WordPress saves to database
+4. WordPress sends 'violet-persist-content' → React saves to localStorage
+5. Content persists across refreshes

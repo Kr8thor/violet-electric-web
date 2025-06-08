@@ -1,4 +1,5 @@
 import React, { useEffect, useState, useRef, useCallback } from 'react';
+import { saveContent, getAllContent } from '@/utils/contentStorage';
 
 interface EditableElement {
   element: HTMLElement;
@@ -170,11 +171,16 @@ const WordPressEditor: React.FC = () => {
         
         // Send to WordPress
         window.parent.postMessage({
-          type: 'violet-save-content',
-          data: request
+          type: 'violet-content-changed',
+          data: {
+            fieldType: request.fieldType,
+            value: request.value,
+            element: request.element,
+            hasUnsavedChanges: true
+          }
         }, '*');
 
-        console.log('💾 Saving content:', request);
+        console.log('💾 Sending change to WordPress:', request);
       }
     }, 300);
 
@@ -192,8 +198,13 @@ const WordPressEditor: React.FC = () => {
     if (pendingSaves.current.has(fieldType)) {
       const request = pendingSaves.current.get(fieldType)!;
       window.parent.postMessage({
-        type: 'violet-save-content',
-        data: request
+        type: 'violet-content-changed',
+        data: {
+          fieldType: request.fieldType,
+          value: request.value,
+          element: request.element,
+          hasUnsavedChanges: true
+        }
       }, '*');
       pendingSaves.current.delete(fieldType);
     }
@@ -343,6 +354,49 @@ const WordPressEditor: React.FC = () => {
             console.error('❌ Save failed:', event.data.error);
           }
           break;
+
+        case 'violet-persist-content':
+          // Persist content from WordPress save
+          console.log('💾 Persisting content from WordPress:', event.data.content);
+          if (event.data.content) {
+            saveContent(event.data.content);
+            
+            // Confirm receipt
+            event.source?.postMessage({
+              type: 'violet-content-persisted',
+              success: true,
+              timestamp: Date.now()
+            }, event.origin as WindowPostMessageOptions);
+          }
+          break;
+
+        case 'violet-apply-saved-changes':
+          // Apply saved changes and persist
+          console.log('✅ Applying saved changes:', event.data.savedChanges);
+          if (event.data.savedChanges) {
+            const contentToSave: Record<string, string> = {};
+            
+            event.data.savedChanges.forEach((change: any) => {
+              contentToSave[change.field_name] = change.field_value;
+              
+              // Update visible elements
+              editableElements.forEach((data, element) => {
+                if (element.dataset.fieldType === change.field_name) {
+                  element.textContent = change.field_value;
+                  element.dataset.originalContent = change.field_value;
+                  // Remove unsaved visual indicator
+                  element.classList.remove('violet-edited-element');
+                  element.style.backgroundColor = '';
+                  element.style.borderLeft = '';
+                  element.style.paddingLeft = '';
+                }
+              });
+            });
+            
+            // Persist to localStorage
+            saveContent(contentToSave);
+          }
+          break;
       }
     };
 
@@ -371,36 +425,19 @@ const WordPressEditor: React.FC = () => {
     }
   }, [isInWordPressIframe]);
 
-  // Visual indicator when in edit mode
+  // Visual styling only when in edit mode - NO floating toolbars
   if (isEditMode && isInWordPressIframe()) {
     return (
-      <>
-        <div style={{
-          position: 'fixed',
-          top: 10,
-          right: 10,
-          background: '#0073aa',
-          color: 'white',
-          padding: '8px 16px',
-          borderRadius: '4px',
-          fontSize: '14px',
-          fontWeight: 'bold',
-          zIndex: 9999,
-          boxShadow: '0 2px 10px rgba(0,0,0,0.2)'
-        }}>
-          ✏️ Edit Mode Active
-        </div>
-        <style>{`
-          [contenteditable="true"]:hover {
-            outline-color: #005a87 !important;
-            background-color: rgba(0, 115, 170, 0.05);
-          }
-          [contenteditable="true"]:focus {
-            outline-width: 3px !important;
-            background-color: rgba(0, 115, 170, 0.05);
-          }
-        `}</style>
-      </>
+      <style>{`
+        [contenteditable="true"]:hover {
+          outline-color: #005a87 !important;
+          background-color: rgba(0, 115, 170, 0.05);
+        }
+        [contenteditable="true"]:focus {
+          outline-width: 3px !important;
+          background-color: rgba(0, 115, 170, 0.05);
+        }
+      `}</style>
     );
   }
 

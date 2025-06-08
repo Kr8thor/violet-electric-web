@@ -65,7 +65,7 @@ const WordPressRichEditor: React.FC = () => {
     return () => window.removeEventListener('message', handleMessage);
   }, []);
 
-  // Keyboard shortcuts for save and undo/redo
+  // Keyboard shortcuts for undo/redo only (no save)
   useEffect(() => {
     const handleGlobalKeyboard = (event: KeyboardEvent) => {
       if (!editorState.isEditMode) return;
@@ -73,8 +73,9 @@ const WordPressRichEditor: React.FC = () => {
       if (event.ctrlKey || event.metaKey) {
         switch (event.key.toLowerCase()) {
           case 's':
+            // Prevent default save behavior - saves happen from WordPress admin only
             event.preventDefault();
-            saveAllChanges();
+            console.log('💡 Save using the WordPress admin toolbar');
             break;
           case 'z':
             event.preventDefault();
@@ -433,77 +434,33 @@ const WordPressRichEditor: React.FC = () => {
 
   // Visual indicators
   const showEditModeIndicator = () => {
-    const indicator = document.createElement('div');
-    indicator.id = 'violet-edit-mode-indicator';
-    indicator.innerHTML = `
-      <div style="position: fixed; top: 20px; right: 20px; background: #0073aa; color: white; padding: 12px 20px; border-radius: 8px; display: flex; align-items: center; gap: 10px; z-index: 999999; box-shadow: 0 4px 12px rgba(0,0,0,0.2);">
-        <span>✏️ Edit Mode</span>
-        <button onclick="document.getElementById('violet-save-button').click()" style="background: white; color: #0073aa; border: none; padding: 6px 12px; border-radius: 4px; cursor: pointer; font-weight: bold;">Save (Ctrl+S)</button>
-        <span style="opacity: 0.7; font-size: 12px;">Undo: Ctrl+Z | Redo: Ctrl+Y</span>
-      </div>
-      <button id="violet-save-button" style="display: none;"></button>
-    `;
-    document.body.appendChild(indicator);
-    
-    // Add save button handler
-    const saveButton = document.getElementById('violet-save-button');
-    if (saveButton) {
-      saveButton.addEventListener('click', saveAllChanges);
-    }
+    // Remove the save bar completely - saves should only happen from WordPress admin
+    console.log('✏️ Edit mode active - save controls are in WordPress admin only');
   };
 
   const hideEditModeIndicator = () => {
-    const indicator = document.getElementById('violet-edit-mode-indicator');
-    if (indicator) indicator.remove();
+    // Nothing to remove since we're not showing any save bars on React side
+    console.log('🔒 Edit mode disabled');
   };
 
   const showSavingIndicator = () => {
-    const indicator = document.createElement('div');
-    indicator.id = 'violet-saving-indicator';
-    indicator.innerHTML = `
-      <div style="position: fixed; bottom: 20px; right: 20px; background: #f0ad4e; color: white; padding: 12px 20px; border-radius: 8px; z-index: 999999; box-shadow: 0 4px 12px rgba(0,0,0,0.2); display: flex; align-items: center; gap: 10px;">
-        <div class="violet-spinner"></div>
-        <span>Saving changes...</span>
-      </div>
-    `;
-    document.body.appendChild(indicator);
+    console.log('💾 Saving changes...');
+    // Floating indicator removed - save only via WordPress admin toolbar
   };
 
   const hideSavingIndicator = () => {
-    const indicator = document.getElementById('violet-saving-indicator');
-    if (indicator) indicator.remove();
+    console.log('💾 Save process completed');
+    // Floating indicator removed - save only via WordPress admin toolbar
   };
 
   const showSaveSuccessIndicator = () => {
-    const indicator = document.createElement('div');
-    indicator.id = 'violet-success-indicator';
-    indicator.innerHTML = `
-      <div style="position: fixed; bottom: 20px; right: 20px; background: #5cb85c; color: white; padding: 12px 20px; border-radius: 8px; z-index: 999999; box-shadow: 0 4px 12px rgba(0,0,0,0.2);">
-        ✅ All changes saved!
-      </div>
-    `;
-    document.body.appendChild(indicator);
-    
-    setTimeout(() => {
-      const successIndicator = document.getElementById('violet-success-indicator');
-      if (successIndicator) successIndicator.remove();
-    }, 3000);
+    console.log('✅ All changes saved successfully!');
+    // Floating indicator removed - save only via WordPress admin toolbar
   };
 
   const showSaveErrorIndicator = () => {
-    const indicator = document.createElement('div');
-    indicator.id = 'violet-error-indicator';
-    indicator.innerHTML = `
-      <div style="position: fixed; bottom: 20px; right: 20px; background: #d9534f; color: white; padding: 12px 20px; border-radius: 8px; z-index: 999999; box-shadow: 0 4px 12px rgba(0,0,0,0.2);">
-        ❌ Save failed. Please try again.
-      </div>
-    `;
-    document.body.appendChild(indicator);
-    
-    setTimeout(() => {
-      const errorIndicator = document.getElementById('violet-error-indicator');
-      if (errorIndicator) errorIndicator.remove();
-    }, 5000);
+    console.log('❌ Save failed. Please try again.');
+    // Floating indicator removed - save only via WordPress admin toolbar
   };
 
   // Notify WordPress that we're ready
@@ -527,22 +484,6 @@ const WordPressRichEditor: React.FC = () => {
           selectedText={editorState.selectedText}
         />
       )}
-      
-      {/* Inline CSS for spinner */}
-      <style>{`
-        .violet-spinner {
-          width: 16px;
-          height: 16px;
-          border: 2px solid #ffffff;
-          border-top-color: transparent;
-          border-radius: 50%;
-          animation: violet-spin 0.8s linear infinite;
-        }
-        
-        @keyframes violet-spin {
-          to { transform: rotate(360deg); }
-        }
-      `}</style>
     </>
   );
 };

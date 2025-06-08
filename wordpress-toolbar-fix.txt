@@ -1,0 +1,91 @@
+WORDPRESS ADMIN TOOLBAR FIX - Add this to your WordPress functions.php
+======================================================================
+
+In the violet_frontend_editor_page_final() function, find this section around line 1700-1800:
+
+<!-- FINAL CORRECTED BLUE TOOLBAR - PERFECT IMPLEMENTATION -->
+<div class="violet-blue-toolbar-final">
+    <button id="violet-edit-toggle" class="button button-primary" onclick="violetActivateEditing()">
+        ✏️ Enable Direct Editing
+    </button>
+    
+    <!-- THIS SAVE BUTTON IS HIDDEN BY DEFAULT - IT NEEDS TO BE VISIBLE -->
+    <button id="violet-save-all-btn" onclick="violetSaveAllChanges()" class="button button-hero violet-save-button" style="display: none;">
+        💾 Save All Changes (<span id="violet-changes-count">0</span>)
+    </button>
+    
+    <button onclick="violetRefreshPreview()" class="button">🔄 Refresh</button>
+    <button onclick="violetTestCommunication()" class="button">🔗 Test Connection</button>
+    <button onclick="violetTriggerRebuild()" class="button button-secondary">🚀 Rebuild Site</button>
+</div>
+
+The issue is that the save button has style="display: none;" which hides it by default.
+
+SOLUTION 1 - Always Show Save Button:
+=====================================
+Change the save button line to:
+<button id="violet-save-all-btn" onclick="violetSaveAllChanges()" class="button button-hero violet-save-button">
+    💾 Save All Changes (<span id="violet-changes-count">0</span>)
+</button>
+
+(Remove the style="display: none;" part)
+
+
+SOLUTION 2 - Show Save Button When Editing is Enabled:
+======================================================
+In the JavaScript section, find the violetActivateEditing() function (around line 1850) and add:
+
+function violetActivateEditing() {
+    try {
+        // ... existing code ...
+        
+        if (violetEditingEnabled) {
+            // ... existing disable code ...
+        } else {
+            // Enable editing
+            violetEditingEnabled = true;
+            btn.innerHTML = '🔓 Disable Direct Editing';
+            btn.className = 'button button-secondary';
+            
+            // SHOW THE SAVE BUTTON WHEN EDITING IS ENABLED
+            var saveBtn = document.getElementById('violet-save-all-btn');
+            if (saveBtn) {
+                saveBtn.style.display = 'inline-block';
+            }
+            
+            // ... rest of existing code ...
+        }
+    } catch (e) {
+        // ... error handling ...
+    }
+}
+
+
+SOLUTION 3 - Complete the Save Function Communication:
+=====================================================
+Make sure the violetSaveAllChanges() function sends the content to React for persistence.
+Find the success block in violetSaveAllChanges() (around line 1850-1900) and ensure it has:
+
+if (response.success) {
+    // Send changes directly to React app for persistence
+    var iframe = document.getElementById('violet-site-iframe');
+    if (iframe && iframe.contentWindow) {
+        // Send ALL content for persistence
+        iframe.contentWindow.postMessage({
+            type: 'violet-persist-content',
+            content: violetPendingChanges,
+            timestamp: new Date().getTime(),
+            source: 'wordpress-save'
+        }, config.netlifyOrigin);
+    }
+    
+    // Clear pending changes and update UI
+    violetPendingChanges = {};
+    violetUpdateSaveButton();
+    violetSetStatus('changes', '✅ Saved ' + response.saved_count + ' fields successfully!', 'success');
+}
+
+
+RECOMMENDED APPROACH:
+====================
+Use Solution 2 - This way the save button only appears when editing is active, which makes more sense from a UX perspective.

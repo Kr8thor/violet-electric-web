@@ -19,6 +19,7 @@ import NotFound from "./pages/NotFound";
 // WordPress Editor Communication
 import WordPressEditor from "./components/WordPressEditor";
 import WordPressRichEditor from "./components/WordPressRichEditor";
+import { ContentLoader } from "./components/ContentLoader";
 
 const queryClient = new QueryClient();
 
@@ -37,6 +38,9 @@ const App = () => (
           <Route path="/contact" element={<Contact />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
+
+        {/* Content Loader - Loads persisted content on startup */}
+        <ContentLoader />
 
         {/* WordPress Editor Communication - Invisible component */}
         <WordPressEditor />

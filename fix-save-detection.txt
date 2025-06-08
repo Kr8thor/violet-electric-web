@@ -1,0 +1,165 @@
+FIX FOR SAVE BUTTON NOT DETECTING CHANGES
+==========================================
+
+The issue is a mismatch in message types between React and WordPress.
+
+OPTION 1: Quick Fix in Browser Console (Test First)
+===================================================
+
+Run this in the WordPress admin console to see current state:
+
+```javascript
+// Check current pending changes
+console.log('Pending changes:', violetPendingChanges);
+
+// Listen for all messages from iframe
+window.addEventListener('message', function(event) {
+    console.log('Message received:', event.data);
+});
+
+// Manually add a test change
+violetPendingChanges['test_field'] = {
+    field_name: 'test_field',
+    field_value: 'test value',
+    field_type: 'text'
+};
+violetUpdateSaveButton();
+```
+
+OPTION 2: Fix the Message Type Mismatch
+========================================
+
+The React app is sending 'violet-save-content' but WordPress expects 'violet-content-changed'.
+
+In your WordPress functions.php, around line 1380, find the violetHandleMessage function.
+
+ADD this case to handle the save-content messages:
+
+```javascript
+case 'violet-save-content':
+    // Handle save-content messages from React
+    if (data.data) {
+        var fieldData = data.data;
+        violetPendingChanges[fieldData.fieldType] = {
+            field_name: fieldData.fieldType,
+            field_value: fieldData.value,
+            field_type: fieldData.fieldType
+        };
+        violetUpdateSaveButton();
+        violetLog('Content changed via save-content:', fieldData);
+    }
+    break;
+```
+
+OPTION 3: Update React Component (Better Solution)
+==================================================
+
+Update the WordPressEditor.tsx to send the correct message type.
+
+Change this (around line 172):
+```javascript
+window.parent.postMessage({
+  type: 'violet-save-content',
+  data: request
+}, '*');
+```
+
+To this:
+```javascript
+// Send both message types for compatibility
+window.parent.postMessage({
+  type: 'violet-content-changed',
+  data: {
+    fieldType: request.fieldType,
+    value: request.value,
+    element: request.element,
+    hasUnsavedChanges: true
+  }
+}, '*');
+```
+
+OPTION 4: Complete Fix in functions.php
+========================================
+
+In functions.php, find the violetHandleMessage function (around line 1370-1420).
+
+REPLACE the entire switch statement with this updated version:
+
+```javascript
+switch (data.type) {
+    case 'violet-iframe-ready':
+        violetReactAppReady = true;
+        violetSetStatus('connection', '✅ React app ready', 'success');
+        break;
+
+    case 'violet-content-changed':
+        // Handle content changes from React
+        if (data.data) {
+            violetPendingChanges[data.data.fieldType] = {
+                field_name: data.data.fieldType,
+                field_value: data.data.value,
+                field_type: data.data.fieldType
+            };
+            violetUpdateSaveButton();
+            violetLog('Content changed:', data.data);
+        }
+        break;
+
+    case 'violet-save-content':
+        // Also handle save-content messages
+        if (data.data) {
+            var fieldData = data.data;
+            violetPendingChanges[fieldData.fieldType || fieldData.field_name] = {
+                field_name: fieldData.fieldType || fieldData.field_name,
+                field_value: fieldData.value || fieldData.field_value,
+                field_type: fieldData.fieldType || fieldData.field_type || 'text'
+            };
+            violetUpdateSaveButton();
+            violetLog('Content changed via save-content:', fieldData);
+        }
+        break;
+
+    case 'violet-access-confirmed':
+        violetSetStatus('connection', '✅ Perfect two-way communication', 'success');
+        break;
+
+    case 'violet-no-save-bars-confirmed':
+        violetSetStatus('editor', '✅ React page confirmed: NO save bars exist', 'success');
+        break;
+
+    default:
+        violetLog('Unhandled message type', data.type);
+}
+```
+
+TESTING THE FIX
+===============
+
+1. Make the changes above
+2. Refresh the WordPress admin page
+3. Click "Enable Direct Editing"
+4. Edit some text on the React page
+5. Watch the console for messages like:
+   - "Content changed: {fieldType: 'hero_title', value: 'New text'}"
+   - "Save button SHOWN in blue toolbar - 1 changes"
+6. The red save button should show "Save All Changes (1)"
+7. Click the save button
+
+DEBUG: Check if Changes are Being Tracked
+==========================================
+
+In WordPress admin console, run:
+```javascript
+// See all pending changes
+console.log('Pending changes:', Object.keys(violetPendingChanges).length, violetPendingChanges);
+
+// Force update the save button
+violetUpdateSaveButton();
+
+// Check if save button is visible
+var btn = document.getElementById('violet-save-all-btn');
+console.log('Save button visible:', btn.style.display);
+console.log('Change count:', document.getElementById('violet-changes-count').textContent);
+```
+
+The main issue is that the React app and WordPress admin are using different message types. Once you sync them up, the save button will start detecting changes properly.

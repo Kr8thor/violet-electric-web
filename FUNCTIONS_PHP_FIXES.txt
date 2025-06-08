@@ -1,0 +1,161 @@
+COMPLETE FUNCTIONS.PHP FIXES TO IMPLEMENT
+=========================================
+
+ISSUE 1: Save bar appearing on React app
+-----------------------------------------
+The save bar is being created by JavaScript that's injected into the React page.
+We need to prevent ANY save UI from appearing on the React side.
+
+ISSUE 2: Save button not visible in WordPress admin toolbar
+-----------------------------------------------------------
+The save button exists but is hidden by default. We need to make it visible
+and ensure it works properly.
+
+HERE ARE THE EXACT CHANGES TO MAKE:
+
+=============================================================================
+CHANGE 1: Fix the Save Button in WordPress Admin (Line ~1157)
+=============================================================================
+
+FIND THIS CODE:
+            <button id="violet-save-all-btn" onclick="violetSaveAllChanges()" class="button button-hero violet-save-button">
+                💾 Save All Changes (<span id="violet-changes-count">0</span>)
+            </button>
+
+The button is already there and NOT hidden! The issue is the violetUpdateSaveButton() 
+function is hiding it when there are no changes.
+
+=============================================================================
+CHANGE 2: Update violetUpdateSaveButton function (around line 1290)
+=============================================================================
+
+REPLACE THIS:
+        function violetUpdateSaveButton() {
+            var count = Object.keys(violetPendingChanges).length;
+            var saveBtn = document.getElementById('violet-save-all-btn');
+            var countSpan = document.getElementById('violet-changes-count');
+            
+            if (count > 0) {
+                saveBtn.style.display = 'inline-block';
+                if (countSpan) countSpan.textContent = count;
+                violetSetStatus('changes', count + ' changes ready to save', 'warning');
+                violetLog('Save button SHOWN in blue toolbar - ' + count + ' changes');
+            } else {
+                saveBtn.style.display = 'none';
+                violetSetStatus('changes', 'No changes', 'info');
+                violetLog('Save button HIDDEN in blue toolbar');
+            }
+        }
+
+WITH THIS (to always show the button):
+        function violetUpdateSaveButton() {
+            var count = Object.keys(violetPendingChanges).length;
+            var saveBtn = document.getElementById('violet-save-all-btn');
+            var countSpan = document.getElementById('violet-changes-count');
+            
+            if (saveBtn) {
+                // ALWAYS show the save button
+                saveBtn.style.display = 'inline-block';
+                saveBtn.style.visibility = 'visible';
+                saveBtn.style.opacity = '1';
+                
+                if (count > 0) {
+                    if (countSpan) countSpan.textContent = count;
+                    violetSetStatus('changes', count + ' changes ready to save', 'warning');
+                    // Make button more prominent when there are changes
+                    saveBtn.style.animation = 'violetPulse 2s infinite';
+                } else {
+                    if (countSpan) countSpan.textContent = '0';
+                    violetSetStatus('changes', 'No changes', 'info');
+                    // Remove animation when no changes
+                    saveBtn.style.animation = 'none';
+                }
+            }
+        }
+
+=============================================================================
+CHANGE 3: Show save button when editing is enabled (around line 1440)
+=============================================================================
+
+In the violetActivateEditing function, after this line:
+                    violetEditingEnabled = true;
+
+ADD THIS:
+                    // Ensure save button is visible
+                    violetUpdateSaveButton();
+
+=============================================================================
+CHANGE 4: Initialize save button visibility (around line 1685)
+=============================================================================
+
+At the end of violetInitializeEditor function, before the closing brace, ADD:
+                // Show save button on load
+                setTimeout(function() {
+                    violetUpdateSaveButton();
+                }, 500);
+
+=============================================================================
+CHANGE 5: Add initialization after DOM ready (around line 1735)
+=============================================================================
+
+After this line:
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', violetInitializeEditor);
+        } else {
+            violetInitializeEditor();
+        }
+
+ADD THIS:
+        // Force show save button after everything loads
+        window.addEventListener('load', function() {
+            var saveBtn = document.getElementById('violet-save-all-btn');
+            if (saveBtn) {
+                saveBtn.style.display = 'inline-block';
+                saveBtn.style.visibility = 'visible';
+                saveBtn.style.opacity = '1';
+            }
+        });
+
+=============================================================================
+VERIFICATION: The Save Button Styling is Already Red! 
+=============================================================================
+
+The button already has the red styling you want (lines 1194-1207):
+    .violet-save-button {
+        background: #d63939 !important;
+        color: white !important;
+        padding: 15px 30px !important;
+        font-size: 16px !important;
+        font-weight: 800 !important;
+        box-shadow: 0 6px 20px rgba(214,57,57,0.5) !important;
+        animation: violetPulse 2s infinite;
+        border: 3px solid rgba(255,255,255,0.3) !important;
+    }
+
+=============================================================================
+REGARDING THE SAVE BAR ON REACT APP:
+=============================================================================
+
+The aggressive save bar prevention in the frontend script (starting line 2154)
+should already be preventing save bars. However, if you're still seeing them,
+it means they're coming from somewhere else (possibly the WordPressRichEditor
+component).
+
+Make sure in your React app:
+1. WordPressRichEditor component doesn't create any save UI
+2. No other components are creating save toolbars
+3. The only save control should be in WordPress admin
+
+=============================================================================
+TEST THE FIXES:
+=============================================================================
+
+After making these changes:
+1. Go to WordPress Admin → Edit Frontend
+2. The red save button should be visible immediately
+3. Click "Enable Direct Editing"
+4. Edit some text on the React page
+5. The save button should show the count of changes
+6. Click the save button to save changes
+
+If the save button still doesn't appear, check browser console for errors.

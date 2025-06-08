@@ -1,0 +1,80 @@
+COMPLETE SAVE FLOW IMPLEMENTATION
+=================================
+
+The save flow should work like this:
+1. User edits content on React page
+2. User clicks "Save All Changes" in WordPress admin blue toolbar
+3. WordPress sends content to React via postMessage
+4. React persists content to localStorage
+5. Content survives page refreshes
+
+WORDPRESS SIDE (functions.php):
+==============================
+
+1. Show the save button when editing is enabled:
+   - Remove style="display: none;" from the save button
+   - OR show it dynamically in violetActivateEditing()
+
+2. Ensure violetSaveAllChanges() sends content to React:
+
+function violetSaveAllChanges() {
+    // ... existing save code ...
+    
+    if (response.success) {
+        // Send to React for persistence
+        var iframe = document.getElementById('violet-site-iframe');
+        if (iframe && iframe.contentWindow) {
+            iframe.contentWindow.postMessage({
+                type: 'violet-persist-content',
+                content: violetPendingChanges,
+                timestamp: new Date().getTime()
+            }, config.netlifyOrigin);
+        }
+        
+        // ... rest of success handling ...
+    }
+}
+
+REACT SIDE (already implemented):
+=================================
+
+1. WordPressEditor.tsx already has the handler for 'violet-persist-content'
+2. Content is saved to localStorage via saveContent()
+3. EditableText components use the saved content
+
+TEST THE COMPLETE FLOW:
+======================
+
+1. Open WordPress Admin → Edit Frontend
+2. Click "Enable Direct Editing"
+3. The save button should appear in the blue toolbar
+4. Edit some text on the React page
+5. Click "Save All Changes" in the blue toolbar
+6. Refresh the page
+7. The edited content should persist
+
+DEBUG TIPS:
+===========
+
+1. Open browser console while editing
+2. You should see messages like:
+   - "💾 Persisting content from WordPress"
+   - "✅ Content saved successfully"
+
+3. Check localStorage:
+   - Open browser DevTools
+   - Go to Application → Local Storage
+   - Look for key: "violet-content"
+   - Should contain your saved content
+
+4. If save button is not visible:
+   - Check browser console for errors
+   - Ensure you clicked "Enable Direct Editing" first
+   - Check if button exists: document.getElementById('violet-save-all-btn')
+
+QUICK FIX FOR TESTING:
+=====================
+In browser console while on WordPress admin page:
+document.getElementById('violet-save-all-btn').style.display = 'inline-block';
+
+This will immediately show the save button for testing.
