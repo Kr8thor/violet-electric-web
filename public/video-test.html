@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hero Video Test</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 20px;
+            font-family: Arial, sans-serif;
+            background: #000;
+        }
+        .test-container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        .video-test {
+            width: 100%;
+            max-width: 800px;
+            margin: 20px 0;
+            border: 2px solid #333;
+        }
+        .info {
+            color: white;
+            margin: 10px 0;
+            padding: 10px;
+            background: #333;
+            border-radius: 5px;
+        }
+        .hero-preview {
+            position: relative;
+            height: 500px;
+            overflow: hidden;
+            border-radius: 10px;
+            margin: 20px 0;
+        }
+        .hero-preview video {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+        .hero-content {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            text-align: center;
+            color: white;
+            z-index: 10;
+        }
+        .hero-overlay {
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(to top, rgba(0,0,0,0.6), rgba(0,0,0,0.2), transparent);
+        }
+        button {
+            background: #0066cc;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 6px;
+            font-size: 16px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover {
+            background: #0052a3;
+        }
+        .luminous-button {
+            background: linear-gradient(135deg, #ff6b6b, #4ecdc4);
+            border-radius: 9999px;
+            padding: 16px 32px;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    <div class="test-container">
+        <h1 style="color: white;">🎬 Hero Video Test - Violet Electric</h1>
+        
+        <div class="info">
+            <h3>✅ Video File Info:</h3>
+            <p><strong>Location:</strong> /videos/hero-video.mp4</p>
+            <p><strong>Size:</strong> 6.4 MB (Perfect for web!)</p>
+            <p id="videoInfo">Loading video information...</p>
+        </div>
+
+        <h2 style="color: white;">1. Direct Video Test (with controls):</h2>
+        <video class="video-test" controls>
+            <source src="/videos/hero-video.mp4" type="video/mp4">
+            Your browser does not support the video tag.
+        </video>
+
+        <h2 style="color: white;">2. Hero Preview (Exactly how it will look on your site):</h2>
+        <div class="hero-preview">
+            <video autoplay loop muted playsinline>
+                <source src="/videos/hero-video.mp4" type="video/mp4">
+            </video>
+            <div class="hero-overlay"></div>
+            <div class="hero-content">
+                <h1 style="font-size: 3rem; margin-bottom: 1rem;">
+                    <span style="background: linear-gradient(135deg, #ff6b6b, #4ecdc4); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">Change the Channel.</span><br>
+                    <span>Change Your Life.</span>
+                </h1>
+                <p style="font-size: 1.25rem; margin-bottom: 2rem; max-width: 600px;">Transform your potential with neuroscience-backed strategies and heart-centered leadership.</p>
+                <button class="luminous-button">Book Violet</button>
+            </div>
+        </div>
+
+        <div class="info">
+            <h3>🔧 Test Results:</h3>
+            <div id="checklist">
+                <p>📹 Video loads: <span id="videoLoads">Testing...</span></p>
+                <p>🔄 Video loops: <span id="videoLoops">Testing...</span></p>
+                <p>🔇 Video is muted: <span id="videoMuted">Testing...</span></p>
+                <p>📱 Mobile friendly: <span id="mobileFriendly">Testing...</span></p>
+                <p>💾 File size: <span id="fileSize">6.4 MB ✅</span></p>
+                <p>⚡ Performance: <span id="performance">Testing...</span></p>
+            </div>
+        </div>
+
+        <div class="info" style="background: #1a5f1a;">
+            <h3>🚀 Ready for Integration!</h3>
+            <p>If the video above plays smoothly and looks good, we're ready to integrate it into your React component!</p>
+        </div>
+    </div>
+
+    <script>
+        const video = document.querySelector('.hero-preview video');
+        let startTime = Date.now();
+
+        // Check video properties when loaded
+        video.addEventListener('loadedmetadata', function() {
+            const loadTime = Date.now() - startTime;
+            const info = document.getElementById('videoInfo');
+            info.innerHTML = `
+                <strong>Duration:</strong> ${video.duration.toFixed(2)} seconds<br>
+                <strong>Dimensions:</strong> ${video.videoWidth} x ${video.videoHeight}<br>
+                <strong>Load Time:</strong> ${loadTime}ms<br>
+                <strong>Ready State:</strong> ${video.readyState}
+            `;
+
+            // Update checklist
+            document.getElementById('videoLoads').textContent = '✅ Yes';
+            document.getElementById('videoLoops').textContent = video.loop ? '✅ Yes' : '❌ No';
+            document.getElementById('videoMuted').textContent = video.muted ? '✅ Yes' : '❌ No';
+            document.getElementById('mobileFriendly').textContent = video.playsInline ? '✅ Yes' : '⚠️ Check';
+            document.getElementById('performance').textContent = loadTime < 2000 ? '✅ Fast' : loadTime < 5000 ? '⚠️ OK' : '❌ Slow';
+        });
+
+        video.addEventListener('error', function(e) {
+            document.getElementById('videoLoads').textContent = '❌ Error loading video';
+            console.error('Video error:', e);
+        });
+
+        video.addEventListener('canplay', function() {
+            console.log('✅ Video can start playing');
+        });
+
+        video.addEventListener('canplaythrough', function() {
+            console.log('✅ Video can play through without buffering');
+        });
+    </script>
+</body>
+</html>
