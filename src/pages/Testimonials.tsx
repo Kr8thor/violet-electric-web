@@ -45,6 +45,18 @@ const Testimonials = () => {
     id: "-VNT0WBwTy0",
     title: "Event Organizer Testimonial - Impact & Results",
     description: "Event organizers share their experience working with Violet and the lasting impact on attendees."
+  }, {
+    id: "Ip39wsKoaH0",
+    title: "Violet Rainwater Keynote - Transform Your Leadership",
+    description: "Experience Violet's powerful keynote presentation on transformative leadership strategies."
+  }, {
+    id: "Vo5xmmhBnkU",
+    title: "Channel V Framework in Action",
+    description: "Watch as Violet demonstrates the practical application of her Channel V methodology."
+  }, {
+    id: "srMxk7XY-XA",
+    title: "Neuroscience-Based Leadership Insights",
+    description: "Discover how neuroscience principles can revolutionize your approach to leadership and communication."
   }];
 
   // Separate featured testimonials
@@ -72,18 +84,43 @@ const Testimonials = () => {
         <div className="container-max section-padding">
           <h2 className="text-3xl font-bold mb-12 text-center text-gray-800">Video Testimonials</h2>
           
-          <div className="grid md:grid-cols-2 gap-8 mb-12">
-            {videoTestimonials.map((video, index) => <Card key={index} className="overflow-hidden shadow-lg">
-                <CardContent className="p-0">
-                  <div className="aspect-video">
-                    <iframe src={`https://www.youtube.com/embed/${video.id}`} title={video.title} frameBorder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowFullScreen className="w-full h-full"></iframe>
-                  </div>
-                  <div className="p-6">
-                    <h3 className="text-xl font-semibold mb-2 text-gray-800">{video.title}</h3>
-                    <p className="text-gray-600">{video.description}</p>
-                  </div>
-                </CardContent>
-              </Card>)}
+          {/* Video grid with centered bottom row */}
+          <div className="mb-12">
+            {/* Top 3 videos */}
+            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8 mb-8">
+              {videoTestimonials.slice(0, 3).map((video, index) => (
+                <Card key={index} className="overflow-hidden shadow-lg hover:shadow-xl transition-shadow duration-300">
+                  <CardContent className="p-0">
+                    <div className="aspect-video">
+                      <iframe src={`https://www.youtube.com/embed/${video.id}`} title={video.title} frameBorder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowFullScreen className="w-full h-full"></iframe>
+                    </div>
+                    <div className="p-6">
+                      <h3 className="text-xl font-semibold mb-2 text-gray-800">{video.title}</h3>
+                      <p className="text-gray-600 leading-relaxed">{video.description}</p>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+            
+            {/* Bottom 2 videos - centered */}
+            <div className="flex justify-center">
+              <div className="grid md:grid-cols-2 gap-8 max-w-4xl">
+                {videoTestimonials.slice(3, 5).map((video, index) => (
+                  <Card key={index + 3} className="overflow-hidden shadow-lg hover:shadow-xl transition-shadow duration-300">
+                    <CardContent className="p-0">
+                      <div className="aspect-video">
+                        <iframe src={`https://www.youtube.com/embed/${video.id}`} title={video.title} frameBorder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowFullScreen className="w-full h-full"></iframe>
+                      </div>
+                      <div className="p-6">
+                        <h3 className="text-xl font-semibold mb-2 text-gray-800">{video.title}</h3>
+                        <p className="text-gray-600 leading-relaxed">{video.description}</p>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            </div>
           </div>
 
           {/* Image Gallery */}
