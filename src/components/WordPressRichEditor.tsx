@@ -28,6 +28,11 @@ interface HistoryEntry {
   timestamp: number;
 }
 
+const TRUSTED_ORIGINS = [
+  'https://wp.violetrainwater.com',
+  'https://violetrainwater.com'
+];
+
 const WordPressRichEditor: React.FC = () => {
   const [editorState, setEditorState] = useState<EditorState>({
     isEditMode: false,
@@ -311,18 +316,22 @@ const WordPressRichEditor: React.FC = () => {
       const fieldType = detectFieldType(element);
       
       return new Promise((resolve) => {
-        if (window.parent !== window.self) {
-          window.parent.postMessage({
-            type: 'violet-save-content',
-            data: {
-              fieldType,
-              value: element.innerHTML,
-              text: element.textContent,
-              html: element.innerHTML,
-              id: `save-${Date.now()}-${Math.random()}`
-            }
-          }, '*');
-        }
+        const sendToParent = (message: any) => {
+          TRUSTED_ORIGINS.forEach(origin => {
+            window.parent.postMessage(message, origin);
+          });
+        };
+
+        sendToParent({
+          type: 'violet-save-content',
+          data: {
+            fieldType,
+            value: element.innerHTML,
+            text: element.textContent,
+            html: element.innerHTML,
+            id: `save-${Date.now()}-${Math.random()}`
+          }
+        });
         
         // Assume success after timeout (real response handled by handleSaveResponse)
         setTimeout(resolve, 500);
@@ -465,13 +474,17 @@ const WordPressRichEditor: React.FC = () => {
 
   // Notify WordPress that we're ready
   useEffect(() => {
-    if (window.parent !== window.self) {
-      window.parent.postMessage({
-        type: 'violet-iframe-ready',
-        enhanced: true,
-        features: ['rich-text', 'formatting', 'colors', 'fonts', 'alignment', 'save', 'undo', 'redo']
-      }, '*');
-    }
+    const sendToParent = (message: any) => {
+      TRUSTED_ORIGINS.forEach(origin => {
+        window.parent.postMessage(message, origin);
+      });
+    };
+
+    sendToParent({
+      type: 'violet-iframe-ready',
+      enhanced: true,
+      features: ['rich-text', 'formatting', 'colors', 'fonts', 'alignment', 'save', 'undo', 'redo']
+    });
   }, []);
 
   return (

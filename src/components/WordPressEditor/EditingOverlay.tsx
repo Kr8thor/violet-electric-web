@@ -30,6 +30,17 @@ interface EditingConfig {
   debugMode: boolean;
 }
 
+const TRUSTED_ORIGINS = [
+  'https://wp.violetrainwater.com',
+  'https://violetrainwater.com'
+];
+
+const sendToParent = (message: any) => {
+  TRUSTED_ORIGINS.forEach(origin => {
+    window.parent.postMessage(message, origin);
+  });
+};
+
 // Main EditingOverlay Component - Enhanced WordPress Integration
 export const EditingOverlay: React.FC = () => {
   // Enhanced state management
@@ -370,12 +381,17 @@ export const EditingOverlay: React.FC = () => {
     element.style.opacity = '0.3';
     
     // Send edit request to WordPress
-    sendToWordPress('edit-request', {
-      fieldId,
-      fieldType: detection.type,
-      text,
-      confidence: detection.confidence,
-      element: element.tagName
+    sendToParent({
+      type: 'edit-request',
+      data: {
+        fieldId,
+        fieldType: detection.type,
+        text,
+        confidence: detection.confidence,
+        element: element.tagName
+      },
+      timestamp: new Date().toISOString(),
+      source: 'react-app'
     });
     
   }, [editingState.editModeActive, detectFieldType]);
@@ -403,11 +419,16 @@ export const EditingOverlay: React.FC = () => {
     }));
     
     // Send to WordPress for saving
-    sendToWordPress('save-content', {
-      fieldId,
-      fieldType,
-      value: newValue,
-      originalValue: initialValue
+    sendToParent({
+      type: 'save-content',
+      data: {
+        fieldId,
+        fieldType,
+        value: newValue,
+        originalValue: initialValue
+      },
+      timestamp: new Date().toISOString(),
+      source: 'react-app'
     });
     
   }, [editingState.inlineEditor, performanceManager]);
@@ -427,24 +448,7 @@ export const EditingOverlay: React.FC = () => {
   }, [editingState.inlineEditor]);
 
   // Enhanced WordPress communication
-  const sendToWordPress = useCallback((action: string, data: any) => {
-    if (window.parent && window.parent !== window) {
-      const message = {
-        type: `violet-${action}`,
-        data,
-        timestamp: new Date().toISOString(),
-        source: 'react-app'
-      };
-      
-      window.parent.postMessage(message, '*');
-      
-      if (config.debugMode) {
-        console.log('📤 Sent to WordPress:', message);
-      }
-    }
-  }, [config.debugMode]);
-
-  const saveToWordPress = useCallback(async (fieldId: string, value: string, fieldType: string): Promise<void> => {
+  const sendToWordPress = useCallback(async (fieldId: string, value: string, fieldType: string): Promise<void> => {
     return new Promise((resolve, reject) => {
       const messageId = `save-${Date.now()}`;
       
@@ -463,11 +467,16 @@ export const EditingOverlay: React.FC = () => {
       
       window.addEventListener('message', handleResponse);
       
-      sendToWordPress('save-content', {
-        id: messageId,
-        fieldId,
-        value,
-        fieldType
+      sendToParent({
+        type: 'save-content',
+        data: {
+          id: messageId,
+          fieldId,
+          value,
+          fieldType
+        },
+        timestamp: new Date().toISOString(),
+        source: 'react-app'
       });
       
       // Timeout after 10 seconds
@@ -476,7 +485,7 @@ export const EditingOverlay: React.FC = () => {
         reject(new Error('Save timeout'));
       }, 10000);
     });
-  }, [sendToWordPress]);
+  }, []);
 
   // Enhanced event listeners
   useEffect(() => {
@@ -637,19 +646,24 @@ export const EditingOverlay: React.FC = () => {
     
     // Enhanced ready signal
     const sendReadySignal = () => {
-      sendToWordPress('iframe-ready', {
-        version: '2.1',
+      sendToParent({
+        type: 'iframe-ready',
+        data: {
+          version: '2.1',
+          timestamp: new Date().toISOString(),
+          url: window.location.href,
+          capabilities: [
+            'enhanced-field-detection',
+            'inline-editing',
+            'visual-indicators',
+            'optimistic-updates',
+            'performance-management',
+            'unsaved-changes-warning'
+          ],
+          debugMode: config.debugMode
+        },
         timestamp: new Date().toISOString(),
-        url: window.location.href,
-        capabilities: [
-          'enhanced-field-detection',
-          'inline-editing',
-          'visual-indicators',
-          'optimistic-updates',
-          'performance-management',
-          'unsaved-changes-warning'
-        ],
-        debugMode: config.debugMode
+        source: 'react-app'
       });
     };
     
@@ -658,7 +672,7 @@ export const EditingOverlay: React.FC = () => {
     setTimeout(sendReadySignal, 1000);
 
     return () => window.removeEventListener('message', handleMessage);
-  }, [config.debugMode, detectFieldType, sendToWordPress]);
+  }, [config.debugMode, detectFieldType, sendToParent]);
 
   // Status metrics
   const statusMetrics = useMemo(() => ({

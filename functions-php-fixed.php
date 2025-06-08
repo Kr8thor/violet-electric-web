@@ -55,9 +55,9 @@ function violet_critical_iframe_fix() {
     }
 }
 
-// Enhanced CORS for ALL requests - CRITICAL
-add_action('send_headers', 'violet_critical_cors_fix');
-function violet_critical_cors_fix() {
+// Enhanced CORS for ALL requests - SECURE
+add_action('send_headers', 'violet_secure_cors_and_security_headers');
+function violet_secure_cors_and_security_headers() {
     $origin = get_http_origin();
     $allowed_origins = array(
         'https://lustrous-dolphin-447351.netlify.app',
@@ -65,19 +65,25 @@ function violet_critical_cors_fix() {
         'https://www.violetrainwater.com',
         'https://wp.violetrainwater.com'
     );
-    
-    if (in_array($origin, $allowed_origins) || !$origin) {
-        $cors_origin = $origin ?: 'https://lustrous-dolphin-447351.netlify.app';
-        header('Access-Control-Allow-Origin: ' . $cors_origin);
+    $allowed_headers = 'Content-Type, Authorization, X-Requested-With, X-WP-Nonce, Origin, Accept, Cache-Control, Pragma';
+    if ($origin && in_array($origin, $allowed_origins, true)) {
+        header('Access-Control-Allow-Origin: ' . $origin);
         header('Access-Control-Allow-Methods: GET, POST, PUT, DELETE, OPTIONS, HEAD');
-        header('Access-Control-Allow-Headers: *');
+        header('Access-Control-Allow-Headers: ' . $allowed_headers);
         header('Access-Control-Allow-Credentials: true');
         header('Access-Control-Max-Age: 86400');
-        
         if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
             status_header(200);
             exit();
         }
+    }
+    // Security headers for all non-admin requests
+    if (!is_admin()) {
+        header('X-Content-Type-Options: nosniff');
+        header('X-Frame-Options: SAMEORIGIN');
+        header('X-XSS-Protection: 1; mode=block');
+        header('Referrer-Policy: strict-origin-when-cross-origin');
+        header('Permissions-Policy: camera=(), microphone=(), geolocation=()');
     }
 }
 
@@ -484,29 +490,25 @@ function violet_register_enhanced_endpoints() {
     ]);
 }
 
-/**
- * Enhanced content save endpoint
- */
+// Enhanced content save endpoint - SECURE
 function violet_enhanced_save_content($request) {
-    $field_name = sanitize_text_field($request->get_param('field_name'));
-    $field_value = wp_kses_post($request->get_param('field_value'));
-    $field_type = sanitize_text_field($request->get_param('field_type'));
-    
+    $field_name = sanitize_key($request->get_param('field_name'));
+    $field_value = sanitize_textarea_field($request->get_param('field_value'));
+    $field_type = sanitize_key($request->get_param('field_type'));
+    $allowed_fields = array('hero_title', 'hero_subtitle', 'contact_email', 'hero_cta', 'hero_image', 'content_image', 'logo_image');
+    if (!in_array($field_name, $allowed_fields, true)) {
+        return new WP_Error('invalid_field', 'Field not allowed');
+    }
     if (empty($field_name) || empty($field_value)) {
         return new WP_REST_Response([
             'success' => false,
             'message' => 'Field name and value are required'
         ], 400);
     }
-    
-    // Save to WordPress options
     $option_name = 'violet_' . $field_name;
     $saved = update_option($option_name, $field_value);
-    
     if ($saved) {
-        // Log the save
         error_log("Violet: Saved {$field_name} = {$field_value}");
-        
         return new WP_REST_Response([
             'success' => true,
             'message' => 'Content saved successfully',

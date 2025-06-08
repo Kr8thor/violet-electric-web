@@ -45,7 +45,7 @@ https://app.netlify.com/sites/lustrous-dolphin-447351/deploys
 ```
 URL: https://wp.violetrainwater.com/wp-admin/
 Username: Leocorbett
-Password: %4dlz7pcV8Sz@WCN
+Password: YOUR_WP_PASSWORD_HERE
 ```
 
 ### 3. Test the Rich Text Editor
