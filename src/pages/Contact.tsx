@@ -14,6 +14,7 @@ import {
 } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { Mail, Phone, Download } from 'lucide-react';
+import { EditableText } from '@/components/EditableText';
 
 const Contact = () => {
   const { toast } = useToast();
@@ -220,9 +221,13 @@ ${formData.message}
                     <Mail className="w-5 h-5 text-violet-600 mt-1 mr-3" />
                     <div>
                       <p className="font-medium text-gray-900">Email</p>
-                      <a href="mailto:violet@violetrainmaker.com" className="text-violet-600 hover:text-violet-800">
-                        violet@violetrainmaker.com
-                      </a>
+                      <EditableText 
+                        field="contact_email" 
+                        defaultValue="violet@violetrainmaker.com"
+                        as="a"
+                        href="mailto:violet@violetrainmaker.com" 
+                        className="text-violet-600 hover:text-violet-800"
+                      />
                     </div>
                   </div>
                   
@@ -230,9 +235,13 @@ ${formData.message}
                     <Phone className="w-5 h-5 text-violet-600 mt-1 mr-3" />
                     <div>
                       <p className="font-medium text-gray-900">Phone</p>
-                      <a href="tel:+15551234567" className="text-violet-600 hover:text-violet-800">
-                        (555) 123-4567
-                      </a>
+                      <EditableText 
+                        field="contact_phone" 
+                        defaultValue="(555) 123-4567"
+                        as="a"
+                        href="tel:+15551234567" 
+                        className="text-violet-600 hover:text-violet-800"
+                      />
                     </div>
                   </div>
                 </div>
