@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>WordPress Content Save Test</title>
+    <style>
+        body { font-family: Arial; padding: 20px; max-width: 800px; margin: 0 auto; }
+        .test-section { margin: 20px 0; padding: 20px; border: 1px solid #ddd; }
+        button { padding: 10px 20px; margin: 5px; cursor: pointer; }
+        .success { color: green; }
+        .error { color: red; }
+        pre { background: #f5f5f5; padding: 10px; overflow: auto; }
+    </style>
+</head>
+<body>
+    <h1>WordPress Content Save Test</h1>
+    
+    <div class="test-section">
+        <h2>1. Check Current Content</h2>
+        <button onclick="checkContent()">Check WordPress Content</button>
+        <div id="current-content"></div>
+    </div>
+    
+    <div class="test-section">
+        <h2>2. Test Save</h2>
+        <input type="text" id="test-value" placeholder="Enter test value" value="Ramen is the one" style="width: 300px; padding: 5px;">
+        <button onclick="testSave()">Save to WordPress</button>
+        <div id="save-result"></div>
+    </div>
+    
+    <div class="test-section">
+        <h2>3. Debug Info</h2>
+        <button onclick="showDebugInfo()">Show Debug Info</button>
+        <div id="debug-info"></div>
+    </div>
+
+    <script>
+        const API_BASE = 'https://wp.violetrainwater.com/wp-json/violet/v1';
+        
+        async function checkContent() {
+            const div = document.getElementById('current-content');
+            try {
+                const response = await fetch(API_BASE + '/content');
+                const data = await response.json();
+                div.innerHTML = '<h3>Current WordPress Content:</h3><pre>' + JSON.stringify(data, null, 2) + '</pre>';
+                
+                // Highlight hero_title
+                if (data.hero_title) {
+                    div.innerHTML += '<p><strong>hero_title:</strong> <span style="color: blue; font-size: 18px;">' + data.hero_title + '</span></p>';
+                }
+            } catch (error) {
+                div.innerHTML = '<p class="error">Error: ' + error.message + '</p>';
+            }
+        }
+        
+        async function testSave() {
+            const value = document.getElementById('test-value').value;
+            const div = document.getElementById('save-result');
+            
+            div.innerHTML = '<p>Saving "' + value + '" to hero_title...</p>';
+            
+            try {
+                // Try the batch save endpoint
+                const response = await fetch(API_BASE + '/content/save-batch', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        changes: [{
+                            field_name: 'hero_title',
+                            field_value: value
+                        }]
+                    })
+                });
+                
+                const result = await response.json();
+                div.innerHTML += '<h3>Save Response:</h3><pre>' + JSON.stringify(result, null, 2) + '</pre>';
+                
+                if (result.success) {
+                    div.innerHTML += '<p class="success">✅ Save successful! Checking content again...</p>';
+                    setTimeout(checkContent, 1000);
+                } else {
+                    div.innerHTML += '<p class="error">❌ Save failed!</p>';
+                }
+                
+            } catch (error) {
+                div.innerHTML += '<p class="error">Error: ' + error.message + '</p>';
+            }
+        }
+        
+        async function showDebugInfo() {
+            const div = document.getElementById('debug-info');
+            div.innerHTML = '<h3>Debug Information:</h3>';
+            
+            // Check localStorage
+            const localContent = localStorage.getItem('violet-content');
+            div.innerHTML += '<h4>localStorage:</h4><pre>' + (localContent || 'Empty') + '</pre>';
+            
+            // Check API endpoints
+            div.innerHTML += '<h4>API Endpoints:</h4>';
+            div.innerHTML += '<p>GET: ' + API_BASE + '/content</p>';
+            div.innerHTML += '<p>POST: ' + API_BASE + '/content/save-batch</p>';
+            
+            // Browser info
+            div.innerHTML += '<h4>Browser:</h4>';
+            div.innerHTML += '<p>User Agent: ' + navigator.userAgent + '</p>';
+            div.innerHTML += '<p>Current URL: ' + window.location.href + '</p>';
+        }
+        
+        // Auto-check on load
+        window.onload = checkContent;
+    </script>
+</body>
+</html>
