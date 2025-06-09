@@ -20,39 +20,42 @@ import NotFound from "./pages/NotFound";
 import WordPressEditor from "./components/WordPressEditor";
 import WordPressRichEditor from "./components/WordPressRichEditor";
 import { ContentLoader } from "./components/ContentLoader";
+import { ContentProvider } from "./contexts/ContentContext";
 
 const queryClient = new QueryClient();
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <ApolloProvider client={client}>
-      <Toaster />
-      <Sonner />
-      <BrowserRouter>
-        <Routes>
-          {/* Keep your exact same routing - just WordPress-powered content */}
-          <Route path="/" element={<Index />} />
-          <Route path="/about" element={<About />} />
-          <Route path="/keynotes" element={<Keynotes />} />
-          <Route path="/testimonials" element={<Testimonials />} />
-          <Route path="/contact" element={<Contact />} />
-          <Route path="*" element={<NotFound />} />
-        </Routes>
+      <ContentProvider>
+        <Toaster />
+        <Sonner />
+        <BrowserRouter>
+          <Routes>
+            {/* Keep your exact same routing - just WordPress-powered content */}
+            <Route path="/" element={<Index />} />
+            <Route path="/about" element={<About />} />
+            <Route path="/keynotes" element={<Keynotes />} />
+            <Route path="/testimonials" element={<Testimonials />} />
+            <Route path="/contact" element={<Contact />} />
+            <Route path="*" element={<NotFound />} />
+          </Routes>
 
-        {/* Content Loader - Loads persisted content on startup */}
-        <ContentLoader />
+          {/* Content Loader - Loads persisted content on startup */}
+          <ContentLoader />
 
-        {/* WordPress Editor Communication - Invisible component */}
-        <WordPressEditor />
-        
-        {/* Rich Text Editor - Enhanced editing capabilities */}
-        <WordPressRichEditor />
+          {/* WordPress Editor Communication - Invisible component */}
+          <WordPressEditor />
+          
+          {/* Rich Text Editor - Enhanced editing capabilities */}
+          <WordPressRichEditor />
 
-        {/* Debug status - remove in production */}
-        {/* <div className="fixed bottom-4 right-4 z-50">
-          <WordPressBackendStatus />
-        </div> */}
-      </BrowserRouter>
+          {/* Debug status - remove in production */}
+          {/* <div className="fixed bottom-4 right-4 z-50">
+            <WordPressBackendStatus />
+          </div> */}
+        </BrowserRouter>
+      </ContentProvider>
     </ApolloProvider>
   </QueryClientProvider>
 );

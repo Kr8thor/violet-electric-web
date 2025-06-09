@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useRef, useCallback } from 'react';
-import { saveContent, getAllContent } from '@/utils/contentStorage';
+import { saveContent, getAllContent, getAllContentSync } from '@/utils/contentStorage';
 
 interface EditableElement {
   element: HTMLElement;
@@ -395,6 +395,19 @@ const WordPressEditor: React.FC = () => {
             
             // Persist to localStorage
             saveContent(contentToSave);
+            
+            // Force a UI update by dispatching a custom event
+            window.dispatchEvent(new CustomEvent('violet-content-updated', {
+              detail: { ...getAllContentSync(), ...contentToSave }
+            }));
+            
+            // If not in edit mode, reload to show new content
+            if (!isEditMode) {
+              console.log('🔄 Reloading to show updated content...');
+              setTimeout(() => {
+                window.location.reload();
+              }, 500);
+            }
           }
           break;
       }

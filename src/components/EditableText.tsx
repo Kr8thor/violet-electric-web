@@ -1,5 +1,5 @@
 import React from 'react';
-import { useContentField } from '@/hooks/useVioletContent';
+import { useContentField } from '@/contexts/ContentContext';
 import { cn } from '@/lib/utils';
 
 interface EditableTextProps extends React.HTMLAttributes<HTMLElement> {
