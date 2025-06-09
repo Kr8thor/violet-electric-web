@@ -45,7 +45,16 @@ export const ContentProvider: React.FC<{ children: React.ReactNode }> = ({ child
 
   // Get a specific field with default
   const getField = useCallback((field: string, defaultValue: string): string => {
-    return content[field] || defaultValue;
+    // First check current content
+    const value = content[field];
+    
+    // If we have a value that's not empty, use it
+    if (value !== undefined && value !== null && value !== '') {
+      return value;
+    }
+    
+    // Otherwise return the default
+    return defaultValue;
   }, [content]);
 
   // Load content on mount
@@ -126,13 +135,14 @@ export const useContent = () => {
 
 // Convenience hook for a specific field
 export const useContentField = (field: string, defaultValue: string): string => {
-  const { getField } = useContent();
+  const { getField, content } = useContent();
   const value = getField(field, defaultValue);
   
-  // Debug logging in development
-  if (import.meta.env?.DEV) {
-    console.log(`📝 useContentField: ${field} = "${value}" (default: "${defaultValue}")`);
-  }
+  // Debug logging
+  console.log(`📝 useContentField: ${field}`);
+  console.log(`   - Content value: "${content[field]}"`);
+  console.log(`   - Default value: "${defaultValue}"`);
+  console.log(`   - Returned value: "${value}"`);
   
   return value;
 };
