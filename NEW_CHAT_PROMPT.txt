@@ -1,0 +1,32 @@
+# Fix WordPress Frontend Editor - Save & Display Issues
+
+I have a WordPress frontend editor that's not working properly. I need you to fix these issues:
+
+## Issue 1: Save Not Working (CRITICAL)
+- When I save content, it shows "✅ Saved 1 fields successfully!" but the content doesn't persist
+- The API endpoint `/wp-json/violet/v1/content` still returns old values after saving
+- Example: I edit "Change the channel" to "Ramen is the one", save shows success, but API still returns "Change the channel"
+
+## Issue 2: Save Button Disappears
+- After clicking save, the save button completely disappears
+- It should stay visible and show "✅ All Changes Saved" or similar
+- Currently it hides when `violetPendingChanges` is empty
+
+## Issue 3: React App Disappears
+- When I click "Disable Direct Editing", the React app in the iframe goes blank
+- Only a full browser refresh brings it back
+- The iframe should keep showing the React app, just without edit capabilities
+
+## Technical Details
+- WordPress site: https://wp.violetrainwater.com
+- React app: https://lustrous-dolphin-447351.netlify.app
+- The editor is in the WordPress theme's functions.php
+- Save endpoint: `/wp-json/violet/v1/content/save-batch`
+- Using WordPress options API to store content
+
+## What I Need
+1. Fix the save function so content actually persists in the database
+2. Keep the save button visible after saving (just change its appearance)
+3. Ensure the React app stays visible when disabling edit mode
+
+The save function is called `violet_final_batch_save()` and uses `update_option()` to save. Please help me debug why the saves aren't persisting and fix these UI issues.
