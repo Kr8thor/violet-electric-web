@@ -66,6 +66,13 @@ export const ContentProvider: React.FC<{ children: React.ReactNode }> = ({ child
         setContent(event.detail.content);
       }
     };
+    
+    const handleContentSynced = (event: CustomEvent) => {
+      console.log('🔄 Content synced from WordPress:', event.detail);
+      if (event.detail && event.detail.content) {
+        setContent(event.detail.content);
+      }
+    };
 
     const handleMessage = (event: MessageEvent) => {
       // Handle messages from WordPress
@@ -83,11 +90,13 @@ export const ContentProvider: React.FC<{ children: React.ReactNode }> = ({ child
 
     window.addEventListener('violet-content-updated', handleContentUpdate as EventListener);
     window.addEventListener('violet-content-persisted', handleContentPersisted as EventListener);
+    window.addEventListener('violet-content-synced', handleContentSynced as EventListener);
     window.addEventListener('message', handleMessage);
 
     return () => {
       window.removeEventListener('violet-content-updated', handleContentUpdate as EventListener);
       window.removeEventListener('violet-content-persisted', handleContentPersisted as EventListener);
+      window.removeEventListener('violet-content-synced', handleContentSynced as EventListener);
       window.removeEventListener('message', handleMessage);
     };
   }, [updateContent]);

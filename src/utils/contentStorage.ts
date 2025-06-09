@@ -110,25 +110,40 @@ export const hasContent = (): boolean => {
   }
 };
 
-// Get default content
+// Get default content - should only be used as last resort
 const getDefaultContent = (): VioletContent => {
+  console.log('⚠️ Using hardcoded defaults - no saved content found');
   return {
-    hero_title: 'Change the channel - Change Your Life.',
-    hero_subtitle: 'Transform your potential into reality with our innovative solutions',
-    hero_cta: 'Get Started',
-    hero_subtitle_line2: 'Change Your Life.',
-    // Add other default fields as needed
+    // Return empty strings so the component's defaultValue props are used
+    // This ensures WordPress content takes priority when available
   };
 };
 
-// Initialize content (can be extended to fetch from WordPress)
+// Initialize content from WordPress first, then fall back to localStorage
 export const initializeContent = async (): Promise<VioletContent> => {
-  // First, try to load from localStorage
-  const storedContent = getAllContentSync();
+  try {
+    console.log('🔄 Initializing content from WordPress...');
+    
+    // Try to fetch from WordPress API first
+    const response = await fetch('https://wp.violetrainwater.com/wp-json/violet/v1/content');
+    
+    if (response.ok) {
+      const wpContent = await response.json();
+      console.log('✅ WordPress content loaded:', wpContent);
+      
+      if (wpContent && Object.keys(wpContent).length > 0) {
+        // Save to localStorage for offline access
+        saveContent(wpContent, false); // false = replace completely
+        return wpContent;
+      }
+    }
+  } catch (error) {
+    console.log('ℹ️ Could not fetch WordPress content (this is normal in development):', error);
+  }
   
-  // In the future, you could fetch from WordPress here
-  // For now, just return the stored content
-  return storedContent;
+  // Fall back to localStorage if WordPress is unavailable
+  console.log('📦 Falling back to localStorage content');
+  return getAllContentSync();
 };
 
 // Clear stored content

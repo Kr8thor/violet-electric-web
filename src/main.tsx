@@ -5,6 +5,11 @@ import App from './App.tsx'
 import './index.css'
 import './utils/autoInitDebug'
 import { initializeWordPressPersistence } from './utils/contentPersistenceFix'
+import { initializeWordPressSync } from './utils/wordpressContentSync'
+
+// Initialize WordPress sync to fetch content on startup
+initializeWordPressSync();
+console.log('🔄 WordPress content sync initialized');
 
 // Initialize WordPress persistence handler early
 initializeWordPressPersistence();

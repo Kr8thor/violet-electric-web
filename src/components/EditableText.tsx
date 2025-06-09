@@ -16,6 +16,11 @@ export const EditableText = React.forwardRef<HTMLElement, EditableTextProps>(
   ({ field, defaultValue, as: Component = 'span', className, children, ...props }, ref) => {
     const value = useContentField(field, defaultValue);
     
+    // CRITICAL FIX: Use saved value if it exists, otherwise use defaultValue
+    // The value from useContentField already handles this, but we need to ensure
+    // empty strings don't override defaultValue
+    const displayValue = value && value.trim() !== '' ? value : defaultValue;
+    
     return React.createElement(
       Component,
       {
@@ -24,7 +29,7 @@ export const EditableText = React.forwardRef<HTMLElement, EditableTextProps>(
         'data-violet-field': field,
         ...props
       },
-      value || children || defaultValue
+      displayValue || children
     );
   }
 );

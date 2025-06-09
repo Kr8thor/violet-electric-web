@@ -25,6 +25,9 @@ import WordPressRichEditor from "./components/WordPressRichEditor";
 import { ContentLoader } from "./components/ContentLoader";
 import { ContentProvider } from "./contexts/ContentContext";
 
+// CRITICAL FIX: WordPress content sync
+import { initializeWordPressSync } from "./utils/wordpressContentSync";
+
 const queryClient = new QueryClient();
 
 const App = () => {
@@ -39,6 +42,14 @@ const App = () => {
       initializeDebugTools();
       console.log('🛠️ Debug tools initialized');
     }
+    
+    // CRITICAL FIX: Initialize WordPress content sync
+    const cleanupSync = initializeWordPressSync();
+    console.log('🔄 WordPress content sync initialized');
+    
+    return () => {
+      cleanupSync();
+    };
   }, []);
 
   return (

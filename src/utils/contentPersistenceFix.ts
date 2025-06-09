@@ -71,12 +71,10 @@ export const applyWordPressSavedChanges = (savedChanges: SavedChange[]): boolean
         }
       }));
       
-      // Force a page reload to show new content
+      // Don't force reload - let React handle updates reactively
       if (allApplied) {
-        debugLog('🔄 Forcing page reload to show updated content...');
-        setTimeout(() => {
-          window.location.reload();
-        }, 500);
+        debugLog('✅ Content applied successfully - React will update automatically');
+        // Removed: window.location.reload();
       }
       
       return allApplied;
