@@ -14,7 +14,9 @@ const ContentContext = createContext<ContentContextValue | undefined>(undefined)
 export const ContentProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [content, setContent] = useState<VioletContent>(() => {
     // Initialize with cached content
-    return getAllContentSync();
+    const cached = getAllContentSync();
+    console.log('🎨 ContentProvider initializing with cached content:', cached);
+    return cached;
   });
   const [isLoading, setIsLoading] = useState(true);
 
@@ -57,11 +59,18 @@ export const ContentProvider: React.FC<{ children: React.ReactNode }> = ({ child
       console.log('📦 Content update event received:', event.detail);
       setContent(event.detail);
     };
+    
+    const handleContentPersisted = (event: CustomEvent) => {
+      console.log('💾 Content persisted event received:', event.detail);
+      if (event.detail && event.detail.content) {
+        setContent(event.detail.content);
+      }
+    };
 
     const handleMessage = (event: MessageEvent) => {
       // Handle messages from WordPress
       if (event.data.type === 'violet-apply-saved-changes' && event.data.savedChanges) {
-        console.log('💾 Applying saved changes from WordPress:', event.data.savedChanges);
+        console.log('💾 ContentContext: Applying saved changes from WordPress:', event.data.savedChanges);
         
         const updates: VioletContent = {};
         event.data.savedChanges.forEach((change: any) => {
@@ -73,10 +82,12 @@ export const ContentProvider: React.FC<{ children: React.ReactNode }> = ({ child
     };
 
     window.addEventListener('violet-content-updated', handleContentUpdate as EventListener);
+    window.addEventListener('violet-content-persisted', handleContentPersisted as EventListener);
     window.addEventListener('message', handleMessage);
 
     return () => {
       window.removeEventListener('violet-content-updated', handleContentUpdate as EventListener);
+      window.removeEventListener('violet-content-persisted', handleContentPersisted as EventListener);
       window.removeEventListener('message', handleMessage);
     };
   }, [updateContent]);
@@ -107,5 +118,12 @@ export const useContent = () => {
 // Convenience hook for a specific field
 export const useContentField = (field: string, defaultValue: string): string => {
   const { getField } = useContent();
-  return getField(field, defaultValue);
+  const value = getField(field, defaultValue);
+  
+  // Debug logging in development
+  if (import.meta.env?.DEV) {
+    console.log(`📝 useContentField: ${field} = "${value}" (default: "${defaultValue}")`);
+  }
+  
+  return value;
 };

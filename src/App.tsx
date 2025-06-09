@@ -4,6 +4,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { ApolloProvider } from "@apollo/client";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { client } from "./lib/graphql-client";
+import { useEffect } from "react";
 
 // Keep your existing beautiful pages
 import Index from "./pages/Index";
@@ -15,6 +16,8 @@ import NotFound from "./pages/NotFound";
 
 // Debug component (remove in production)
 // import WordPressBackendStatus from "./components/WordPressBackendStatus";
+import ContentDebugPanel from "./components/ContentDebugPanel";
+import initializeDebugTools from "./utils/debugTools";
 
 // WordPress Editor Communication
 import WordPressEditor from "./components/WordPressEditor";
@@ -24,7 +27,21 @@ import { ContentProvider } from "./contexts/ContentContext";
 
 const queryClient = new QueryClient();
 
-const App = () => (
+const App = () => {
+  // Initialize debug tools in development or edit mode
+  useEffect(() => {
+    // For Vite, use import.meta.env.DEV instead of process.env.NODE_ENV
+    const isDev = import.meta.env?.DEV || false;
+    const isDebugMode = window.location.search.includes('debug=1');
+    const isEditMode = window.location.search.includes('edit_mode=1');
+    
+    if (isDev || isDebugMode || isEditMode) {
+      initializeDebugTools();
+      console.log('🛠️ Debug tools initialized');
+    }
+  }, []);
+
+  return (
   <QueryClientProvider client={queryClient}>
     <ApolloProvider client={client}>
       <ContentProvider>
@@ -54,10 +71,14 @@ const App = () => (
           {/* <div className="fixed bottom-4 right-4 z-50">
             <WordPressBackendStatus />
           </div> */}
+          
+          {/* Content Debug Panel - helps diagnose save issues */}
+          <ContentDebugPanel />
         </BrowserRouter>
       </ContentProvider>
     </ApolloProvider>
   </QueryClientProvider>
-);
+  );
+};
 
 export default App;

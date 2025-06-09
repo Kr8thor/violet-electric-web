@@ -1,5 +1,6 @@
 import React, { useEffect, useState, useRef, useCallback } from 'react';
 import { saveContent, getAllContent, getAllContentSync } from '@/utils/contentStorage';
+import { initializeWordPressPersistence, debugContentState } from '@/utils/contentPersistenceFix';
 
 interface EditableElement {
   element: HTMLElement;
@@ -293,6 +294,9 @@ const WordPressEditor: React.FC = () => {
 
   // Message handler
   useEffect(() => {
+    // Initialize enhanced persistence handler
+    const cleanupPersistence = initializeWordPressPersistence();
+    
     const handleMessage = (event: MessageEvent) => {
       // Security check
       const allowedOrigins = [
@@ -301,11 +305,23 @@ const WordPressEditor: React.FC = () => {
         window.location.origin
       ];
       
+      // Allow localhost in development
+      if (import.meta.env?.DEV) {
+        allowedOrigins.push('http://localhost:3000', 'http://localhost:3001', 'http://localhost:5173');
+      }
+      
       if (!allowedOrigins.some(origin => event.origin.includes(origin))) {
+        console.log('🚫 Blocked message from untrusted origin:', event.origin);
         return;
       }
 
       console.log('📨 React app received message:', event.data);
+      
+      // Debug content state when receiving save-related messages
+      if (event.data.type === 'violet-apply-saved-changes') {
+        console.log('📊 Current content state before save:');
+        debugContentState();
+      }
 
       switch (event.data.type) {
         case 'violet-test-access':
@@ -371,15 +387,12 @@ const WordPressEditor: React.FC = () => {
           break;
 
         case 'violet-apply-saved-changes':
-          // Apply saved changes and persist
-          console.log('✅ Applying saved changes:', event.data.savedChanges);
-          if (event.data.savedChanges) {
-            const contentToSave: Record<string, string> = {};
-            
+          // Now handled by contentPersistenceFix module for better debugging
+          console.log('✅ violet-apply-saved-changes received - handled by persistence module');
+          
+          // Update visible elements only
+          if (event.data.savedChanges && Array.isArray(event.data.savedChanges)) {
             event.data.savedChanges.forEach((change: any) => {
-              contentToSave[change.field_name] = change.field_value;
-              
-              // Update visible elements
               editableElements.forEach((data, element) => {
                 if (element.dataset.fieldType === change.field_name) {
                   element.textContent = change.field_value;
@@ -392,29 +405,16 @@ const WordPressEditor: React.FC = () => {
                 }
               });
             });
-            
-            // Persist to localStorage
-            saveContent(contentToSave);
-            
-            // Force a UI update by dispatching a custom event
-            window.dispatchEvent(new CustomEvent('violet-content-updated', {
-              detail: { ...getAllContentSync(), ...contentToSave }
-            }));
-            
-            // If not in edit mode, reload to show new content
-            if (!isEditMode) {
-              console.log('🔄 Reloading to show updated content...');
-              setTimeout(() => {
-                window.location.reload();
-              }, 500);
-            }
           }
           break;
       }
     };
 
     window.addEventListener('message', handleMessage);
-    return () => window.removeEventListener('message', handleMessage);
+    return () => {
+      window.removeEventListener('message', handleMessage);
+      cleanupPersistence();
+    };
   }, [enableEditingMode, disableEditingMode, editableElements]);
 
   // Send ready signal when in iframe

@@ -1,0 +1,325 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WordPress-React Content Persistence Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #0073aa;
+        }
+        .test-section {
+            margin: 20px 0;
+            padding: 20px;
+            background: #f9f9f9;
+            border-radius: 5px;
+            border: 1px solid #ddd;
+        }
+        button {
+            background: #0073aa;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 5px;
+            font-size: 14px;
+        }
+        button:hover {
+            background: #005a87;
+        }
+        .success {
+            color: #00a32a;
+            font-weight: bold;
+        }
+        .error {
+            color: #d63939;
+            font-weight: bold;
+        }
+        .log {
+            background: #1e1e1e;
+            color: #fff;
+            padding: 15px;
+            border-radius: 5px;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            max-height: 300px;
+            overflow-y: auto;
+            margin: 10px 0;
+        }
+        .status {
+            padding: 10px;
+            background: #e7f5ff;
+            border-radius: 5px;
+            margin: 10px 0;
+        }
+        iframe {
+            width: 100%;
+            height: 600px;
+            border: 2px solid #0073aa;
+            border-radius: 5px;
+            margin: 20px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🧪 WordPress-React Content Persistence Test</h1>
+        
+        <div class="status" id="status">
+            <strong>Status:</strong> <span id="statusText">Ready to test</span>
+        </div>
+
+        <div class="test-section">
+            <h2>1. Check Current Content</h2>
+            <button onclick="checkCurrentContent()">Check localStorage Content</button>
+            <button onclick="clearContent()">Clear All Content</button>
+            <div id="currentContent" class="log"></div>
+        </div>
+
+        <div class="test-section">
+            <h2>2. Test Save Flow</h2>
+            <p>This simulates what WordPress admin does when you click "Save All Changes"</p>
+            <input type="text" id="testTitle" placeholder="Enter test title" style="width: 300px; padding: 8px;">
+            <br><br>
+            <button onclick="simulateWordPressSave()">Simulate WordPress Save</button>
+            <button onclick="testFullFlow()">Run Full Test Flow</button>
+            <div id="saveLog" class="log"></div>
+        </div>
+
+        <div class="test-section">
+            <h2>3. Live React App Test</h2>
+            <p>Load your React app in the iframe below and test real-time updates:</p>
+            <input type="text" id="iframeUrl" placeholder="https://lustrous-dolphin-447351.netlify.app/" style="width: 400px; padding: 8px;">
+            <button onclick="loadReactApp()">Load React App</button>
+            <iframe id="reactFrame" style="display:none;"></iframe>
+            <div id="iframeLog" class="log"></div>
+        </div>
+
+        <div class="test-section">
+            <h2>4. Debug Information</h2>
+            <button onclick="showDebugInfo()">Show Debug Info</button>
+            <div id="debugInfo" class="log"></div>
+        </div>
+    </div>
+
+    <script>
+        // Logging functions
+        function log(elementId, message, type = 'info') {
+            const element = document.getElementById(elementId);
+            const timestamp = new Date().toLocaleTimeString();
+            const color = type === 'success' ? '#00ff00' : type === 'error' ? '#ff0000' : '#ffffff';
+            element.innerHTML += `<div style="color: ${color}">[${timestamp}] ${message}</div>`;
+            element.scrollTop = element.scrollHeight;
+        }
+
+        function setStatus(message, type = 'info') {
+            const statusText = document.getElementById('statusText');
+            statusText.textContent = message;
+            statusText.className = type;
+        }
+
+        // Test functions
+        function checkCurrentContent() {
+            const logId = 'currentContent';
+            document.getElementById(logId).innerHTML = '';
+            
+            log(logId, 'Checking localStorage content...');
+            
+            const content = localStorage.getItem('violet-content');
+            if (content) {
+                try {
+                    const parsed = JSON.parse(content);
+                    log(logId, 'Found content in localStorage:', 'success');
+                    log(logId, JSON.stringify(parsed, null, 2));
+                    
+                    // Check specific fields
+                    const fields = parsed.content || parsed;
+                    if (fields.hero_title) {
+                        log(logId, `hero_title: "${fields.hero_title}"`, 'success');
+                    }
+                    if (fields.hero_subtitle) {
+                        log(logId, `hero_subtitle: "${fields.hero_subtitle}"`, 'success');
+                    }
+                } catch (e) {
+                    log(logId, 'Error parsing content: ' + e.message, 'error');
+                }
+            } else {
+                log(logId, 'No content found in localStorage', 'error');
+            }
+        }
+
+        function clearContent() {
+            localStorage.removeItem('violet-content');
+            log('currentContent', 'Content cleared from localStorage', 'success');
+            setStatus('Content cleared', 'success');
+        }
+
+        function simulateWordPressSave() {
+            const logId = 'saveLog';
+            document.getElementById(logId).innerHTML = '';
+            
+            const testTitle = document.getElementById('testTitle').value || 'Test Title ' + Date.now();
+            
+            log(logId, 'Simulating WordPress save message...');
+            
+            const message = {
+                type: 'violet-apply-saved-changes',
+                savedChanges: [
+                    {
+                        field_name: 'hero_title',
+                        field_value: testTitle
+                    },
+                    {
+                        field_name: 'hero_subtitle',
+                        field_value: 'Saved at ' + new Date().toLocaleString()
+                    },
+                    {
+                        field_name: 'hero_cta',
+                        field_value: 'Test Button'
+                    }
+                ],
+                timestamp: Date.now()
+            };
+            
+            // Send to current window
+            window.postMessage(message, window.location.origin);
+            log(logId, 'Message sent to window', 'success');
+            
+            // Also send to iframe if loaded
+            const iframe = document.getElementById('reactFrame');
+            if (iframe.src) {
+                iframe.contentWindow.postMessage(message, '*');
+                log(logId, 'Message sent to iframe', 'success');
+            }
+            
+            // Check result after delay
+            setTimeout(() => {
+                const saved = localStorage.getItem('violet-content');
+                if (saved && saved.includes(testTitle)) {
+                    log(logId, 'SUCCESS: Content was saved!', 'success');
+                    setStatus('Save test passed!', 'success');
+                } else {
+                    log(logId, 'FAILED: Content was not saved', 'error');
+                    setStatus('Save test failed', 'error');
+                }
+            }, 1000);
+        }
+
+        function testFullFlow() {
+            const logId = 'saveLog';
+            document.getElementById(logId).innerHTML = '';
+            
+            log(logId, '=== Starting Full Test Flow ===');
+            
+            // Step 1: Clear
+            localStorage.removeItem('violet-content');
+            log(logId, '1. Cleared localStorage');
+            
+            // Step 2: Save test content
+            const testContent = {
+                version: 'v1',
+                timestamp: Date.now(),
+                content: {
+                    hero_title: 'Full Test: ' + Date.now(),
+                    hero_subtitle: 'This is a complete test',
+                    hero_cta: 'Test Complete'
+                }
+            };
+            
+            localStorage.setItem('violet-content', JSON.stringify(testContent));
+            log(logId, '2. Saved test content directly');
+            
+            // Step 3: Verify
+            const saved = localStorage.getItem('violet-content');
+            if (saved) {
+                log(logId, '3. Verified content exists', 'success');
+                
+                // Step 4: Simulate WordPress update
+                setTimeout(() => {
+                    simulateWordPressSave();
+                }, 500);
+            } else {
+                log(logId, '3. Failed to save content', 'error');
+            }
+        }
+
+        function loadReactApp() {
+            const url = document.getElementById('iframeUrl').value || 'https://lustrous-dolphin-447351.netlify.app/';
+            const iframe = document.getElementById('reactFrame');
+            const logId = 'iframeLog';
+            
+            document.getElementById(logId).innerHTML = '';
+            
+            // Add edit mode parameters
+            const editUrl = url + (url.includes('?') ? '&' : '?') + 'edit_mode=1&wp_admin=1';
+            
+            log(logId, 'Loading React app: ' + editUrl);
+            iframe.src = editUrl;
+            iframe.style.display = 'block';
+            
+            // Listen for messages from iframe
+            window.addEventListener('message', (event) => {
+                if (event.data && event.data.type) {
+                    log(logId, `Received from iframe: ${event.data.type}`);
+                }
+            });
+            
+            iframe.onload = () => {
+                log(logId, 'React app loaded', 'success');
+                setStatus('React app loaded in iframe', 'success');
+            };
+        }
+
+        function showDebugInfo() {
+            const logId = 'debugInfo';
+            document.getElementById(logId).innerHTML = '';
+            
+            log(logId, '=== Debug Information ===');
+            log(logId, 'Current URL: ' + window.location.href);
+            log(logId, 'Origin: ' + window.location.origin);
+            log(logId, 'localStorage keys: ' + Object.keys(localStorage).join(', '));
+            
+            // Check for violet-content
+            const content = localStorage.getItem('violet-content');
+            if (content) {
+                log(logId, 'violet-content exists: ' + content.length + ' characters', 'success');
+            } else {
+                log(logId, 'violet-content does not exist', 'error');
+            }
+            
+            // Check for message listeners
+            log(logId, 'Message listener active: Yes');
+            
+            // Browser info
+            log(logId, 'User Agent: ' + navigator.userAgent);
+        }
+
+        // Listen for messages
+        window.addEventListener('message', (event) => {
+            console.log('Test page received message:', event.data);
+            
+            if (event.data.type === 'violet-apply-saved-changes') {
+                console.log('Processing violet-apply-saved-changes in test page');
+                // You could add the persistence logic here for testing
+            }
+        });
+
+        // Initial check
+        checkCurrentContent();
+    </script>
+</body>
+</html>

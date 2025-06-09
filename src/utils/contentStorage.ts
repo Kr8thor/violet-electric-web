@@ -1,217 +1,164 @@
-/**
- * Content Storage Utility
- * Manages persisted content from WordPress editor with WordPress API integration
- */
+// Content storage utility for persisting edits
+const STORAGE_KEY = 'violet-content';
+const STORAGE_VERSION = 'v1';
 
 export interface VioletContent {
-  hero_title?: string;
-  hero_subtitle?: string;
-  hero_cta?: string;
-  hero_cta_secondary?: string;
-  contact_email?: string;
-  contact_phone?: string;
-  [key: string]: string | undefined;
+  [fieldName: string]: string;
 }
 
-const STORAGE_KEY = 'violet-content';
-const WORDPRESS_API_URL = 'https://wp.violetrainwater.com/wp-json/violet/v1/content';
+export interface StorageData {
+  version: string;
+  timestamp: number;
+  content: VioletContent;
+}
 
-/**
- * Fetch content from WordPress REST API
- */
-async function fetchContentFromWordPress(): Promise<VioletContent> {
+// Save content to localStorage
+export const saveContent = (content: VioletContent, merge: boolean = true): boolean => {
   try {
-    const response = await fetch(WORDPRESS_API_URL, {
-      method: 'GET',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-    });
+    let finalContent = content;
     
-    if (!response.ok) {
-      throw new Error(`WordPress API error: ${response.status}`);
+    // If merge is true, merge with existing content
+    if (merge) {
+      const existing = getAllContentSync();
+      finalContent = { ...existing, ...content };
     }
     
-    const data = await response.json();
-    console.log('✅ Raw response from WordPress:', data);
+    const data: StorageData = {
+      version: STORAGE_VERSION,
+      timestamp: Date.now(),
+      content: finalContent
+    };
     
-    // CRITICAL FIX: Extract content from WordPress API response format
-    let content: VioletContent;
-    if (data.content && typeof data.content === 'object') {
-      // WordPress returns: { content: { hero_title: "...", ... } }
-      content = data.content;
-    } else if (typeof data === 'object' && !data.content) {
-      // Direct content format: { hero_title: "...", ... }
-      content = data;
-    } else {
-      console.warn('⚠️ Unexpected WordPress API response format:', data);
-      content = {};
-    }
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+    console.log('💾 Content saved to localStorage:', data);
     
-    console.log('✅ Processed content from WordPress:', content);
+    // Dispatch custom event for other components
+    window.dispatchEvent(new CustomEvent('violet-content-updated', { detail: finalContent }));
     
-    // Save to localStorage as cache
-    if (typeof window !== 'undefined') {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(content));
-    }
-    
-    return content;
+    return true;
   } catch (error) {
-    console.error('❌ Error fetching content from WordPress:', error);
-    
-    // Fallback to localStorage if WordPress is unavailable
-    if (typeof window !== 'undefined') {
+    console.error('❌ Failed to save content:', error);
+    return false;
+  }
+};
+
+// Load content from localStorage synchronously
+export const getAllContentSync = (): VioletContent => {
+  try {
+    // First, try to load from our structured format
+    const stored = localStorage.getItem(STORAGE_KEY);
+    if (stored) {
       try {
-        const saved = localStorage.getItem(STORAGE_KEY);
-        if (saved) {
-          console.log('📦 Using cached content from localStorage');
-          return JSON.parse(saved) as VioletContent;
+        const data: StorageData = JSON.parse(stored);
+        console.log('📦 Loaded structured content from localStorage:', data);
+        
+        // Check if it's our structured format
+        if (data.version && data.content) {
+          return data.content;
         }
       } catch (e) {
-        console.error('Error loading cached content:', e);
+        // Not JSON or not our format, continue to legacy check
       }
     }
     
-    return {};
-  }
-}
-
-/**
- * Get content value for a specific field (now fetches from WordPress)
- */
-export async function getContent(field: string, defaultValue: string): Promise<string> {
-  if (typeof window === 'undefined') return defaultValue;
-  
-  try {
-    // First try to get from WordPress
-    const content = await fetchContentFromWordPress();
-    return content[field] || defaultValue;
-  } catch (error) {
-    console.error('Error loading content:', error);
-    return defaultValue;
-  }
-}
-
-/**
- * Get content value synchronously (uses cached data)
- */
-export function getContentSync(field: string, defaultValue: string): string {
-  if (typeof window === 'undefined') return defaultValue;
-  
-  try {
-    const saved = localStorage.getItem(STORAGE_KEY);
-    if (saved) {
-      const content = JSON.parse(saved) as VioletContent;
-      return content[field] || defaultValue;
-    }
-  } catch (error) {
-    console.error('Error loading cached content:', error);
-  }
-  
-  return defaultValue;
-}
-
-/**
- * Get all saved content (fetches from WordPress)
- */
-export async function getAllContent(): Promise<VioletContent> {
-  if (typeof window === 'undefined') return {};
-  
-  try {
-    return await fetchContentFromWordPress();
-  } catch (error) {
-    console.error('Error loading content:', error);
-    return {};
-  }
-}
-
-/**
- * Get all content synchronously (uses cached data)
- */
-export function getAllContentSync(): VioletContent {
-  if (typeof window === 'undefined') return {};
-  
-  try {
-    const saved = localStorage.getItem(STORAGE_KEY);
-    if (saved) {
-      return JSON.parse(saved) as VioletContent;
-    }
-  } catch (error) {
-    console.error('Error loading cached content:', error);
-  }
-  
-  return {};
-}
-
-
-/**
- * Save content to localStorage (and sync to WordPress in editor mode)
- */
-export function saveContent(content: VioletContent): void {
-  if (typeof window === 'undefined') return;
-  
-  try {
-    const existing = getAllContentSync();
-    const merged = { ...existing, ...content };
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(merged));
+    // Check for legacy flat storage format
+    console.log('📦 Checking for legacy flat storage format...');
+    const legacyContent: VioletContent = {};
+    let hasLegacyContent = false;
     
-    // Dispatch custom event for React components to update
-    window.dispatchEvent(new CustomEvent('violet-content-updated', {
-      detail: merged
-    }));
+    // List of known content fields
+    const contentFields = [
+      'hero_title', 'hero_subtitle', 'hero_cta', 'hero_subtitle_line2',
+      'contact_email', 'contact_phone', 'footer_text',
+      'auto_rebuild', 'content_initialized', 'keynote_setup_complete'
+    ];
+    
+    // Check each field in localStorage
+    contentFields.forEach(field => {
+      const value = localStorage.getItem(field);
+      if (value !== null && value !== undefined) {
+        legacyContent[field] = value;
+        hasLegacyContent = true;
+      }
+    });
+    
+    if (hasLegacyContent) {
+      console.log('📦 Found legacy content:', legacyContent);
+      // Migrate to new format
+      saveContent(legacyContent, false);
+      return legacyContent;
+    }
+    
+    console.log('📭 No stored content found, returning defaults');
+    return getDefaultContent();
   } catch (error) {
-    console.error('Error saving content:', error);
+    console.error('❌ Failed to load content:', error);
+    return getDefaultContent();
   }
-}
+};
 
-/**
- * Clear all saved content
- */
-export function clearContent(): void {
-  if (typeof window === 'undefined') return;
-  
-  try {
-    localStorage.removeItem(STORAGE_KEY);
-    window.dispatchEvent(new CustomEvent('violet-content-updated', {
-      detail: {}
-    }));
-  } catch (error) {
-    console.error('Error clearing content:', error);
-  }
-}
+// Alias for getAllContentSync for backward compatibility
+export const getAllContent = getAllContentSync;
 
-/**
- * Check if content exists
- */
-export function hasContent(): boolean {
-  if (typeof window === 'undefined') return false;
-  
+// Check if content exists in localStorage
+export const hasContent = (): boolean => {
   try {
-    const saved = localStorage.getItem(STORAGE_KEY);
-    return saved !== null && saved !== '{}';
+    const stored = localStorage.getItem(STORAGE_KEY);
+    return stored !== null && stored !== undefined && stored !== '';
   } catch (error) {
     return false;
   }
-}
+};
 
-/**
- * Initialize content loading from WordPress on app start
- */
-export async function initializeContent(): Promise<VioletContent> {
-  if (typeof window === 'undefined') return {};
+// Get default content
+const getDefaultContent = (): VioletContent => {
+  return {
+    hero_title: 'Change the channel - Change Your Life.',
+    hero_subtitle: 'Transform your potential into reality with our innovative solutions',
+    hero_cta: 'Get Started',
+    hero_subtitle_line2: 'Change Your Life.',
+    // Add other default fields as needed
+  };
+};
+
+// Initialize content (can be extended to fetch from WordPress)
+export const initializeContent = async (): Promise<VioletContent> => {
+  // First, try to load from localStorage
+  const storedContent = getAllContentSync();
   
+  // In the future, you could fetch from WordPress here
+  // For now, just return the stored content
+  return storedContent;
+};
+
+// Clear stored content
+export const clearContent = (): void => {
   try {
-    console.log('🔄 Initializing content from WordPress...');
-    const content = await fetchContentFromWordPress();
-    
-    // Dispatch event so components can update
-    window.dispatchEvent(new CustomEvent('violet-content-updated', {
-      detail: content
-    }));
-    
-    return content;
+    localStorage.removeItem(STORAGE_KEY);
+    console.log('🗑️ Cleared stored content');
   } catch (error) {
-    console.error('Error initializing content:', error);
-    return {};
+    console.error('❌ Failed to clear content:', error);
   }
-}
+};
+
+// Get specific field value
+export const getContentField = (fieldName: string, defaultValue: string = ''): string => {
+  const content = getAllContentSync();
+  return content[fieldName] || defaultValue;
+};
+
+// Update specific field
+export const updateContentField = (fieldName: string, value: string): boolean => {
+  const content = getAllContentSync();
+  content[fieldName] = value;
+  return saveContent(content);
+};
+
+// Export the storage object for backward compatibility
+export const contentStorage = {
+  save: (content: VioletContent) => saveContent(content, true),
+  load: getAllContentSync,
+  clear: clearContent,
+  getField: getContentField,
+  updateField: updateContentField
+};

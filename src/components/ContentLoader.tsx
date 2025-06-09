@@ -1,5 +1,5 @@
 import React, { useEffect } from 'react';
-import { getAllContent, hasContent } from '@/utils/contentStorage';
+import { getAllContent, hasContent, getAllContentSync } from '@/utils/contentStorage';
 
 /**
  * Component that loads persisted content on app startup
@@ -7,14 +7,23 @@ import { getAllContent, hasContent } from '@/utils/contentStorage';
 export const ContentLoader: React.FC = () => {
   useEffect(() => {
     // Log content status on load
-    const contentExists = hasContent();
-    const content = getAllContent();
-    
     console.log('🎨 Violet Content Loader initialized');
+    
+    const contentExists = hasContent();
     console.log('📦 Has saved content:', contentExists);
     
-    if (contentExists) {
+    // Try both methods to get content
+    const content = getAllContent();
+    const syncContent = getAllContentSync();
+    
+    console.log('📄 getAllContent result:', content);
+    console.log('📄 getAllContentSync result:', syncContent);
+    
+    if (content && Object.keys(content).length > 0) {
       console.log('📄 Loaded content fields:', Object.keys(content));
+      console.log('📄 Hero title from content:', content.hero_title);
+    } else {
+      console.log('⚠️ No content loaded or content is empty');
     }
 
     // Also listen for WordPress editor ready signal

@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Test WordPress Save Locally</title>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 20px; }
+        iframe { width: 100%; height: 500px; border: 2px solid #0073aa; }
+        button { background: #0073aa; color: white; padding: 10px 20px; margin: 5px; border: none; border-radius: 5px; cursor: pointer; }
+        button:hover { background: #005a87; }
+        .log { background: #f0f0f0; padding: 10px; margin: 10px 0; border-radius: 5px; font-family: monospace; }
+    </style>
+</head>
+<body>
+    <h1>Test WordPress Save Functionality</h1>
+    <p>This page simulates what WordPress admin does when saving.</p>
+    
+    <iframe id="reactApp" src="https://lustrous-dolphin-447351.netlify.app/?edit_mode=1&wp_admin=1"></iframe>
+    
+    <div style="margin-top: 20px;">
+        <button onclick="testSave()">Test Save (Like WordPress)</button>
+        <button onclick="checkContent()">Check localStorage</button>
+        <button onclick="clearContent()">Clear Content</button>
+    </div>
+    
+    <div id="log" class="log">Ready to test...</div>
+    
+    <script>
+        function log(message) {
+            const logDiv = document.getElementById('log');
+            logDiv.innerHTML = `<strong>${new Date().toLocaleTimeString()}</strong>: ${message}<br>` + logDiv.innerHTML;
+        }
+        
+        function testSave() {
+            const iframe = document.getElementById('reactApp');
+            const testData = {
+                type: 'violet-apply-saved-changes',
+                savedChanges: [
+                    {
+                        field_name: 'hero_title',
+                        field_value: 'LOCAL TEST: Save at ' + new Date().toLocaleTimeString()
+                    },
+                    {
+                        field_name: 'hero_subtitle',
+                        field_value: 'This was saved from the test page'
+                    }
+                ],
+                timestamp: Date.now()
+            };
+            
+            log('Sending save message to iframe...');
+            iframe.contentWindow.postMessage(testData, 'https://lustrous-dolphin-447351.netlify.app');
+            log('Message sent! Check if page reloads...');
+        }
+        
+        function checkContent() {
+            // Try to access iframe's localStorage (won't work due to cross-origin)
+            log('Note: Cannot access iframe localStorage due to cross-origin restrictions.');
+            log('Check the content by looking at the page after reload.');
+        }
+        
+        function clearContent() {
+            const iframe = document.getElementById('reactApp');
+            // Send a clear message
+            iframe.contentWindow.postMessage({
+                type: 'violet-clear-content'
+            }, 'https://lustrous-dolphin-447351.netlify.app');
+            log('Sent clear content message');
+        }
+        
+        // Listen for messages from iframe
+        window.addEventListener('message', (event) => {
+            if (event.data && event.data.type) {
+                log(`Received from iframe: ${event.data.type}`);
+                console.log('Full message:', event.data);
+            }
+        });
+        
+        log('Test page loaded. Click "Test Save" to simulate WordPress save.');
+    </script>
+</body>
+</html>

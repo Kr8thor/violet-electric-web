@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Debug WordPress Messages</title>
+    <script>
+        console.log('🎯 Debug page loaded');
+        
+        // Log ALL messages
+        window.addEventListener('message', (event) => {
+            console.log('📨 Message received:', {
+                type: event.data?.type,
+                origin: event.origin,
+                fullData: event.data,
+                source: event.source
+            });
+            
+            // Show on page
+            const log = document.getElementById('log');
+            const entry = document.createElement('div');
+            entry.style.margin = '10px 0';
+            entry.style.padding = '10px';
+            entry.style.background = '#f0f0f0';
+            entry.style.borderRadius = '5px';
+            entry.innerHTML = `
+                <strong>Message at ${new Date().toLocaleTimeString()}</strong><br>
+                Type: ${event.data?.type || 'none'}<br>
+                Origin: ${event.origin}<br>
+                Data: <pre>${JSON.stringify(event.data, null, 2)}</pre>
+            `;
+            log.appendChild(entry);
+        });
+        
+        // Send ready signal
+        if (window.parent !== window) {
+            window.parent.postMessage({
+                type: 'violet-iframe-ready',
+                timestamp: Date.now()
+            }, '*');
+            console.log('📤 Sent ready signal to parent');
+        }
+    </script>
+</head>
+<body>
+    <h1>WordPress Message Debugger</h1>
+    <p>This page logs all postMessage events. Load it in the WordPress iframe to see what messages are being sent.</p>
+    <div id="log" style="border: 1px solid #ccc; padding: 20px; min-height: 400px; font-family: monospace;">
+        <em>Waiting for messages...</em>
+    </div>
+</body>
+</html>
