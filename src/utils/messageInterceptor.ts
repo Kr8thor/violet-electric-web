@@ -31,15 +31,8 @@
       // If it's a save message, ensure it gets processed
       if (event.data.type === 'violet-apply-saved-changes' && event.data.savedChanges) {
         console.log('💾 INTERCEPTED SAVE MESSAGE - Processing...');
-        
-        // Import and call the save function directly
-        import('./contentPersistenceFix').then(module => {
-          console.log('📦 Loaded persistence module, applying changes...');
-          const result = module.applyWordPressSavedChanges(event.data.savedChanges);
-          console.log('💾 Direct save result:', result);
-        }).catch(err => {
-          console.error('❌ Failed to load persistence module:', err);
-        });
+        // Removed: import('./contentPersistenceFix') and direct save logic (failsafe system)
+        // TODO: Implement direct save logic here if needed
       }
     }
   });

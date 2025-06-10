@@ -63,13 +63,11 @@
 [[headers]]
   for = "/*"
   [headers.values]
-    # Removed X-Frame-Options to allow cross-origin iframe embedding
-    # X-Frame-Options = "SAMEORIGIN"  # REMOVED - This was blocking the iframe!
+    X-Frame-Options = ""
     X-XSS-Protection = "1; mode=block"
     X-Content-Type-Options = "nosniff"
     Referrer-Policy = "strict-origin-when-cross-origin"
-    # Allow iframe embedding from WordPress admin and related domains
-    Content-Security-Policy = "frame-ancestors 'self' https://wp.violetrainwater.com https://violetrainwater.com http://localhost:* https://*.violetrainwater.com"
+    Content-Security-Policy = "frame-ancestors 'self' https://wp.violetrainwater.com https://violetrainwater.com https://www.violetrainwater.com https://lustrous-dolphin-447351.netlify.app http://localhost:* https://*.violetrainwater.com"
 
 # Cache control for static assets
 [[headers]]

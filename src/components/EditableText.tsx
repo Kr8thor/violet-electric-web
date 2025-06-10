@@ -1,5 +1,4 @@
 import React from 'react';
-import { useContentField } from '@/hooks/useContentField';
 import { cn } from '@/lib/utils';
 
 interface EditableTextProps extends React.HTMLAttributes<HTMLElement> {
@@ -16,7 +15,7 @@ interface EditableTextProps extends React.HTMLAttributes<HTMLElement> {
 export const EditableText = React.forwardRef<HTMLElement, EditableTextProps>(
   ({ field, defaultValue, as: Component = 'span', className, children, ...props }, ref) => {
     // This hook will cause re-render when content changes
-    const value = useContentField(field, defaultValue);
+    const value = defaultValue;
     
     // Always use the value from the hook - it handles defaultValue fallback
     const displayValue = value;

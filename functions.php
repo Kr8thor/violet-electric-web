@@ -573,6 +573,26 @@ function violet_frontend_editor_page_fixed() {
             margin: 5px 0;
         }
     }
+    .violet-preview-container-final iframe#violet-site-iframe {
+        width: 100% !important;
+        height: 75vh !important;
+        min-height: 600px !important;
+        border: 3px solid #0073aa !important;
+        border-radius: 12px !important;
+        display: block !important;
+        visibility: visible !important;
+        opacity: 1 !important;
+        background: #fff !important;
+        box-sizing: border-box !important;
+        z-index: 10 !important;
+    }
+    .violet-preview-container-final {
+        display: block !important;
+        visibility: visible !important;
+        opacity: 1 !important;
+        overflow: visible !important;
+        min-height: 650px !important;
+    }
     </style>
 
     <script>
@@ -694,11 +714,11 @@ function violet_frontend_editor_page_fixed() {
 
                 var iframe = document.getElementById('violet-site-iframe');
                 if (iframe) {
-                    // FIXED: Dynamically set iframe src with wp_origin parameter
+                    // FORCE: Always set the correct Netlify URL with params
                     var dynamicWpOrigin = window.location.origin;
                     var initialQueryString = 'edit_mode=1&wp_admin=1&t=' + new Date().getTime() + 
                                              '&wp_origin=' + encodeURIComponent(dynamicWpOrigin);
-                    iframe.src = config.netlifyAppBaseUrl + '?' + initialQueryString;
+                    iframe.src = 'https://lustrous-dolphin-447351.netlify.app?' + initialQueryString;
                     violetLog('Iframe src set to: ' + iframe.src);
 
                     iframe.onload = function() {
@@ -709,6 +729,16 @@ function violet_frontend_editor_page_fixed() {
                     iframe.onerror = function() {
                         violetSetStatus('connection', 'Failed to load React app', 'error');
                     };
+                    // FORCE: Robust styling
+                    iframe.style.width = '100%';
+                    iframe.style.height = '75vh';
+                    iframe.style.minHeight = '600px';
+                    iframe.style.border = '3px solid #0073aa';
+                    iframe.style.borderRadius = '12px';
+                    iframe.style.display = 'block';
+                    iframe.style.visibility = 'visible';
+                    iframe.style.opacity = '1';
+                    iframe.style.backgroundColor = '#fff';
                 }
 
                 violetSetStatus('editor', 'Complete corrected architecture ready', 'success');
@@ -2164,67 +2194,5 @@ function violet_add_debug_info($response, $server, $request) {
 
 // ============================================================================
 // END OF COMPLETE CORRECTED FUNCTIONS.PHP
-// ============================================================================
-
-// Enhanced WordPress-React Bridge with Triple Failsafe Support
-add_action('admin_footer', 'violet_load_triple_failsafe_bridge');
-function violet_load_triple_failsafe_bridge() {
-    $screen = get_current_screen();
-    if ($screen && $screen->id === 'toplevel_page_violet-frontend-editor') {
-        ?>
-        <script>
-        (function() {
-            'use strict';
-            
-            console.log('🛡️ WordPress Triple Failsafe Bridge initializing...');
-            
-            // Wait for the existing violet functions to be ready
-            const waitForViolet = setInterval(() => {
-                if (window.violetSaveAllChanges && window.violetPendingChanges !== undefined) {
-                    clearInterval(waitForViolet);
-                    initializeTripleFailsafeBridge();
-                }
-            }, 100);
-            
-            function initializeTripleFailsafeBridge() {
-                // Override the save function to ensure triple failsafe is used
-                const originalSave = window.violetSaveAllChanges;
-                
-                window.violetSaveAllChanges = function() {
-                    console.log('🛡️ TRIPLE FAILSAFE: Intercepting save...');
-                    
-                    // Get the iframe
-                    const iframe = document.getElementById('violet-site-iframe');
-                    if (iframe && iframe.contentWindow) {
-                        // Notify React app to use triple failsafe
-                        iframe.contentWindow.postMessage({
-                            type: 'violet-prepare-triple-failsafe-save',
-                            timestamp: Date.now()
-                        }, '*');
-                    }
-                    
-                    // Call original save
-                    return originalSave.apply(this, arguments);
-                };
-                
-                // Listen for triple failsafe confirmations
-                window.addEventListener('message', function(event) {
-                    if (event.data.type === 'violet-triple-failsafe-ready') {
-                        console.log('✅ React app confirmed triple failsafe is ready');
-                    }
-                    
-                    if (event.data.type === 'violet-triple-failsafe-saved') {
-                        console.log('✅ Triple failsafe save completed:', event.data);
-                    }
-                });
-                
-                console.log('✅ Triple Failsafe Bridge initialized');
-            }
-        })();
-        </script>
-        <?php
-    }
-}
-// END Enhanced WordPress-React Bridge with Triple Failsafe Support
 // ============================================================================
 ?>
