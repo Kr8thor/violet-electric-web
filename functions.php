@@ -714,12 +714,15 @@ function violet_frontend_editor_page_fixed() {
 
                 var iframe = document.getElementById('violet-site-iframe');
                 if (iframe) {
-                    // FORCE: Always set the correct Netlify URL with params
+                    // FORCE: Always set the correct Netlify URL with STRONG cache busting
                     var dynamicWpOrigin = window.location.origin;
-                    var initialQueryString = 'edit_mode=1&wp_admin=1&t=' + new Date().getTime() + 
+                    var timestamp = new Date().getTime();
+                    var randomId = Math.random().toString(36).substring(2, 15);
+                    var initialQueryString = 'edit_mode=1&wp_admin=1&t=' + timestamp + 
+                                             '&r=' + randomId + '&v=' + timestamp +
                                              '&wp_origin=' + encodeURIComponent(dynamicWpOrigin);
                     iframe.src = 'https://lustrous-dolphin-447351.netlify.app?' + initialQueryString;
-                    violetLog('Iframe src set to: ' + iframe.src);
+                    violetLog('Iframe src set with strong cache busting: ' + iframe.src);
 
                     iframe.onload = function() {
                         violetSetStatus('connection', 'iframe loaded successfully', 'success');
@@ -729,6 +732,11 @@ function violet_frontend_editor_page_fixed() {
                     iframe.onerror = function() {
                         violetSetStatus('connection', 'Failed to load React app', 'error');
                     };
+                    
+                    // FORCE: Add cache-prevention attributes
+                    iframe.setAttribute('no-cache', 'true');
+                    iframe.setAttribute('cache-control', 'no-cache, no-store, must-revalidate');
+                    
                     // FORCE: Robust styling
                     iframe.style.width = '100%';
                     iframe.style.height = '75vh';
@@ -739,6 +747,15 @@ function violet_frontend_editor_page_fixed() {
                     iframe.style.visibility = 'visible';
                     iframe.style.opacity = '1';
                     iframe.style.backgroundColor = '#fff';
+                    
+                    // FORCE: Clear any existing cache
+                    try {
+                        if (iframe.contentWindow && iframe.contentWindow.location) {
+                            iframe.contentWindow.location.reload(true);
+                        }
+                    } catch (e) {
+                        violetLog('Could not force iframe reload (expected due to CORS)');
+                    }
                 }
 
                 violetSetStatus('editor', 'Complete corrected architecture ready', 'success');
@@ -999,16 +1016,19 @@ function violet_frontend_editor_page_fixed() {
             }, 5000);
         }
 
-        // FIXED: Refresh with proper origin handling
+        // FIXED: Refresh with STRONG cache busting
         function violetRefreshPreview() {
             try {
                 var iframe = document.getElementById('violet-site-iframe');
                 if (iframe) {
                     var dynamicWpOrigin = window.location.origin;
-                    var newQueryString = 'edit_mode=1&wp_admin=1&t=' + new Date().getTime() +
+                    var timestamp = new Date().getTime();
+                    var randomId = Math.random().toString(36).substring(2, 15);
+                    var newQueryString = 'edit_mode=1&wp_admin=1&t=' + timestamp +
+                                         '&r=' + randomId + '&v=' + timestamp +
                                          '&wp_origin=' + encodeURIComponent(dynamicWpOrigin);
-                    iframe.src = config.netlifyAppBaseUrl + '?' + newQueryString;
-                    violetLog('Iframe refreshing. New src: ' + iframe.src);
+                    iframe.src = 'https://lustrous-dolphin-447351.netlify.app?' + newQueryString;
+                    violetLog('Iframe refreshing with STRONG cache busting: ' + iframe.src);
 
                     violetEditingEnabled = false;
                     var btn = document.getElementById('violet-edit-toggle');
