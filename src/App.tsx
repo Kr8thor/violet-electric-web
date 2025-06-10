@@ -31,6 +31,9 @@ import { ContentStatus } from "./components/ContentStatus";
 import { initializeWordPressSync } from "./utils/wordpressContentSync";
 import { saveManager } from "./utils/WordPressSaveManager";
 
+// NEW: WordPress Communication Fix
+import { wordPressCommunication, isInWordPressIframe } from "./utils/WordPressCommunication";
+
 const queryClient = new QueryClient();
 
 const App = () => {
@@ -56,6 +59,31 @@ const App = () => {
     // WordPress Editor specific initialization
     if (inWordPressEditor) {
       console.log('🎨 WordPress Editor Mode detected - initializing editing capabilities');
+      
+      // Initialize WordPress communication handlers
+      wordPressCommunication.onMessage('violet-test-access', (data, event) => {
+        console.log('📨 Received test access message');
+        wordPressCommunication.confirmAccessReady();
+      });
+      
+      wordPressCommunication.onMessage('violet-enable-editing', (data, event) => {
+        console.log('✏️ Editing enabled from WordPress');
+        // Trigger editing mode in the app
+        document.body.classList.add('wordpress-editing-enabled');
+      });
+      
+      wordPressCommunication.onMessage('violet-disable-editing', (data, event) => {
+        console.log('🚫 Editing disabled from WordPress');
+        document.body.classList.remove('wordpress-editing-enabled');
+      });
+      
+      // Set up communication ready notification
+      setTimeout(() => {
+        console.log('🔄 WordPress Communication ready check...');
+        if (isInWordPressIframe()) {
+          console.log('✅ WordPress iframe communication established');
+        }
+      }, 2000);
     }
   }, [inWordPressEditor]);
 
