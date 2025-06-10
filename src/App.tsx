@@ -106,7 +106,8 @@ const App = () => {
       <ApolloProvider client={client}>
         <ContentProvider>
           <ContentLoader />
-          <ContentStatus />
+          {/* NEVER show ContentStatus in WordPress editor mode - all UI should be in WordPress admin */}
+          {!inWordPressEditor && <ContentStatus />}
           {/* WordPress Rich Editor - only render when in WordPress edit mode */}
           {inWordPressEditor && <WordPressRichEditor />}
           <BrowserRouter>
