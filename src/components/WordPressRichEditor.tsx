@@ -58,6 +58,12 @@ const WordPressRichEditor: React.FC = () => {
         disableEditMode();
       } else if (type === 'violet-save-response') {
         handleSaveResponse(event.data);
+      } else if (type === 'violet-persist-content-changes') {
+        handleContentPersistence(event.data);
+      } else if (type === 'violet-refresh-content') {
+        handleContentRefresh(event.data);
+      } else if (type === 'violet-apply-saved-changes') {
+        handleApplySavedChanges(event.data);
       }
     };
 
@@ -461,6 +467,149 @@ const WordPressRichEditor: React.FC = () => {
   const showSaveErrorIndicator = () => {
     console.log('❌ Save failed. Please try again.');
     // Floating indicator removed - save only via WordPress admin toolbar
+  };
+
+  // NEW: Handle content persistence from WordPress saves
+  const handleContentPersistence = (data: any) => {
+    console.log('🔄 Handling content persistence from WordPress:', data);
+    
+    if (data.contentData && Array.isArray(data.contentData)) {
+      // Convert WordPress changes to content object
+      const contentUpdates: Record<string, string> = {};
+      data.contentData.forEach((change: any) => {
+        if (change.field_name && change.field_value !== undefined) {
+          contentUpdates[change.field_name] = change.field_value;
+        }
+      });
+
+      // Save to triple failsafe storage
+      saveToTripleFailsafe(contentUpdates);
+      
+      // Update visual elements immediately
+      applyContentToElements(contentUpdates);
+      
+      // Clear unsaved changes
+      setChangedElements(new Set());
+      setEditorState(prev => ({ ...prev, hasUnsavedChanges: false }));
+      
+      console.log('✅ Content persisted to storage and applied to elements');
+    }
+  };
+
+  // NEW: Handle content refresh requests
+  const handleContentRefresh = (data: any) => {
+    console.log('🔄 Refreshing content from storage...');
+    
+    // Trigger a content reload by dispatching a custom event
+    window.dispatchEvent(new CustomEvent('violet-content-refresh', {
+      detail: { timestamp: data.timestamp }
+    }));
+    
+    // Also reload the page if we're in WordPress editor mode
+    if (window.parent !== window.self) {
+      setTimeout(() => {
+        window.location.reload();
+      }, 500);
+    }
+  };
+
+  // NEW: Handle saved changes application
+  const handleApplySavedChanges = (data: any) => {
+    console.log('✅ Applying saved changes from WordPress:', data);
+    
+    if (data.savedChanges && Array.isArray(data.savedChanges)) {
+      // Convert saved changes to content object
+      const contentUpdates: Record<string, string> = {};
+      data.savedChanges.forEach((change: any) => {
+        if (change.field_name && change.field_value !== undefined) {
+          contentUpdates[change.field_name] = change.field_value;
+        }
+      });
+
+      // Apply to elements and save to storage
+      applyContentToElements(contentUpdates);
+      saveToTripleFailsafe(contentUpdates);
+      
+      // Clear visual edit indicators
+      changedElements.forEach(element => {
+        element.classList.remove('violet-edited');
+        element.style.backgroundColor = '';
+        element.style.borderLeft = '';
+      });
+      
+      setChangedElements(new Set());
+      setEditorState(prev => ({ ...prev, hasUnsavedChanges: false }));
+      
+      console.log('✅ Saved changes applied and persisted');
+    }
+  };
+
+  // Helper: Save to triple failsafe storage
+  const saveToTripleFailsafe = (content: Record<string, string>) => {
+    try {
+      const timestamp = new Date().toISOString();
+      
+      // Save to primary localStorage
+      localStorage.setItem('violet-content-primary', JSON.stringify({
+        data: content,
+        timestamp,
+        source: 'wordpress_save'
+      }));
+
+      // Save to backup localStorage
+      localStorage.setItem('violet-content-backup', JSON.stringify(content));
+
+      // Save to sessionStorage
+      sessionStorage.setItem('violet-content-session', JSON.stringify(content));
+
+      // Save to IndexedDB
+      saveToIndexedDB(content);
+      
+      console.log('💾 Content saved to all storage layers');
+    } catch (error) {
+      console.error('❌ Error saving to triple failsafe:', error);
+    }
+  };
+
+  // Helper: Save to IndexedDB
+  const saveToIndexedDB = (content: Record<string, string>) => {
+    try {
+      const request = indexedDB.open('VioletContentDB', 1);
+      
+      request.onsuccess = () => {
+        const db = request.result;
+        const transaction = db.transaction(['content'], 'readwrite');
+        const store = transaction.objectStore('content');
+        
+        store.put({
+          data: content,
+          timestamp: new Date().toISOString()
+        }, 'latest');
+      };
+      
+      request.onupgradeneeded = () => {
+        const db = request.result;
+        if (!db.objectStoreNames.contains('content')) {
+          db.createObjectStore('content');
+        }
+      };
+    } catch (error) {
+      console.warn('IndexedDB save failed:', error);
+    }
+  };
+
+  // Helper: Apply content to DOM elements
+  const applyContentToElements = (content: Record<string, string>) => {
+    Object.entries(content).forEach(([fieldName, value]) => {
+      const elements = document.querySelectorAll(`[data-violet-field="${fieldName}"]`);
+      elements.forEach(element => {
+        if (element.textContent !== value) {
+          element.textContent = value;
+          element.setAttribute('data-violet-value', value);
+          element.setAttribute('data-original-content', value);
+        }
+      });
+    });
   };
 
   // Notify WordPress that we're ready

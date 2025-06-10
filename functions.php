@@ -921,10 +921,10 @@ function violet_frontend_editor_page_fixed() {
                             var response = JSON.parse(xhr.responseText);
                             
                             if (response.success) {
-                                // COMPLETE CORRECTED: Notify React page to clear visual indicators
+                                // ENHANCED: Send complete content update to React app
                                 var iframe = document.getElementById('violet-site-iframe');
                                 if (iframe && iframe.contentWindow) {
-                                    // Send the saved changes
+                                    // Send the saved changes for visual updates
                                     iframe.contentWindow.postMessage({
                                         type: 'violet-apply-saved-changes',
                                         savedChanges: changes,
@@ -932,13 +932,24 @@ function violet_frontend_editor_page_fixed() {
                                         system: 'complete_corrected'
                                     }, config.netlifyOrigin);
                                     
-                                    // Also send a refresh request to ensure content updates
+                                    // CRITICAL: Send content for triple failsafe storage
+                                    iframe.contentWindow.postMessage({
+                                        type: 'violet-persist-content-changes',
+                                        contentData: changes,
+                                        action: 'wordpress_save_complete',
+                                        saveCount: response.saved_count,
+                                        timestamp: new Date().getTime()
+                                    }, config.netlifyOrigin);
+                                    
+                                    // Send refresh request to ensure persistence
                                     setTimeout(function() {
                                         iframe.contentWindow.postMessage({
                                             type: 'violet-refresh-content',
                                             timestamp: new Date().getTime()
                                         }, config.netlifyOrigin);
-                                    }, 500);
+                                    }, 1000);
+                                    
+                                    violetLog('📤 Sent complete content update to React app', changes);
                                 }
 
                                 // Clear pending changes and hide save button

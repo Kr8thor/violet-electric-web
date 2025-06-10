@@ -1,5 +1,6 @@
 import React from 'react';
 import { cn } from '@/lib/utils';
+import { useContentFromStorage } from '@/hooks/useContentFromStorage';
 
 interface EditableTextProps extends React.HTMLAttributes<HTMLElement> {
   field: string;
@@ -10,28 +11,61 @@ interface EditableTextProps extends React.HTMLAttributes<HTMLElement> {
 
 /**
  * Editable text component that uses persisted content from WordPress
- * FIXED: Removed broken memo that was preventing updates
+ * ENHANCED: Now reads from triple failsafe storage for true persistence
  */
 export const EditableText = React.forwardRef<HTMLElement, EditableTextProps>(
   ({ field, defaultValue, as: Component = 'span', className, children, ...props }, ref) => {
-    // This hook will cause re-render when content changes
-    const value = defaultValue;
+    // Get content from storage with fallback to defaultValue
+    const { get, loading, error } = useContentFromStorage();
+    const value = get(field, defaultValue);
     
-    // Always use the value from the hook - it handles defaultValue fallback
-    const displayValue = value;
+    // Show loading state briefly
+    if (loading) {
+      return React.createElement(
+        Component,
+        {
+          ref,
+          className: cn(className, 'violet-loading'),
+          'data-violet-field': field,
+          'data-violet-loading': 'true',
+          ...props
+        },
+        defaultValue || children || 'Loading...'
+      );
+    }
+    
+    // Show error state with fallback
+    if (error) {
+      console.warn(`EditableText error for field "${field}":`, error);
+      return React.createElement(
+        Component,
+        {
+          ref,
+          className: cn(className, 'violet-error'),
+          'data-violet-field': field,
+          'data-violet-error': 'true',
+          ...props
+        },
+        defaultValue || children || 'Content unavailable'
+      );
+    }
+    
+    // Use stored value or fallback
+    const displayValue = value || defaultValue;
     
     // Debug log in development
     if (import.meta.env?.DEV && field === 'hero_title') {
-      console.log(`EditableText[${field}]: "${displayValue}"`);
+      console.log(`✅ EditableText[${field}]: "${displayValue}" (from storage: ${value ? 'YES' : 'NO'})`);
     }
     
     return React.createElement(
       Component,
       {
         ref,
-        className: cn(className),
+        className: cn(className, 'violet-dynamic-content'),
         'data-violet-field': field,
         'data-violet-value': displayValue,
+        'data-original-content': displayValue,
         ...props
       },
       displayValue || children

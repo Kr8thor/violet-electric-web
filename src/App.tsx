@@ -34,21 +34,30 @@ import { saveManager } from "./utils/WordPressSaveManager";
 const queryClient = new QueryClient();
 
 const App = () => {
+  // Check if we're in WordPress edit mode
+  const isEditMode = window.location.search.includes('edit_mode=1');
+  const isWordPressAdmin = window.location.search.includes('wp_admin=1');
+  const inWordPressEditor = isEditMode && isWordPressAdmin;
+
   // Initialize debug tools in development or edit mode
   useEffect(() => {
     // For Vite, use import.meta.env.DEV instead of process.env.NODE_ENV
     const isDev = import.meta.env?.DEV || false;
     const isDebugMode = window.location.search.includes('debug=1');
-    const isEditMode = window.location.search.includes('edit_mode=1');
     
-    if (isDev || isDebugMode || isEditMode) {
+    if (isDev || isDebugMode || inWordPressEditor) {
       initializeDebugTools();
       console.log('🛠️ Debug tools initialized');
     }
     
     // CRITICAL FIX: Initialize WordPress content sync
     initializeWordPressSync();
-  }, []);
+    
+    // WordPress Editor specific initialization
+    if (inWordPressEditor) {
+      console.log('🎨 WordPress Editor Mode detected - initializing editing capabilities');
+    }
+  }, [inWordPressEditor]);
 
   return (
     <QueryClientProvider client={queryClient}>
@@ -56,6 +65,8 @@ const App = () => {
         <ContentProvider>
           <ContentLoader />
           <ContentStatus />
+          {/* WordPress Rich Editor - only render when in WordPress edit mode */}
+          {inWordPressEditor && <WordPressRichEditor />}
           <BrowserRouter>
             <Routes>
               <Route path="/" element={<Index />} />
