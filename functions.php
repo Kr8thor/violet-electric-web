@@ -721,7 +721,7 @@ function violet_frontend_editor_page_fixed() {
                     var initialQueryString = 'edit_mode=1&wp_admin=1&t=' + timestamp + 
                                              '&r=' + randomId + '&v=' + timestamp +
                                              '&wp_origin=' + encodeURIComponent(dynamicWpOrigin);
-                    iframe.src = 'https://lustrous-dolphin-447351.netlify.app?' + initialQueryString;
+                    iframe.src = config.netlifyAppBaseUrl + '?' + initialQueryString;
                     violetLog('Iframe src set with strong cache busting: ' + iframe.src);
 
                     iframe.onload = function() {
