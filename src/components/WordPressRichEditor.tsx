@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import './WordPressEditor.css';
 import EditorToolbar from './EditorToolbar';
+import { wordPressCommunication } from '../utils/WordPressCommunication';
 
 interface RichEditableElement extends HTMLElement {
   dataset: DOMStringMap & {
@@ -28,6 +29,14 @@ interface HistoryEntry {
   timestamp: number;
 }
 
+interface ChangeEntry {
+  fieldType: string;
+  element: HTMLElement;
+  originalValue: string;
+  currentValue: string;
+  timestamp: number;
+}
+
 const WordPressRichEditor: React.FC = () => {
   const [editorState, setEditorState] = useState<EditorState>({
     isEditMode: false,
@@ -43,9 +52,30 @@ const WordPressRichEditor: React.FC = () => {
   const [undoStack, setUndoStack] = useState<HistoryEntry[]>([]);
   const [redoStack, setRedoStack] = useState<HistoryEntry[]>([]);
   const [changedElements, setChangedElements] = useState<Set<HTMLElement>>(new Set());
+  const [pendingChanges, setPendingChanges] = useState<Map<string, ChangeEntry>>(new Map());
   
   const toolbarRef = useRef<HTMLDivElement>(null);
   const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Listen for custom events from App.tsx
+  useEffect(() => {
+    const handleEnableEditing = () => enableEditMode();
+    const handleDisableEditing = () => disableEditMode();
+    const handlePrepareSave = (event: any) => handleSavePreparation(event.detail);
+    const handleApplyChanges = (event: any) => handleApplySavedChanges(event.detail);
+
+    window.addEventListener('violet-enable-editing', handleEnableEditing);
+    window.addEventListener('violet-disable-editing', handleDisableEditing);
+    window.addEventListener('violet-prepare-save', handlePrepareSave);
+    window.addEventListener('violet-apply-changes', handleApplyChanges);
+
+    return () => {
+      window.removeEventListener('violet-enable-editing', handleEnableEditing);
+      window.removeEventListener('violet-disable-editing', handleDisableEditing);
+      window.removeEventListener('violet-prepare-save', handlePrepareSave);
+      window.removeEventListener('violet-apply-changes', handleApplyChanges);
+    };
+  }, []);
 
   // Enable/disable edit mode based on messages from WordPress
   useEffect(() => {
@@ -109,6 +139,7 @@ const WordPressRichEditor: React.FC = () => {
     setUndoStack([]);
     setRedoStack([]);
     setChangedElements(new Set());
+    setPendingChanges(new Map());
     
     // Make elements editable
     const editableSelectors = ['h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'p', 'span', 'a', 'button', 'li', 'td', 'th'];
@@ -152,7 +183,8 @@ const WordPressRichEditor: React.FC = () => {
     if (editorState.hasUnsavedChanges) {
       const confirmSave = window.confirm('You have unsaved changes. Do you want to save them before exiting edit mode?');
       if (confirmSave) {
-        saveAllChanges();
+        // Since saves happen in WordPress, just notify
+        console.log('💡 Please save using the WordPress admin toolbar before disabling edit mode');
       }
     }
     
@@ -175,9 +207,35 @@ const WordPressRichEditor: React.FC = () => {
     hideEditModeIndicator();
   };
 
+  // CRITICAL: Handle save preparation from WordPress
+  const handleSavePreparation = (data: any) => {
+    console.log('💾 Preparing all changes for WordPress save...');
+    setEditorState(prev => ({ ...prev, isSaving: true }));
+    
+    // Collect all changes
+    const allChanges: any[] = [];
+    pendingChanges.forEach((change, fieldType) => {
+      allChanges.push({
+        field_name: fieldType,
+        field_value: change.currentValue
+      });
+    });
+
+    console.log('📊 Collected changes for save:', allChanges);
+
+    // Report back to WordPress that we're ready
+    wordPressCommunication.sendToWordPress({
+      type: 'violet-triple-failsafe-ready',
+      data: {
+        savedCount: allChanges.length,
+        changes: allChanges,
+        timestamp: Date.now()
+      }
+    });
+  };
+
   const handleBeforeInput = (event: Event) => {
     const element = event.target as RichEditableElement;
-    
     // Save state before change for undo
     addToUndoStack(element);
   };
@@ -279,359 +337,203 @@ const WordPressRichEditor: React.FC = () => {
   };
 
   const handleContentChange = (event: Event) => {
-    const element = event.target as HTMLElement;
+    const element = event.target as RichEditableElement;
+    const fieldType = element.dataset.violetFieldType || 'generic_content';
+    const originalValue = element.dataset.violetOriginal || '';
+    const currentValue = element.innerHTML;
+
+    // Track the change
+    const changeEntry: ChangeEntry = {
+      fieldType,
+      element,
+      originalValue,
+      currentValue,
+      timestamp: Date.now()
+    };
+
+    setPendingChanges(prev => {
+      const updated = new Map(prev);
+      updated.set(fieldType, changeEntry);
+      return updated;
+    });
+
     markElementAsChanged(element);
-    
-    // Clear existing auto-save timeout
-    if (saveTimeoutRef.current) {
-      clearTimeout(saveTimeoutRef.current);
-    }
-    
-    // Set new auto-save timeout (3 seconds)
-    saveTimeoutRef.current = setTimeout(() => {
-      saveAllChanges();
-    }, 3000);
+    setEditorState(prev => ({ ...prev, hasUnsavedChanges: true }));
+
+    // Report change to WordPress
+    wordPressCommunication.reportContentChange(fieldType, currentValue);
+
+    console.log('📝 Content changed:', fieldType, currentValue.substring(0, 50) + '...');
   };
 
   const markElementAsChanged = (element: HTMLElement) => {
     setChangedElements(prev => new Set(prev).add(element));
-    setEditorState(prev => ({ ...prev, hasUnsavedChanges: true }));
-    
-    // Add visual indicator
-    element.style.borderLeft = '4px solid #f0ad4e';
+    element.style.backgroundColor = '#fff3cd';
+    element.style.borderLeft = '4px solid #f39c12';
+    element.style.paddingLeft = '8px';
   };
 
-  const saveAllChanges = async () => {
-    if (changedElements.size === 0) {
-      console.log('📝 No changes to save');
-      return;
-    }
+  const handleApplySavedChanges = (data: any) => {
+    console.log('✅ Applying saved changes from WordPress:', data);
+    setEditorState(prev => ({ ...prev, isSaving: false, hasUnsavedChanges: false }));
     
-    console.log(`💾 Saving ${changedElements.size} changed elements...`);
-    setEditorState(prev => ({ ...prev, isSaving: true }));
-    
-    // Show saving indicator
-    showSavingIndicator();
-    
-    const savePromises = Array.from(changedElements).map(element => {
-      const fieldType = detectFieldType(element);
-      
-      return new Promise((resolve) => {
-        if (window.parent !== window.self) {
-          window.parent.postMessage({
-            type: 'violet-save-content',
-            data: {
-              fieldType,
-              value: element.innerHTML,
-              text: element.textContent,
-              html: element.innerHTML,
-              id: `save-${Date.now()}-${Math.random()}`
-            }
-          }, '*');
-        }
-        
-        // Assume success after timeout (real response handled by handleSaveResponse)
-        setTimeout(resolve, 500);
-      });
-    });
-    
-    await Promise.all(savePromises);
-    
-    // Clear changed indicators
-    changedElements.forEach(element => {
-      element.style.borderLeft = '';
-    });
-    
+    // Clear change tracking
+    setPendingChanges(new Map());
     setChangedElements(new Set());
-    setEditorState(prev => ({ 
-      ...prev, 
-      hasUnsavedChanges: false,
-      isSaving: false 
-    }));
     
-    hideSavingIndicator();
-    showSaveSuccessIndicator();
+    // Remove visual change indicators
+    document.querySelectorAll('[data-violet-editable]').forEach((element) => {
+      const el = element as HTMLElement;
+      el.style.backgroundColor = '';
+      el.style.borderLeft = '';
+      el.style.paddingLeft = '';
+    });
+
+    if (data.savedChanges) {
+      data.savedChanges.forEach((change: any) => {
+        // Find elements matching this field type and update them
+        document.querySelectorAll(`[data-violet-field-type="${change.field_name}"]`).forEach((element) => {
+          const el = element as RichEditableElement;
+          el.innerHTML = change.field_value;
+          el.dataset.violetOriginal = change.field_value;
+        });
+      });
+    }
+
+    console.log('🎉 All changes applied successfully');
   };
 
   const handleSaveResponse = (data: any) => {
     if (data.success) {
-      console.log('✅ Content saved successfully');
+      console.log('✅ Save successful');
     } else {
       console.error('❌ Save failed:', data.error);
-      showSaveErrorIndicator();
+    }
+    setEditorState(prev => ({ ...prev, isSaving: false }));
+  };
+
+  const handleContentPersistence = (data: any) => {
+    console.log('💾 Persisting content changes');
+    // Handle content persistence if needed
+  };
+
+  const handleContentRefresh = (data: any) => {
+    console.log('🔄 Refreshing content');
+    // Handle content refresh if needed
+  };
+
+  const detectFieldType = (element: HTMLElement): string => {
+    const tag = element.tagName.toLowerCase();
+    const text = element.textContent?.toLowerCase() || '';
+    const classes = element.className.toLowerCase();
+    const id = element.id.toLowerCase();
+
+    // Enhanced field type detection
+    if (tag === 'h1' || classes.includes('hero-title') || classes.includes('main-title')) {
+      return 'hero_title';
+    }
+    if (tag === 'h2' && (classes.includes('hero') || classes.includes('subtitle'))) {
+      return 'hero_subtitle';
+    }
+    if ((tag === 'a' || tag === 'button') && (text.includes('contact') || text.includes('get started') || classes.includes('cta'))) {
+      return 'hero_cta';
+    }
+    if (text.includes('@') && text.includes('.')) {
+      return 'contact_email';
+    }
+    if (text.match(/[\d\s\(\)\-\+]{7,}/)) {
+      return 'contact_phone';
+    }
+    if (tag.startsWith('h')) {
+      return `heading_${tag}`;
+    }
+    if (tag === 'p') {
+      return 'paragraph_content';
+    }
+    
+    return `${tag}_content`;
+  };
+
+  const showEditModeIndicator = () => {
+    const indicator = document.createElement('div');
+    indicator.id = 'violet-edit-mode-indicator';
+    indicator.innerHTML = `
+      <div style="
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        background: #0073aa;
+        color: white;
+        padding: 12px 20px;
+        border-radius: 6px;
+        z-index: 10000;
+        font-weight: bold;
+        box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        font-size: 14px;
+      ">
+        ✏️ Edit Mode Active - Changes: ${pendingChanges.size}
+      </div>
+    `;
+    document.body.appendChild(indicator);
+  };
+
+  const hideEditModeIndicator = () => {
+    const indicator = document.getElementById('violet-edit-mode-indicator');
+    if (indicator) {
+      indicator.remove();
     }
   };
 
   const handleKeyboardShortcuts = (event: KeyboardEvent) => {
-    if (event.ctrlKey || event.metaKey) {
-      switch (event.key.toLowerCase()) {
-        case 'b':
-          event.preventDefault();
-          document.execCommand('bold');
-          break;
-        case 'i':
-          event.preventDefault();
-          document.execCommand('italic');
-          break;
-        case 'u':
-          event.preventDefault();
-          document.execCommand('underline');
-          break;
-      }
-    }
+    // Handle any additional keyboard shortcuts
   };
 
-  const handleStyleChange = useCallback((property: string, value: string) => {
-    const selection = window.getSelection();
-    if (selection && selection.rangeCount > 0) {
-      const range = selection.getRangeAt(0);
-      
-      // Save state for undo before making changes
-      if (editorState.currentElement) {
-        addToUndoStack(editorState.currentElement as RichEditableElement);
-      }
-      
-      if (property === 'createLink') {
-        const url = prompt('Enter URL:', 'https://');
-        if (url) {
-          document.execCommand('createLink', false, url);
-        }
-      } else if (property === 'fontSize') {
-        // Wrap selection in span with font-size
-        const span = document.createElement('span');
-        span.style.fontSize = value;
-        range.surroundContents(span);
-      } else if (property === 'fontFamily') {
-        // Wrap selection in span with font-family
-        const span = document.createElement('span');
-        span.style.fontFamily = value;
-        range.surroundContents(span);
-      } else if (property === 'color') {
-        document.execCommand('foreColor', false, value);
-      } else if (property === 'backgroundColor') {
-        document.execCommand('hiliteColor', false, value);
-      } else if (property.startsWith('justify')) {
-        document.execCommand(property);
-      } else {
-        // For other commands like bold, italic, etc.
-        document.execCommand(property);
-      }
-      
-      // Mark as changed
-      if (editorState.currentElement) {
-        markElementAsChanged(editorState.currentElement);
-      }
-    }
-  }, [editorState.currentElement]);
-
-  const detectFieldType = (element: HTMLElement): string => {
-    const text = element.textContent?.toLowerCase() || '';
-    const tag = element.tagName.toLowerCase();
-    const classes = element.className?.toLowerCase() || '';
-    
-    if (tag === 'h1' || classes.includes('hero')) return 'hero_title';
-    if (text.includes('transform') || text.includes('potential')) return 'hero_subtitle';
-    if (tag === 'button' || (tag === 'a' && classes.includes('button'))) return 'hero_cta';
-    if (text.includes('@')) return 'contact_email';
-    if (text.match(/[\d\s\(\)\-\+]{7,}/)) return 'contact_phone';
-    
-    return 'generic_content';
-  };
-
-  // Visual indicators
-  const showEditModeIndicator = () => {
-    // Remove the save bar completely - saves should only happen from WordPress admin
-    console.log('✏️ Edit mode active - save controls are in WordPress admin only');
-  };
-
-  const hideEditModeIndicator = () => {
-    // Nothing to remove since we're not showing any save bars on React side
-    console.log('🔒 Edit mode disabled');
-  };
-
-  const showSavingIndicator = () => {
-    console.log('💾 Saving changes...');
-    // Floating indicator removed - save only via WordPress admin toolbar
-  };
-
-  const hideSavingIndicator = () => {
-    console.log('💾 Save process completed');
-    // Floating indicator removed - save only via WordPress admin toolbar
-  };
-
-  const showSaveSuccessIndicator = () => {
-    console.log('✅ All changes saved successfully!');
-    // Floating indicator removed - save only via WordPress admin toolbar
-  };
-
-  const showSaveErrorIndicator = () => {
-    console.log('❌ Save failed. Please try again.');
-    // Floating indicator removed - save only via WordPress admin toolbar
-  };
-
-  // NEW: Handle content persistence from WordPress saves
-  const handleContentPersistence = (data: any) => {
-    console.log('🔄 Handling content persistence from WordPress:', data);
-    
-    if (data.contentData && Array.isArray(data.contentData)) {
-      // Convert WordPress changes to content object
-      const contentUpdates: Record<string, string> = {};
-      data.contentData.forEach((change: any) => {
-        if (change.field_name && change.field_value !== undefined) {
-          contentUpdates[change.field_name] = change.field_value;
-        }
-      });
-
-      // Save to triple failsafe storage
-      saveToTripleFailsafe(contentUpdates);
-      
-      // Update visual elements immediately
-      applyContentToElements(contentUpdates);
-      
-      // Clear unsaved changes
-      setChangedElements(new Set());
-      setEditorState(prev => ({ ...prev, hasUnsavedChanges: false }));
-      
-      console.log('✅ Content persisted to storage and applied to elements');
-    }
-  };
-
-  // NEW: Handle content refresh requests
-  const handleContentRefresh = (data: any) => {
-    console.log('🔄 Refreshing content from storage...');
-    
-    // Trigger a content reload by dispatching a custom event
-    window.dispatchEvent(new CustomEvent('violet-content-refresh', {
-      detail: { timestamp: data.timestamp }
-    }));
-    
-    // Also reload the page if we're in WordPress editor mode
-    if (window.parent !== window.self) {
-      setTimeout(() => {
-        window.location.reload();
-      }, 500);
-    }
-  };
-
-  // NEW: Handle saved changes application
-  const handleApplySavedChanges = (data: any) => {
-    console.log('✅ Applying saved changes from WordPress:', data);
-    
-    if (data.savedChanges && Array.isArray(data.savedChanges)) {
-      // Convert saved changes to content object
-      const contentUpdates: Record<string, string> = {};
-      data.savedChanges.forEach((change: any) => {
-        if (change.field_name && change.field_value !== undefined) {
-          contentUpdates[change.field_name] = change.field_value;
-        }
-      });
-
-      // Apply to elements and save to storage
-      applyContentToElements(contentUpdates);
-      saveToTripleFailsafe(contentUpdates);
-      
-      // Clear visual edit indicators
-      changedElements.forEach(element => {
-        element.classList.remove('violet-edited');
-        element.style.backgroundColor = '';
-        element.style.borderLeft = '';
-      });
-      
-      setChangedElements(new Set());
-      setEditorState(prev => ({ ...prev, hasUnsavedChanges: false }));
-      
-      console.log('✅ Saved changes applied and persisted');
-    }
-  };
-
-  // Helper: Save to triple failsafe storage
-  const saveToTripleFailsafe = (content: Record<string, string>) => {
-    try {
-      const timestamp = new Date().toISOString();
-      
-      // Save to primary localStorage
-      localStorage.setItem('violet-content-primary', JSON.stringify({
-        data: content,
-        timestamp,
-        source: 'wordpress_save'
-      }));
-
-      // Save to backup localStorage
-      localStorage.setItem('violet-content-backup', JSON.stringify(content));
-
-      // Save to sessionStorage
-      sessionStorage.setItem('violet-content-session', JSON.stringify(content));
-
-      // Save to IndexedDB
-      saveToIndexedDB(content);
-      
-      console.log('💾 Content saved to all storage layers');
-    } catch (error) {
-      console.error('❌ Error saving to triple failsafe:', error);
-    }
-  };
-
-  // Helper: Save to IndexedDB
-  const saveToIndexedDB = (content: Record<string, string>) => {
-    try {
-      const request = indexedDB.open('VioletContentDB', 1);
-      
-      request.onsuccess = () => {
-        const db = request.result;
-        const transaction = db.transaction(['content'], 'readwrite');
-        const store = transaction.objectStore('content');
-        
-        store.put({
-          data: content,
-          timestamp: new Date().toISOString()
-        }, 'latest');
-      };
-      
-      request.onupgradeneeded = () => {
-        const db = request.result;
-        if (!db.objectStoreNames.contains('content')) {
-          db.createObjectStore('content');
-        }
-      };
-    } catch (error) {
-      console.warn('IndexedDB save failed:', error);
-    }
-  };
-
-  // Helper: Apply content to DOM elements
-  const applyContentToElements = (content: Record<string, string>) => {
-    Object.entries(content).forEach(([fieldName, value]) => {
-      const elements = document.querySelectorAll(`[data-violet-field="${fieldName}"]`);
-      elements.forEach(element => {
-        if (element.textContent !== value) {
-          element.textContent = value;
-          element.setAttribute('data-violet-value', value);
-          element.setAttribute('data-original-content', value);
-        }
-      });
-    });
-  };
-
-  // Notify WordPress that we're ready
+  // Update edit mode indicator when changes occur
   useEffect(() => {
-    if (window.parent !== window.self) {
-      window.parent.postMessage({
-        type: 'violet-iframe-ready',
-        enhanced: true,
-        features: ['rich-text', 'formatting', 'colors', 'fonts', 'alignment', 'save', 'undo', 'redo']
-      }, '*');
+    const indicator = document.getElementById('violet-edit-mode-indicator');
+    if (indicator && editorState.isEditMode) {
+      indicator.innerHTML = `
+        <div style="
+          position: fixed;
+          top: 20px;
+          right: 20px;
+          background: ${pendingChanges.size > 0 ? '#f39c12' : '#0073aa'};
+          color: white;
+          padding: 12px 20px;
+          border-radius: 6px;
+          z-index: 10000;
+          font-weight: bold;
+          box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+          font-size: 14px;
+        ">
+          ✏️ Edit Mode Active - Changes: ${pendingChanges.size}
+          ${editorState.isSaving ? ' - Saving...' : ''}
+        </div>
+      `;
     }
-  }, []);
+  }, [pendingChanges.size, editorState.isEditMode, editorState.isSaving]);
 
+  // Don't render anything visible - this component just handles editing behavior
   return (
     <>
       {editorState.showToolbar && (
-        <EditorToolbar
+        <div
           ref={toolbarRef}
-          position={editorState.toolbarPosition}
-          onStyleChange={handleStyleChange}
-          selectedText={editorState.selectedText}
-        />
+          style={{
+            position: 'absolute',
+            top: editorState.toolbarPosition.top,
+            left: editorState.toolbarPosition.left,
+            zIndex: 10000,
+            transform: 'translateX(-50%)'
+          }}
+        >
+          <EditorToolbar
+            onBold={() => document.execCommand('bold')}
+            onItalic={() => document.execCommand('italic')}
+            onUnderline={() => document.execCommand('underline')}
+            selectedText={editorState.selectedText}
+          />
+        </div>
       )}
     </>
   );

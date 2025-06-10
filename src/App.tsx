@@ -75,6 +75,20 @@ const App = () => {
       wordPressCommunication.onMessage('violet-disable-editing', (data, event) => {
         console.log('🚫 Editing disabled from WordPress');
         document.body.classList.remove('wordpress-editing-enabled');
+        window.dispatchEvent(new CustomEvent('violet-disable-editing'));
+      });
+
+      // CRITICAL: Handle save requests from WordPress
+      wordPressCommunication.onMessage('violet-prepare-triple-failsafe-save', (data, event) => {
+        console.log('💾 WordPress requesting save preparation');
+        // Dispatch event for components to prepare for save
+        window.dispatchEvent(new CustomEvent('violet-prepare-save', { detail: data }));
+      });
+
+      wordPressCommunication.onMessage('violet-apply-saved-changes', (data, event) => {
+        console.log('✅ Applying saved changes from WordPress');
+        // Dispatch event for components to apply saved changes
+        window.dispatchEvent(new CustomEvent('violet-apply-changes', { detail: data }));
       });
       
       // Set up communication ready notification
