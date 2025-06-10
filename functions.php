@@ -874,12 +874,21 @@ function violet_frontend_editor_page_fixed() {
                                 // COMPLETE CORRECTED: Notify React page to clear visual indicators
                                 var iframe = document.getElementById('violet-site-iframe');
                                 if (iframe && iframe.contentWindow) {
+                                    // Send the saved changes
                                     iframe.contentWindow.postMessage({
                                         type: 'violet-apply-saved-changes',
                                         savedChanges: changes,
                                         timestamp: new Date().getTime(),
                                         system: 'complete_corrected'
                                     }, config.netlifyOrigin);
+                                    
+                                    // Also send a refresh request to ensure content updates
+                                    setTimeout(function() {
+                                        iframe.contentWindow.postMessage({
+                                            type: 'violet-refresh-content',
+                                            timestamp: new Date().getTime()
+                                        }, config.netlifyOrigin);
+                                    }, 500);
                                 }
 
                                 // Clear pending changes and hide save button
@@ -2152,5 +2161,67 @@ function violet_add_debug_info($response, $server, $request) {
 
 // ============================================================================
 // END OF COMPLETE CORRECTED FUNCTIONS.PHP
+// ============================================================================
+
+// Enhanced WordPress-React Bridge with Triple Failsafe Support
+add_action('admin_footer', 'violet_load_triple_failsafe_bridge');
+function violet_load_triple_failsafe_bridge() {
+    $screen = get_current_screen();
+    if ($screen && $screen->id === 'toplevel_page_violet-frontend-editor') {
+        ?>
+        <script>
+        (function() {
+            'use strict';
+            
+            console.log('🛡️ WordPress Triple Failsafe Bridge initializing...');
+            
+            // Wait for the existing violet functions to be ready
+            const waitForViolet = setInterval(() => {
+                if (window.violetSaveAllChanges && window.violetPendingChanges !== undefined) {
+                    clearInterval(waitForViolet);
+                    initializeTripleFailsafeBridge();
+                }
+            }, 100);
+            
+            function initializeTripleFailsafeBridge() {
+                // Override the save function to ensure triple failsafe is used
+                const originalSave = window.violetSaveAllChanges;
+                
+                window.violetSaveAllChanges = function() {
+                    console.log('🛡️ TRIPLE FAILSAFE: Intercepting save...');
+                    
+                    // Get the iframe
+                    const iframe = document.getElementById('violet-site-iframe');
+                    if (iframe && iframe.contentWindow) {
+                        // Notify React app to use triple failsafe
+                        iframe.contentWindow.postMessage({
+                            type: 'violet-prepare-triple-failsafe-save',
+                            timestamp: Date.now()
+                        }, '*');
+                    }
+                    
+                    // Call original save
+                    return originalSave.apply(this, arguments);
+                };
+                
+                // Listen for triple failsafe confirmations
+                window.addEventListener('message', function(event) {
+                    if (event.data.type === 'violet-triple-failsafe-ready') {
+                        console.log('✅ React app confirmed triple failsafe is ready');
+                    }
+                    
+                    if (event.data.type === 'violet-triple-failsafe-saved') {
+                        console.log('✅ Triple failsafe save completed:', event.data);
+                    }
+                });
+                
+                console.log('✅ Triple Failsafe Bridge initialized');
+            }
+        })();
+        </script>
+        <?php
+    }
+}
+// END Enhanced WordPress-React Bridge with Triple Failsafe Support
 // ============================================================================
 ?>

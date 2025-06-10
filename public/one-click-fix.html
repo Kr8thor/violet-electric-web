@@ -1,0 +1,250 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Violet Content Fix - One Click Solution</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            max-width: 800px;
+            margin: 50px auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 40px;
+            border-radius: 12px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #8b5cf6;
+            margin-bottom: 10px;
+        }
+        .status {
+            padding: 15px;
+            border-radius: 8px;
+            margin: 20px 0;
+            font-weight: 500;
+        }
+        .success {
+            background: #e5f5e5;
+            color: #00a32a;
+            border: 1px solid #00a32a20;
+        }
+        .error {
+            background: #ffe5e5;
+            color: #d63939;
+            border: 1px solid #d6393920;
+        }
+        .info {
+            background: #e5f3ff;
+            color: #0073aa;
+            border: 1px solid #0073aa20;
+        }
+        button {
+            background: #8b5cf6;
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        button:hover {
+            background: #7c3aed;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(139, 92, 246, 0.3);
+        }
+        .instructions {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 8px;
+            margin: 20px 0;
+            border-left: 4px solid #8b5cf6;
+        }
+        .code {
+            background: #2d3748;
+            color: #e2e8f0;
+            padding: 3px 8px;
+            border-radius: 4px;
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+        }
+        .test-section {
+            margin-top: 30px;
+            padding-top: 30px;
+            border-top: 1px solid #e0e0e0;
+        }
+        .test-steps {
+            list-style: none;
+            padding: 0;
+        }
+        .test-steps li {
+            padding: 10px 0;
+            padding-left: 30px;
+            position: relative;
+        }
+        .test-steps li:before {
+            content: '✓';
+            position: absolute;
+            left: 0;
+            color: #00a32a;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔧 Violet Content Persistence Fix</h1>
+        <p>Fix the issue where your WordPress edits revert to original content after saving.</p>
+        
+        <div class="instructions">
+            <h3>📋 Instructions:</h3>
+            <ol>
+                <li>Keep this page open</li>
+                <li>Open your WordPress editor in another tab</li>
+                <li>Click the button below to copy the fix</li>
+                <li>Paste in your React site's console (F12 → Console)</li>
+            </ol>
+        </div>
+        
+        <div style="text-align: center; margin: 30px 0;">
+            <button onclick="copyFix()">📋 Copy Fix to Clipboard</button>
+        </div>
+        
+        <div id="status"></div>
+        
+        <div class="test-section">
+            <h3>🧪 How to Test:</h3>
+            <ul class="test-steps">
+                <li>Edit any text in WordPress editor</li>
+                <li>Click "Save All Changes" in blue toolbar</li>
+                <li>Watch for yellow highlight on changed text</li>
+                <li>Text should persist (not revert to original)</li>
+            </ul>
+        </div>
+        
+        <div class="test-section">
+            <h3>🛠️ Debug Commands:</h3>
+            <p>After applying the fix, you can use these in console:</p>
+            <div style="background: #f8f9fa; padding: 15px; border-radius: 8px; margin: 10px 0;">
+                <code class="code">window.violetDebug.timeRemaining()</code> - Shows protection time left<br><br>
+                <code class="code">window.violetDebug.isProtected()</code> - Check if protected<br><br>
+                <code class="code">window.violetDebug.clearProtection()</code> - Clear protection
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        const fixScript = `// VIOLET CONTENT PERSISTENCE FIX v2.0
+(function() {
+    if (window._violetPersistenceFix) return;
+    window._violetPersistenceFix = true;
+
+    console.log('🚀 Installing Content Persistence Fix...');
+
+    // Store original localStorage methods
+    const originalStorage = {
+        setItem: localStorage.setItem.bind(localStorage),
+        getItem: localStorage.getItem.bind(localStorage)
+    };
+
+    // Protection state
+    let protectedContent = null;
+    let graceEndTime = 0;
+
+    // Override setItem to protect during grace period
+    localStorage.setItem = function(key, value) {
+        if (key === 'violet-content' && graceEndTime > Date.now()) {
+            console.log('🛡️ Blocking content overwrite - grace period active');
+            return;
+        }
+        return originalStorage.setItem(key, value);
+    };
+
+    // Handle WordPress saves
+    window.addEventListener('message', (event) => {
+        if (event.data.type === 'violet-apply-saved-changes' && event.data.savedChanges) {
+            console.log('💾 Processing WordPress save...');
+
+            // Extract changes
+            const updates = {};
+            event.data.savedChanges.forEach(change => {
+                if (change.field_name && change.field_value !== undefined) {
+                    updates[change.field_name] = change.field_value;
+                }
+            });
+
+            // Merge with current content
+            const current = JSON.parse(originalStorage.getItem('violet-content') || '{}');
+            protectedContent = { ...current, ...updates };
+            graceEndTime = Date.now() + 30000;
+
+            // Force save
+            originalStorage.setItem('violet-content', JSON.stringify(protectedContent));
+            
+            // Update UI
+            Object.entries(updates).forEach(([field, value]) => {
+                document.querySelectorAll(\`[data-violet-field="\${field}"]\`).forEach(el => {
+                    el.textContent = value;
+                    el.style.backgroundColor = 'rgba(255, 235, 59, 0.3)';
+                    setTimeout(() => el.style.backgroundColor = '', 2000);
+                });
+            });
+
+            // Notify React
+            window.dispatchEvent(new CustomEvent('violet-content-updated', { detail: updates }));
+
+            console.log('✅ Content saved and protected for 30 seconds');
+        }
+    });
+
+    // Protect content every 100ms
+    setInterval(() => {
+        if (graceEndTime > Date.now() && protectedContent) {
+            const current = originalStorage.getItem('violet-content');
+            const protected = JSON.stringify(protectedContent);
+            if (current !== protected) {
+                console.log('🛡️ Restoring protected content');
+                originalStorage.setItem('violet-content', protected);
+            }
+        }
+    }, 100);
+
+    // Debug helper
+    window.violetDebug = {
+        isProtected: () => graceEndTime > Date.now(),
+        timeRemaining: () => Math.max(0, Math.ceil((graceEndTime - Date.now()) / 1000)),
+        clearProtection: () => { graceEndTime = 0; protectedContent = null; }
+    };
+
+    console.log('✅ Fix installed! Your content will now persist after saving.');
+})();`;
+
+        function copyFix() {
+            navigator.clipboard.writeText(fixScript).then(() => {
+                showStatus('✅ Fix copied to clipboard! Now paste it in your React site console.', 'success');
+            }).catch(err => {
+                showStatus('❌ Failed to copy. Please try again.', 'error');
+                console.error(err);
+            });
+        }
+        
+        function showStatus(message, type) {
+            const statusDiv = document.getElementById('status');
+            statusDiv.className = 'status ' + type;
+            statusDiv.textContent = message;
+            
+            if (type === 'success') {
+                setTimeout(() => {
+                    statusDiv.innerHTML += '<br><br>👉 Next: Go to your React site, open console (F12), paste, and press Enter.';
+                }, 1000);
+            }
+        }
+    </script>
+</body>
+</html>

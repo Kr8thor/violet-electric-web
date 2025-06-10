@@ -6,6 +6,12 @@ import './index.css'
 import './utils/autoInitDebug'
 import { initializeWordPressPersistence } from './utils/contentPersistenceFix'
 import { initializeWordPressSync } from './utils/wordpressContentSync'
+import { initializeContentWithFallback } from './utils/enhancedContentSync'
+import './utils/contentPersistenceTest' // Load test utilities
+
+// Initialize content with fallback support (ensures content is always available)
+initializeContentWithFallback();
+console.log('🚀 Enhanced content initialization started');
 
 // Initialize WordPress sync to fetch content on startup
 initializeWordPressSync();

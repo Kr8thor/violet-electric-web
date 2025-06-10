@@ -177,3 +177,6 @@ export const contentStorage = {
   getField: getContentField,
   updateField: updateContentField
 };
+
+// Alias for backward compatibility
+export const getContent = getAllContentSync;

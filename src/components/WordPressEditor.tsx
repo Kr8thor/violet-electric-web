@@ -1,6 +1,7 @@
 import React, { useEffect, useState, useRef, useCallback } from 'react';
 import { saveContent, getAllContent, getAllContentSync } from '@/utils/contentStorage';
-import { initializeWordPressPersistence, debugContentState } from '@/utils/contentPersistenceFix';
+import { initializeWordPressPersistence } from '@/utils/contentPersistenceFix';
+import { tripleFailsafe } from '@/utils/tripleFailsafeSystem';
 
 interface EditableElement {
   element: HTMLElement;
@@ -320,7 +321,7 @@ const WordPressEditor: React.FC = () => {
       // Debug content state when receiving save-related messages
       if (event.data.type === 'violet-apply-saved-changes') {
         console.log('📊 Current content state before save:');
-        debugContentState();
+        console.log('Content:', getAllContentSync());
       }
 
       switch (event.data.type) {
@@ -407,6 +408,49 @@ const WordPressEditor: React.FC = () => {
             });
           }
           break;
+
+        case 'violet-prepare-triple-failsafe-save':
+          // Ensure all pending changes are saved to triple failsafe before WordPress save
+          console.log('🛡️ Preparing triple failsafe save...');
+          
+          if (pendingSaves.current.size > 0) {
+            const allChanges = Array.from(pendingSaves.current.values()).map(save => ({
+              field_name: save.fieldType,
+              field_value: save.value
+            }));
+            
+            console.log('💾 Saving to triple failsafe:', allChanges);
+            
+            // Save to triple failsafe
+            tripleFailsafe.saveToAllLayers(allChanges).then(() => {
+              console.log('✅ Pre-save to triple failsafe complete');
+              
+              // Confirm back to WordPress
+              event.source?.postMessage({
+                type: 'violet-triple-failsafe-ready',
+                savedCount: allChanges.length,
+                timestamp: Date.now()
+              }, event.origin as WindowPostMessageOptions);
+            }).catch(error => {
+              console.error('❌ Triple failsafe save error:', error);
+              
+              // Still confirm to WordPress but with error flag
+              event.source?.postMessage({
+                type: 'violet-triple-failsafe-ready',
+                savedCount: 0,
+                error: true,
+                timestamp: Date.now()
+              }, event.origin as WindowPostMessageOptions);
+            });
+          } else {
+            // No pending changes, just confirm ready
+            event.source?.postMessage({
+              type: 'violet-triple-failsafe-ready',
+              savedCount: 0,
+              timestamp: Date.now()
+            }, event.origin as WindowPostMessageOptions);
+          }
+          break;
       }
     };
 
@@ -425,9 +469,11 @@ const WordPressEditor: React.FC = () => {
           type: 'violet-iframe-ready',
           url: window.location.href,
           title: document.title,
-          timestamp: Date.now()
+          timestamp: Date.now(),
+          tripleFailsafeEnabled: true,
+          tripleFailsafeAvailable: !!(window as any).violetTripleFailsafe
         }, '*');
-        console.log('📤 Sent ready signal to WordPress');
+        console.log('📤 Sent ready signal to WordPress (with Triple Failsafe status)');
       };
 
       // Send immediately and after load

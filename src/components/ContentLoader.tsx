@@ -1,73 +1,85 @@
-import React, { useEffect } from 'react';
-import { getAllContent, hasContent, getAllContentSync, saveContent } from '@/utils/contentStorage';
+import { useEffect } from 'react';
 import { useContent } from '@/contexts/ContentContext';
+import { syncWordPressContent } from '@/utils/wordpressContentSync';
 
 /**
- * Component that loads persisted content on app startup
+ * ContentLoader Component
+ * Ensures WordPress content is loaded and synced on app startup
  */
-export const ContentLoader: React.FC = () => {
-  const { updateContent } = useContent();
-  
+export const ContentLoader = () => {
+  const { refreshContent, forceRefresh } = useContent();
+
   useEffect(() => {
-    // Log content status on load
-    console.log('🎨 Violet Content Loader initialized');
+    console.log('🚀 ContentLoader: Initializing WordPress content sync...');
     
-    const contentExists = hasContent();
-    console.log('📦 Has saved content:', contentExists);
-    
-    // Try both methods to get content
-    const content = getAllContent();
-    const syncContent = getAllContentSync();
-    
-    console.log('📄 getAllContent result:', content);
-    console.log('📄 getAllContentSync result:', syncContent);
-    
-    if (content && Object.keys(content).length > 0) {
-      console.log('📄 Loaded content fields:', Object.keys(content));
-      console.log('📄 Hero title from content:', content.hero_title);
-    } else {
-      console.log('⚠️ No content loaded or content is empty');
-    }
-    
-    // CRITICAL FIX: Fetch fresh content from WordPress on load
-    const fetchWordPressContent = async () => {
+    const initializeContent = async () => {
       try {
-        console.log('🔄 Fetching fresh content from WordPress...');
-        const response = await fetch('https://wp.violetrainwater.com/wp-json/violet/v1/content');
-        if (response.ok) {
-          const wpContent = await response.json();
-          console.log('✅ WordPress content received:', wpContent);
-          
-          if (wpContent && Object.keys(wpContent).length > 0) {
-            // Save to localStorage and update context
-            saveContent(wpContent, false); // false = don't merge, replace completely
-            updateContent(wpContent);
-            console.log('💾 WordPress content saved and applied');
-          }
+        // First, try to sync from WordPress
+        const wpSuccess = await syncWordPressContent();
+        
+        if (wpSuccess) {
+          console.log('✅ ContentLoader: WordPress content synced successfully');
+          // Refresh context to ensure all components get updated
+          await refreshContent();
+          forceRefresh();
+        } else {
+          console.log('ℹ️ ContentLoader: Using cached content (WordPress not available)');
+          // Still refresh to ensure components are initialized
+          await refreshContent();
         }
       } catch (error) {
-        console.log('⚠️ Could not fetch WordPress content (this is normal if not on WordPress):', error);
+        console.error('❌ ContentLoader: Error during initialization:', error);
       }
     };
-    
-    // Fetch WordPress content on load
-    fetchWordPressContent();
 
-    // Also listen for WordPress editor ready signal
+    // Initialize immediately
+    initializeContent();
+
+    // Set up message listener for WordPress saves
     const handleMessage = (event: MessageEvent) => {
-      if (event.data.type === 'violet-request-content') {
-        // Send current content back to WordPress
-        event.source?.postMessage({
-          type: 'violet-current-content',
-          content: content,
-          timestamp: Date.now()
-        }, event.origin as WindowPostMessageOptions);
+      if (event.data.type === 'violet-apply-saved-changes') {
+        console.log('💾 ContentLoader: Detected WordPress save, refreshing...');
+        // Small delay to ensure WordPress has saved
+        setTimeout(() => {
+          syncWordPressContent().then(() => {
+            refreshContent();
+            forceRefresh();
+          });
+        }, 100);
       }
     };
 
     window.addEventListener('message', handleMessage);
-    return () => window.removeEventListener('message', handleMessage);
-  }, [updateContent]);
 
+    // Listen for custom events
+    const handleContentPersisted = () => {
+      console.log('📦 ContentLoader: Content persisted, forcing refresh');
+      forceRefresh();
+    };
+
+    window.addEventListener('violet-content-persisted', handleContentPersisted);
+
+    return () => {
+      window.removeEventListener('message', handleMessage);
+      window.removeEventListener('violet-content-persisted', handleContentPersisted);
+    };
+  }, [refreshContent, forceRefresh]);
+
+  // This component doesn't render anything
   return null;
+};
+
+// Export a function to manually trigger content refresh
+export const refreshWordPressContent = async () => {
+  console.log('🔄 Manual content refresh triggered');
+  const success = await syncWordPressContent();
+  
+  if (success) {
+    // Dispatch event to trigger context refresh
+    window.dispatchEvent(new CustomEvent('violet-content-synced', {
+      detail: { source: 'manual', timestamp: Date.now() }
+    }));
+  }
+  
+  return success;
 };
