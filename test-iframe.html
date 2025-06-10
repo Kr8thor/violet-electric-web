@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Test React App Iframe</title>
+    <style>
+        body { margin: 0; font-family: Arial, sans-serif; }
+        .container { padding: 20px; }
+        iframe { width: 100%; height: 600px; border: 2px solid #0073aa; }
+        .status { margin: 20px 0; padding: 10px; background: #f0f0f0; }
+        button { margin: 5px; padding: 10px; cursor: pointer; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>React App Iframe Test</h1>
+        <div class="status" id="status">Testing iframe loading...</div>
+        
+        <div>
+            <button onclick="testDirect()">Test Direct URL</button>
+            <button onclick="testWithParams()">Test with Edit Mode</button>
+            <button onclick="testLocalhost()">Test Localhost</button>
+            <button onclick="checkHeaders()">Check Headers</button>
+        </div>
+        
+        <iframe id="testFrame" src=""></iframe>
+        
+        <pre id="log"></pre>
+    </div>
+    
+    <script>
+        const log = (msg) => {
+            document.getElementById('log').textContent += msg + '\n';
+            console.log(msg);
+        };
+        
+        const iframe = document.getElementById('testFrame');
+        const status = document.getElementById('status');
+        
+        iframe.onload = function() {
+            log('✅ Iframe loaded successfully');
+            status.textContent = '✅ Iframe loaded: ' + iframe.src;
+            status.style.background = '#d4edda';
+            
+            // Try to access iframe content
+            try {
+                const iframeDoc = iframe.contentDocument || iframe.contentWindow.document;
+                log('Can access iframe document: ' + !!iframeDoc);
+            } catch (e) {
+                log('❌ Cannot access iframe document (CORS): ' + e.message);
+            }
+        };
+        
+        iframe.onerror = function(e) {
+            log('❌ Iframe error: ' + e);
+            status.textContent = '❌ Failed to load iframe';
+            status.style.background = '#f8d7da';
+        };
+        
+        function testDirect() {
+            const url = 'https://lustrous-dolphin-447351.netlify.app/';
+            log('Testing direct URL: ' + url);
+            iframe.src = url;
+        }
+        
+        function testWithParams() {
+            const url = 'https://lustrous-dolphin-447351.netlify.app/?edit_mode=1&wp_admin=1&wp_origin=' + encodeURIComponent(window.location.origin);
+            log('Testing with parameters: ' + url);
+            iframe.src = url;
+        }
+        
+        function testLocalhost() {
+            const url = 'http://localhost:5173/';
+            log('Testing localhost: ' + url);
+            iframe.src = url;
+        }
+        
+        function checkHeaders() {
+            log('Checking headers with fetch...');
+            fetch('https://lustrous-dolphin-447351.netlify.app/')
+                .then(response => {
+                    log('Status: ' + response.status);
+                    log('X-Frame-Options: ' + response.headers.get('X-Frame-Options'));
+                    log('Content-Security-Policy: ' + response.headers.get('Content-Security-Policy'));
+                    for (let [key, value] of response.headers.entries()) {
+                        if (key.toLowerCase().includes('frame') || key.toLowerCase().includes('security')) {
+                            log(key + ': ' + value);
+                        }
+                    }
+                })
+                .catch(err => log('Fetch error: ' + err));
+        }
+        
+        // Start with direct test
+        testDirect();
+    </script>
+</body>
+</html>

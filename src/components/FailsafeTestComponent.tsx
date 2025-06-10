@@ -74,17 +74,58 @@ export const FailsafeTestComponent: React.FC = () => {
   const testWordPressIntegration = () => {
     addResult('🧪 Testing WordPress integration...');
     
-    // Simulate WordPress save
-    window.postMessage({
-      type: 'violet-apply-saved-changes',
-      savedChanges: [{
-        field_name: 'wp_test',
-        field_value: `WordPress Test ${Date.now()}`
-      }]
+    // Check if we're in an iframe (WordPress editor)
+    const inIframe = window.parent !== window;
+    
+    if (!inIframe) {
+      addResult('❌ Not in WordPress editor iframe');
+      addResult('💡 This test only works inside WordPress editor');
+      return;
+    }
+    
+    // Send test data to WordPress parent window
+    const testData = {
+      field_name: 'wp_integration_test',
+      field_value: `WordPress Integration Test ${Date.now()}`
+    };
+    
+    // First, notify WordPress that we have changes
+    window.parent.postMessage({
+      type: 'violet-content-changed',
+      data: {
+        fieldType: testData.field_name,
+        value: testData.field_value,
+        element: 'test',
+        hasUnsavedChanges: true
+      }
     }, '*');
-
-    addResult('📤 Sent simulated WordPress save');
-    addResult('⏳ Check if content updates...');
+    
+    addResult('📤 Sent change notification to WordPress');
+    
+    // Then simulate a save from WordPress
+    setTimeout(() => {
+      window.postMessage({
+        type: 'violet-apply-saved-changes',
+        savedChanges: [testData]
+      }, '*');
+      addResult('💾 Simulated WordPress save response');
+    }, 1000);
+    
+    // Listen for the save confirmation
+    const handleMessage = (event: MessageEvent) => {
+      if (event.data.type === 'violet-content-persisted' || 
+          event.data.type === 'violet-triple-failsafe-saved') {
+        addResult('✅ WordPress integration confirmed!');
+        window.removeEventListener('message', handleMessage);
+      }
+    };
+    
+    window.addEventListener('message', handleMessage);
+    
+    // Timeout cleanup
+    setTimeout(() => {
+      window.removeEventListener('message', handleMessage);
+    }, 5000);
   };
 
   // Clear all storage
