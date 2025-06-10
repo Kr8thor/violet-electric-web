@@ -1,6 +1,5 @@
 import React from 'react';
 import { useEditMode, useWordPressConnection } from '@/contexts/ContentContext';
-import { motion, AnimatePresence } from 'framer-motion';
 
 export function ContentStatus() {
   const { isEditing, hasUnsavedChanges } = useEditMode();
@@ -18,20 +17,50 @@ export function ContentStatus() {
     const minutes = Math.floor(seconds / 60);
     const hours = Math.floor(minutes / 60);
     
-    if (seconds < 60) return 'Just now';
+    if (minutes < 1) return 'Just now';
     if (minutes < 60) return `${minutes}m ago`;
     if (hours < 24) return `${hours}h ago`;
     return date.toLocaleDateString();
   };
 
   return (
-    <AnimatePresence>
+    <>
+      <style>{`
+        @keyframes contentStatusFadeIn {
+          from {
+            opacity: 0;
+            transform: translateY(20px);
+          }
+          to {
+            opacity: 1;
+            transform: translateY(0);
+          }
+        }
+        
+        @keyframes contentStatusSlideIn {
+          from {
+            opacity: 0;
+            max-height: 0;
+          }
+          to {
+            opacity: 1;
+            max-height: 100px;
+          }
+        }
+        
+        .content-status-fadeIn {
+          animation: contentStatusFadeIn 0.3s ease-out forwards;
+        }
+        
+        .content-status-slideIn {
+          animation: contentStatusSlideIn 0.3s ease-out forwards;
+          overflow: hidden;
+        }
+      `}</style>
+      
       {isEditing && (
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          exit={{ opacity: 0, y: 20 }}
-          className="fixed bottom-4 left-4 bg-white shadow-xl rounded-lg p-4 z-50 min-w-[250px] border border-gray-200"
+        <div
+          className="fixed bottom-4 left-4 bg-white shadow-xl rounded-lg p-4 z-50 min-w-[250px] border border-gray-200 content-status-fadeIn"
         >
           {/* Status Header */}
           <div className="flex items-center justify-between mb-3">
@@ -69,19 +98,16 @@ export function ContentStatus() {
           
           {/* Save Instructions */}
           {hasUnsavedChanges && (
-            <motion.div
-              initial={{ opacity: 0, height: 0 }}
-              animate={{ opacity: 1, height: 'auto' }}
-              exit={{ opacity: 0, height: 0 }}
-              className="mt-3 pt-3 border-t border-gray-200"
+            <div
+              className="mt-3 pt-3 border-t border-gray-200 content-status-slideIn"
             >
               <p className="text-xs text-gray-600">
                 Click "Save All Changes" in the WordPress toolbar to save your edits.
               </p>
-            </motion.div>
+            </div>
           )}
-        </motion.div>
+        </div>
       )}
-    </AnimatePresence>
+    </>
   );
 }
