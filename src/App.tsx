@@ -39,6 +39,9 @@ import { VioletContentProvider } from "./contexts/VioletRuntimeContentFixed";
 import WordPressSaveHandler from "./components/WordPressSaveHandler";
 import { initializeContentPersistence } from "./utils/contentPersistenceFix";
 
+// NEW: Universal Editing System
+import universalEditingHandler from "./utils/UniversalEditingHandler";
+
 const queryClient = new QueryClient();
 
 const App = () => {
@@ -63,6 +66,39 @@ const App = () => {
     
     // CRITICAL FIX: Initialize WordPress content sync
     initializeWordPressSync();
+    
+    // NEW: Initialize Universal Editing System
+    if (inWordPressEditor) {
+      console.log('🎨 WordPress Universal Editor Mode detected');
+      
+      // Universal editing handler is automatically initialized
+      console.log('✅ Universal editing system ready');
+      
+      // Set up communication ready notification
+      setTimeout(() => {
+        console.log('🔄 WordPress Communication ready check...');
+        if (isInWordPressIframe()) {
+          console.log('✅ WordPress iframe communication established');
+          
+          // Send ready signal for universal editing
+          wordPressCommunication.sendToWordPress({
+            type: 'violet-universal-editing-ready',
+            data: {
+              timestamp: Date.now(),
+              editingCapabilities: [
+                'text',
+                'image', 
+                'color',
+                'button',
+                'link',
+                'container'
+              ],
+              componentsReady: true
+            }
+          });
+        }
+      }, 2000);
+    }
     
     // WordPress Editor specific initialization
     if (inWordPressEditor) {
@@ -98,14 +134,6 @@ const App = () => {
         // Dispatch event for components to apply saved changes
         window.dispatchEvent(new CustomEvent('violet-apply-changes', { detail: data }));
       });
-      
-      // Set up communication ready notification
-      setTimeout(() => {
-        console.log('🔄 WordPress Communication ready check...');
-        if (isInWordPressIframe()) {
-          console.log('✅ WordPress iframe communication established');
-        }
-      }, 2000);
     }
   }, [inWordPressEditor]);
 
@@ -121,6 +149,17 @@ const App = () => {
             {inWordPressEditor && <WordPressRichEditor />}
             {/* WordPress Save Handler - handles save operations */}
             {inWordPressEditor && <WordPressSaveHandler />}
+            
+            {/* Universal Editing Indicator */}
+            {inWordPressEditor && (
+              <div id="violet-universal-editing-indicator" style={{ display: 'none' }}>
+                <div className="fixed top-4 right-4 bg-blue-600 text-white px-4 py-2 rounded-lg shadow-lg z-50">
+                  ✏️ Universal Editing Mode Active
+                  <div className="text-xs mt-1">Click any element to edit</div>
+                </div>
+              </div>
+            )}
+            
             <BrowserRouter>
               <Routes>
                 <Route path="/" element={<Index />} />

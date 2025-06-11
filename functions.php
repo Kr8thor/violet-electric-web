@@ -34,7 +34,7 @@ add_action( 'rest_api_init', function () {
                     'nav_about' => 'About',
                     'nav_keynotes' => 'Keynotes',
                     'nav_testimonials' => 'Testimonials',
-                    'nav_contact' => 'Contact',
+                    'nav_contact' => Contact',
                     'footer_text' => '© 2025 Violet Electric. All rights reserved.',
                     'content_initialized' => '1'
                 ];

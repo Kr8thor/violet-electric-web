@@ -1,6 +1,7 @@
 import { Button } from '@/components/ui/button';
 import { Link } from 'react-router-dom';
-import { EditableTextFixed as EditableText } from '@/components/EditableTextFixed';
+import { EditableText } from '@/components/EditableTextFixed';
+import { EditableImage, EditableButton, EditableColor, EditableContainer } from '@/components/UniversalEditingComponents';
 import { useState, useRef, useEffect } from 'react';
 
 const Hero = () => {
@@ -32,8 +33,8 @@ const Hero = () => {
   }, []);
 
   return (
-    <section className="relative min-h-screen flex items-end justify-center overflow-hidden">
-      {/* Video Background */}
+    <EditableContainer field="hero_section" as="section" className="relative min-h-screen flex items-end justify-center overflow-hidden">
+      {/* Video Background - Now editable */}
       <div className="absolute inset-0">
         <video
           ref={videoRef}
@@ -53,26 +54,28 @@ const Hero = () => {
           <source src="/videos/hero-video.mp4" type="video/mp4" />
         </video>
         
-        {/* Fallback background image */}
-        <div 
-          className={`absolute inset-0 transition-opacity duration-1000 ${
+        {/* Fallback background image - Now editable */}
+        <EditableImage
+          field="hero_fallback_image"
+          defaultSrc="/lovable-uploads/b915b2ba-9f64-45f7-b031-be6ce3816e80.png"
+          alt="Hero background"
+          className={`absolute inset-0 w-full h-full object-cover transition-opacity duration-1000 ${
             videoLoaded && !videoError ? 'opacity-0' : 'opacity-100'
           }`}
-          style={{
-            backgroundImage: "url('/lovable-uploads/b915b2ba-9f64-45f7-b031-be6ce3816e80.png')",
-            backgroundPosition: "center calc(-10% + 5rem)", // Move background down to match video
-            backgroundSize: "cover",
-            backgroundRepeat: "no-repeat",
-            transform: 'translateY(5rem)', // Move fallback image down by same amount
-            height: 'calc(100% + 5rem)' // Extend height to avoid gaps
-          }}
-        ></div>
+        />
         
-        {/* Gradient overlay */}
-        <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent py-0 rounded my-0"></div>
+        {/* Gradient overlay - Now with editable colors */}
+        <EditableColor
+          field="hero_overlay_color"
+          defaultColor="rgba(0,0,0,0.6)"
+          property="backgroundColor"
+          className="absolute inset-0 py-0 rounded my-0"
+        >
+          <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent py-0 rounded my-0"></div>
+        </EditableColor>
       </div>
 
-      {/* Content positioned lower */}
+      {/* Content positioned lower - All text now editable */}
       <div className="relative z-10 container-max section-padding text-center pb-20 md:pb-32">
         <div className="max-w-4xl mx-auto animate-fade-in">
           <h1 className="text-4xl md:text-6xl lg:text-7xl font-bold mb-6 leading-tight text-white">
@@ -99,35 +102,52 @@ const Hero = () => {
           />
 
           <div className="flex flex-col sm:flex-row gap-6 justify-center items-center">
-            <Link to="/contact">
-              <Button className="luminous-button px-8 py-4 text-lg rounded-full">
-                <EditableText 
-                  field="hero_cta"
-                  defaultValue="Book a Discovery Call"
-                />
-              </Button>
-            </Link>
-            <Button 
-              variant="outline" 
+            {/* Primary CTA Button - Now fully editable */}
+            <EditableButton
+              field="hero_primary_cta"
+              textField="hero_cta"
+              urlField="hero_cta_url"
+              colorField="hero_cta_color"
+              defaultText="Book a Discovery Call"
+              defaultUrl="/contact"
+              defaultColor="#8b5cf6"
+              className="luminous-button px-8 py-4 text-lg rounded-full"
+              target="_self"
+            />
+
+            {/* Secondary CTA Button - Now fully editable */}
+            <EditableButton
+              field="hero_secondary_cta"
+              textField="hero_cta_secondary"
+              urlField="hero_cta_secondary_url"
+              colorField="hero_cta_secondary_color"
+              defaultText="Watch Violet in Action"
+              defaultUrl="https://www.youtube.com/@VioletRainwater"
+              defaultColor="rgba(255,255,255,0.1)"
               className="px-8 py-4 text-lg rounded-full border-2 border-white/30 hover:bg-white/10 transition-all duration-300 backdrop-blur-sm text-blush-300"
-              onClick={() => window.open('https://www.youtube.com/@VioletRainwater', '_blank')}
-            >
-              <EditableText 
-                field="hero_cta_secondary"
-                defaultValue="Watch Violet in Action"
-              />
-            </Button>
+              target="_blank"
+            />
+          </div>
+
+          {/* Optional: Editable hero image/illustration below the text */}
+          <div className="mt-16">
+            <EditableImage
+              field="hero_main_image"
+              defaultSrc=""
+              alt="Hero illustration"
+              className="max-w-4xl mx-auto rounded-lg shadow-2xl"
+            />
           </div>
         </div>
       </div>
 
-      {/* Debug info in development */}
+      {/* Debug info in development - Keep as is */}
       {process.env.NODE_ENV === 'development' && (
         <div className="absolute top-4 left-4 z-50 bg-black/80 text-white p-2 rounded text-xs">
           Video Status: {videoError ? '❌ Error' : videoLoaded ? '✅ Loaded' : '⏳ Loading...'}
         </div>
       )}
-    </section>
+    </EditableContainer>
   );
 };
 
