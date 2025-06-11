@@ -1,26 +1,43 @@
 import React from 'react';
 import { cn } from '@/lib/utils';
-import { useWordPressContent } from '@/contexts/WordPressContentProvider';
+import { useVioletContent } from '@/contexts/WordPressContentProvider';
 
 interface EditableTextProps extends React.HTMLAttributes<HTMLElement> {
   field: string;
-  defaultValue: string;
+  defaultValue?: string;
   as?: keyof JSX.IntrinsicElements;
   children?: React.ReactNode;
 }
 
 /**
- * Editable text component that uses WordPress content with triple failsafe backup
- * ENHANCED: Now reads from WordPress + triple failsafe storage for true persistence
+ * 🎯 FIXED: Editable text component that prioritizes WordPress runtime content
+ * 
+ * Loading hierarchy (runtime wins):
+ * 1. WordPress API content (authoritative, freshest)  
+ * 2. localStorage cache (fast, offline, survives reload)
+ * 3. Static fallback (only so page never 404s if WP unreachable)
  */
 export const EditableText = React.forwardRef<HTMLElement, EditableTextProps>(
-  ({ field, defaultValue, as: Component = 'span', className, children, ...props }, ref) => {
-    // Get content from WordPress with failsafe fallback
-    const { getField, loading, error, isConnected } = useWordPressContent();
+  ({ field, defaultValue = '', as: Component = 'span', className, children, ...props }, ref) => {
+    const { content, loading, error } = useVioletContent();
     
-    // CRITICAL FIX: Check if saved content exists first, prioritize over defaults
-    const savedValue = getField(field);
-    const hasSavedContent = savedValue !== undefined && savedValue !== null;
+    // Get the runtime content (WordPress API or cached)
+    const runtimeValue = content[field as keyof typeof content];
+    
+    // 🏆 Runtime content always wins over defaultValue
+    const displayValue = runtimeValue || defaultValue || children;
+    
+    // Debug logging in development
+    if (import.meta.env?.DEV) {
+      console.log(`📝 EditableText[${field}]:`, {
+        runtimeValue,
+        defaultValue,
+        displayValue,
+        loading,
+        error,
+        source: runtimeValue ? 'WordPress/Cache' : 'Static fallback'
+      });
+    }
     
     // Show loading state briefly
     if (loading) {
@@ -28,38 +45,13 @@ export const EditableText = React.forwardRef<HTMLElement, EditableTextProps>(
         Component,
         {
           ref,
-          className: cn(className, 'violet-loading'),
+          className: cn(className, 'violet-loading animate-pulse'),
           'data-violet-field': field,
           'data-violet-loading': 'true',
           ...props
         },
         defaultValue || children || 'Loading...'
       );
-    }
-    
-    // Show error state with fallback
-    if (error) {
-      console.warn(`EditableText error for field "${field}":`, error);
-      return React.createElement(
-        Component,
-        {
-          ref,
-          className: cn(className, 'violet-error'),
-          'data-violet-field': field,
-          'data-violet-error': 'true',
-          ...props
-        },
-        defaultValue || children || 'Content unavailable'
-      );
-    }
-    
-    // CRITICAL FIX: Prioritize saved content over defaults
-    // If we have saved content (even empty string), use it. Only use default if no saved content exists.
-    const displayValue = hasSavedContent ? savedValue : defaultValue;
-    
-    // Debug log in development
-    if (import.meta.env?.DEV && (field === 'hero_title' || field === 'hero_subtitle')) {
-      console.log(`✅ EditableText[${field}]: "${displayValue}" (WordPress: ${isConnected ? 'Connected' : 'Disconnected'}, Saved: ${hasSavedContent ? 'Yes' : 'No'})`);
     }
     
     return React.createElement(
@@ -70,10 +62,10 @@ export const EditableText = React.forwardRef<HTMLElement, EditableTextProps>(
         'data-violet-field': field,
         'data-violet-value': displayValue,
         'data-original-content': displayValue,
-        'data-wordpress-connected': isConnected,
+        'data-content-source': runtimeValue ? 'wordpress' : 'static',
         ...props
       },
-      displayValue || children
+      displayValue
     );
   }
 );

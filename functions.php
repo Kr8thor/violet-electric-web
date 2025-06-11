@@ -235,6 +235,41 @@ function violet_register_complete_endpoints() {
         },
         'permission_callback' => '__return_true'
     ));
+
+    // ⭐ NEW: Content GET endpoint (from o3 prompt fix)
+    register_rest_route('violet/v1', '/content', array(
+        'methods' => 'GET',
+        'callback' => function() {
+            // Get all saved content from WordPress options
+            $all_content = get_option('violet_all_content', array());
+            
+            // Add any individual content fields that might exist
+            $individual_fields = array(
+                'hero_title',
+                'hero_subtitle', 
+                'hero_subtitle_line2',
+                'hero_cta',
+                'hero_cta_secondary',
+                'contact_email',
+                'contact_phone',
+                'nav_about',
+                'nav_keynotes', 
+                'nav_testimonials',
+                'nav_contact',
+                'footer_text'
+            );
+            
+            foreach ($individual_fields as $field) {
+                $field_value = get_option("violet_$field", '');
+                if (!empty($field_value)) {
+                    $all_content[$field] = $field_value;
+                }
+            }
+            
+            return rest_ensure_response($all_content);
+        },
+        'permission_callback' => '__return_true'
+    ));
 }
 
 /**

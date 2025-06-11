@@ -35,7 +35,7 @@ import { saveManager } from "./utils/WordPressSaveManager";
 import { wordPressCommunication, isInWordPressIframe } from "./utils/WordPressCommunication";
 
 // CRITICAL: WordPress Content Provider for dynamic content
-import { WordPressContentProvider } from "./contexts/WordPressContentProvider";
+import { VioletContentProvider } from "./contexts/WordPressContentProvider";
 
 const queryClient = new QueryClient();
 
@@ -107,7 +107,7 @@ const App = () => {
   return (
     <QueryClientProvider client={queryClient}>
       <ApolloProvider client={client}>
-        <WordPressContentProvider>
+        <VioletContentProvider>
           <ContentProvider>
             <ContentLoader />
             {/* NEVER show ContentStatus in WordPress editor mode - all UI should be in WordPress admin */}
@@ -127,7 +127,7 @@ const App = () => {
             <Toaster />
             <Sonner />
           </ContentProvider>
-        </WordPressContentProvider>
+        </VioletContentProvider>
       </ApolloProvider>
     </QueryClientProvider>
   );
