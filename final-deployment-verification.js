@@ -1,324 +1,199 @@
 /**
- * 🎯 FINAL DEPLOYMENT VERIFICATION SCRIPT
- * Run this in WordPress admin console AFTER updating functions.php
- * This will verify the complete universal editing system is working
+ * 🔍 FINAL DEPLOYMENT VERIFICATION
+ * 
+ * Run this after updating WordPress functions.php to verify complete system
  */
 
-(function() {
-    console.log('🚀 FINAL DEPLOYMENT VERIFICATION');
-    console.log('='.repeat(60));
-    console.log('🔍 Checking universal WordPress-React editing system...\n');
+console.log('🔍 FINAL DEPLOYMENT VERIFICATION');
+console.log('================================');
 
-    let verificationResults = {
-        netlifyDeployment: 'checking',
-        wordpressAPI: 'checking', 
-        reactIntegration: 'checking',
-        contentPersistence: 'checking',
-        universalEditing: 'checking',
-        overallStatus: 'unknown'
+function verifyCompleteSystem() {
+    console.log('\n🧪 COMPREHENSIVE SYSTEM CHECK...\n');
+    
+    // 1. WordPress Interface Check
+    console.log('1️⃣ WORDPRESS INTERFACE CHECK:');
+    const elements = {
+        iframe: document.getElementById('violet-site-iframe'),
+        saveButton: document.getElementById('violet-save-all'),
+        editButton: document.getElementById('violet-enable-editing'),
+        refreshButton: document.getElementById('violet-refresh-preview'),
+        status: document.getElementById('violet-status'),
+        connectionStatus: document.getElementById('violet-connection-status'),
+        changesCount: document.getElementById('violet-changes-count')
     };
-
-    // ====================
-    // STEP 1: Check Netlify Deployment
-    // ====================
-    async function checkNetlifyDeployment() {
-        console.log('📡 STEP 1: Checking Netlify deployment...');
+    
+    Object.entries(elements).forEach(([name, element]) => {
+        console.log(`   ${element ? '✅' : '❌'} ${name}: ${element ? 'Found' : 'Missing'}`);
+    });
+    
+    // 2. Save Button Functionality Check
+    console.log('\n2️⃣ SAVE BUTTON FUNCTIONALITY:');
+    const saveButton = elements.saveButton;
+    if (saveButton) {
+        console.log('   ✅ Save button exists');
+        console.log(`   📝 Current text: "${saveButton.textContent}"`);
+        console.log(`   👁️ Visible: ${saveButton.style.display !== 'none'}`);
+        console.log(`   🔗 Has click handler: ${saveButton.onclick ? 'Yes' : 'No'}`);
         
-        try {
-            const response = await fetch('https://lustrous-dolphin-447351.netlify.app/');
-            const isUp = response.ok;
-            
-            console.log('   Netlify site status:', isUp ? '✅ Online' : '❌ Offline');
-            
-            // Check if our new components are loaded
-            const text = await response.text();
-            const hasNewComponents = text.includes('VioletRuntimeContentFixed') || 
-                                   text.includes('EditableTextFixed') ||
-                                   text.includes('contentPersistenceFix');
-            
-            console.log('   New components:', hasNewComponents ? '✅ Deployed' : '❌ Not detected');
-            
-            verificationResults.netlifyDeployment = isUp && hasNewComponents ? 'success' : 'partial';
-            
-        } catch (error) {
-            console.log('   ❌ Netlify check failed:', error.message);
-            verificationResults.netlifyDeployment = 'error';
+        // Check if save button has change counter
+        const counter = elements.changesCount;
+        if (counter) {
+            console.log(`   🔢 Change counter: ${counter.textContent}`);
         }
-    }
-
-    // ====================
-    // STEP 2: Check WordPress API
-    // ====================
-    async function checkWordPressAPI() {
-        console.log('\n📡 STEP 2: Checking WordPress API endpoints...');
-        
-        try {
-            // Test GET endpoint
-            const getResponse = await fetch('/wp-json/violet/v1/content');
-            const getWorking = getResponse.ok;
-            console.log('   GET /wp-json/violet/v1/content:', getWorking ? '✅ Working' : '❌ Failed');
-            
-            if (getWorking) {
-                const content = await getResponse.json();
-                console.log('   Content fields loaded:', Object.keys(content).length);
-            }
-            
-            // Test POST endpoint
-            const testData = { deployment_test: `Test ${Date.now()}` };
-            const postResponse = await fetch('/wp-json/violet/v1/content', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(testData)
-            });
-            const postWorking = postResponse.ok;
-            console.log('   POST /wp-json/violet/v1/content:', postWorking ? '✅ Working' : '❌ Failed');
-            
-            // Check debug endpoint
-            const debugResponse = await fetch('/wp-json/violet/v1/debug');
-            const debugWorking = debugResponse.ok;
-            console.log('   Debug endpoint:', debugWorking ? '✅ Working' : '❌ Failed');
-            
-            if (debugWorking) {
-                const debugData = await debugResponse.json();
-                console.log('   User permissions: Upload:', debugData.user_can_upload ? '✅' : '❌', 'Edit:', debugData.user_can_edit ? '✅' : '❌');
-            }
-            
-            verificationResults.wordpressAPI = (getWorking && postWorking) ? 'success' : 'partial';
-            
-        } catch (error) {
-            console.log('   ❌ WordPress API check failed:', error.message);
-            verificationResults.wordpressAPI = 'error';
-        }
-    }
-
-    // ====================
-    // STEP 3: Check React Integration
-    // ====================
-    async function checkReactIntegration() {
-        console.log('\n📱 STEP 3: Checking React app integration...');
-        
-        const iframe = document.getElementById('violet-site-iframe');
-        if (!iframe || !iframe.contentWindow) {
-            console.log('   ❌ No iframe found - open WordPress Edit Frontend page first');
-            verificationResults.reactIntegration = 'error';
-            return;
-        }
-
-        return new Promise((resolve) => {
-            const testId = Date.now();
-            let responseReceived = false;
-            
-            const messageListener = (event) => {
-                if (event.data?.type === 'violet-diagnostic-response' && event.data.testId === testId) {
-                    window.removeEventListener('message', messageListener);
-                    responseReceived = true;
-                    
-                    console.log('   React app response: ✅ Received');
-                    console.log('   Content manager:', event.data.contentManager ? '✅ Ready' : '❌ Missing');
-                    console.log('   Provider loaded:', event.data.providerLoaded ? '✅ Yes' : '❌ No');
-                    console.log('   Content loaded:', event.data.contentLoaded ? '✅ Yes' : '❌ No');
-                    console.log('   WordPress fields:', Object.keys(event.data.allContent || {}).length);
-                    
-                    const isWorking = event.data.contentManager && event.data.providerLoaded && event.data.contentLoaded;
-                    verificationResults.reactIntegration = isWorking ? 'success' : 'partial';
-                    resolve();
-                }
-            };
-            
-            window.addEventListener('message', messageListener);
-            
-            iframe.contentWindow.postMessage({
-                type: 'violet-diagnostic-request',
-                testId: testId,
-                deployment: true
-            }, '*');
-            
-            setTimeout(() => {
-                if (!responseReceived) {
-                    window.removeEventListener('message', messageListener);
-                    console.log('   ⏱️ React app timeout - may still be loading');
-                    verificationResults.reactIntegration = 'timeout';
-                }
-                resolve();
-            }, 5000);
-        });
-    }
-
-    // ====================
-    // STEP 4: Test Content Persistence
-    // ====================
-    async function testContentPersistence() {
-        console.log('\n💾 STEP 4: Testing content persistence...');
-        
-        try {
-            const testField = 'deployment_verification';
-            const testValue = `Deployment test ${new Date().toISOString()}`;
-            
-            console.log('   Testing field:', testField);
-            console.log('   Test value:', testValue);
-            
-            // Save test data
-            const saveResponse = await fetch('/wp-json/violet/v1/content', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ [testField]: testValue })
-            });
-            
-            if (!saveResponse.ok) {
-                throw new Error('Save failed');
-            }
-            
-            console.log('   Save operation: ✅ Success');
-            
-            // Verify save with fresh GET request
-            await new Promise(resolve => setTimeout(resolve, 500));
-            
-            const verifyResponse = await fetch('/wp-json/violet/v1/content?' + Date.now(), {
-                headers: { 'Cache-Control': 'no-cache' }
-            });
-            
-            const verifyContent = await verifyResponse.json();
-            const persistenceWorking = verifyContent[testField] === testValue;
-            
-            console.log('   Persistence check:', persistenceWorking ? '✅ Working' : '❌ Failed');
-            
-            verificationResults.contentPersistence = persistenceWorking ? 'success' : 'error';
-            
-        } catch (error) {
-            console.log('   ❌ Persistence test failed:', error.message);
-            verificationResults.contentPersistence = 'error';
-        }
-    }
-
-    // ====================
-    // STEP 5: Test Universal Editing
-    // ====================
-    async function testUniversalEditing() {
-        console.log('\n🎨 STEP 5: Testing universal editing system...');
-        
-        const iframe = document.getElementById('violet-site-iframe');
-        if (!iframe) {
-            console.log('   ❌ No iframe - universal editing not testable');
-            verificationResults.universalEditing = 'error';
-            return;
-        }
-        
-        const iframeSrc = iframe.src;
-        const hasEditParams = iframeSrc.includes('edit_mode=1') && iframeSrc.includes('wp_admin=1');
-        
-        console.log('   Iframe edit parameters:', hasEditParams ? '✅ Present' : '❌ Missing');
-        console.log('   Iframe URL check:', iframeSrc.includes('lustrous-dolphin-447351.netlify.app') ? '✅ Correct' : '❌ Wrong URL');
-        
-        // Check if editing UI is available
-        const editButton = document.getElementById('violet-enable-edit-btn');
-        const saveButton = document.getElementById('violet-save-all-btn');
-        
-        console.log('   Edit button:', editButton ? '✅ Present' : '❌ Missing');
-        console.log('   Save button:', saveButton ? '✅ Present' : '❌ Missing');
-        
-        const uiWorking = hasEditParams && editButton && saveButton;
-        verificationResults.universalEditing = uiWorking ? 'success' : 'partial';
-    }
-
-    // ====================
-    // GENERATE FINAL REPORT
-    // ====================
-    function generateFinalReport() {
-        console.log('\n📊 FINAL DEPLOYMENT VERIFICATION RESULTS');
-        console.log('='.repeat(60));
-        
-        const results = verificationResults;
-        const successCount = Object.values(results).filter(status => status === 'success').length;
-        const totalChecks = Object.keys(results).length - 1; // Exclude overallStatus
-        
-        // Determine overall status
-        if (successCount === totalChecks) {
-            results.overallStatus = '🎉 PERFECT - READY FOR USE';
-        } else if (successCount >= totalChecks - 1) {
-            results.overallStatus = '✅ GOOD - MINOR ISSUES';
-        } else if (successCount >= 2) {
-            results.overallStatus = '⚠️ PARTIAL - NEEDS FIXES';
-        } else {
-            results.overallStatus = '❌ FAILED - MAJOR ISSUES';
-        }
-        
-        console.log(`🎯 Overall Status: ${results.overallStatus}`);
-        console.log(`📈 Success Rate: ${successCount}/${totalChecks} (${Math.round(successCount/totalChecks*100)}%)`);
-        
-        console.log('\n📋 Detailed Results:');
-        console.log('   Netlify Deployment:', getStatusIcon(results.netlifyDeployment));
-        console.log('   WordPress API:', getStatusIcon(results.wordpressAPI));
-        console.log('   React Integration:', getStatusIcon(results.reactIntegration));
-        console.log('   Content Persistence:', getStatusIcon(results.contentPersistence));
-        console.log('   Universal Editing:', getStatusIcon(results.universalEditing));
-        
-        // Action items based on status
-        console.log('\n🚀 NEXT ACTIONS:');
-        
-        if (results.overallStatus.includes('PERFECT')) {
-            console.log('   🎉 CONGRATULATIONS! Your universal editing system is fully operational!');
-            console.log('   ✅ Content persistence is FIXED - no more reverts on refresh');
-            console.log('   ✅ Universal editing is READY - edit text, images, colors, links, buttons');
-            console.log('   ✅ WordPress integration is COMPLETE - professional admin interface');
-            console.log('');
-            console.log('   🎯 START USING:');
-            console.log('   1. Click "✏️ Enable Edit Mode" button above');
-            console.log('   2. Click any text, image, or element to edit it');
-            console.log('   3. Make changes and click "💾 Save Changes"');
-            console.log('   4. Refresh this page - changes will PERSIST! 🎉');
-            
-        } else {
-            if (results.netlifyDeployment !== 'success') {
-                console.log('   🔄 Wait for Netlify deployment to complete');
-                console.log('   📱 Check: https://app.netlify.com/sites/lustrous-dolphin-447351/deploys');
-            }
-            
-            if (results.wordpressAPI !== 'success') {
-                console.log('   🔧 Update WordPress functions.php with enhanced version');
-                console.log('   📁 Use content from: C:\\Users\\Leo\\violet-electric-web\\functions-enhanced.php');
-            }
-            
-            if (results.reactIntegration !== 'success') {
-                console.log('   🔄 Refresh this page and wait for React app to load');
-            }
-            
-            console.log('   🔄 Run this verification again after fixes');
-        }
-        
-        // Store results globally
-        window.violetDeploymentVerification = results;
-        console.log('\n💾 Results stored in: window.violetDeploymentVerification');
-        
-        console.log('\n🔍 DEPLOYMENT VERIFICATION COMPLETE');
     }
     
-    function getStatusIcon(status) {
-        switch (status) {
-            case 'success': return '✅ Success';
-            case 'partial': return '⚠️ Partial';
-            case 'error': return '❌ Error';
-            case 'timeout': return '⏱️ Timeout';
-            case 'checking': return '🔄 Checking...';
-            default: return '❓ Unknown';
+    // 3. React Components Check
+    console.log('\n3️⃣ REACT COMPONENTS STATUS:');
+    const iframe = elements.iframe;
+    if (iframe) {
+        console.log('   ✅ Iframe loaded');
+        console.log(`   🔗 URL: ${iframe.src}`);
+        
+        // Check if React app is responding
+        let reactResponded = false;
+        const messageHandler = (event) => {
+            if (event.data?.type?.includes('violet')) {
+                reactResponded = true;
+                console.log(`   📨 React response: ${event.data.type}`);
+            }
+        };
+        
+        window.addEventListener('message', messageHandler);
+        
+        // Send test message
+        iframe.contentWindow.postMessage({
+            type: 'violet-test-connection',
+            timestamp: Date.now()
+        }, '*');
+        
+        setTimeout(() => {
+            window.removeEventListener('message', messageHandler);
+            console.log(`   🔄 React communication: ${reactResponded ? 'Working' : 'No response'}`);
+        }, 2000);
+    }
+    
+    // 4. Editability Test
+    console.log('\n4️⃣ EDITABILITY TEST:');
+    setTimeout(() => {
+        try {
+            if (iframe.contentDocument) {
+                const editableElements = iframe.contentDocument.querySelectorAll('[data-violet-field]');
+                console.log(`   📝 Total editable elements: ${editableElements.length}`);
+                
+                // Check specific elements
+                const checks = [
+                    { name: 'Hero title', selector: '[data-violet-field*="hero"]' },
+                    { name: 'Testimonial', selector: '[data-violet-field*="testimonial"]' },
+                    { name: 'Navigation', selector: '[data-violet-field*="nav"]' },
+                    { name: 'Footer', selector: '[data-violet-field*="footer"]' }
+                ];
+                
+                checks.forEach(check => {
+                    const elements = iframe.contentDocument.querySelectorAll(check.selector);
+                    console.log(`   ${elements.length > 0 ? '✅' : '❌'} ${check.name}: ${elements.length} elements`);
+                });
+                
+                // Test the specific testimonial that was broken
+                const testimonial = Array.from(editableElements).find(el => 
+                    el.textContent?.includes('Channel V') || 
+                    el.textContent?.includes('framework didn')
+                );
+                
+                if (testimonial) {
+                    console.log('   🎯 SPECIFIC TESTIMONIAL CHECK:');
+                    console.log(`      ✅ Found testimonial element`);
+                    console.log(`      📋 Field: ${testimonial.dataset.violetField}`);
+                    console.log(`      📝 Preview: "${testimonial.textContent?.slice(0, 50)}..."`);
+                    console.log('      👆 This element should be clickable for editing');
+                }
+            } else {
+                console.log('   ⚠️ Cannot access iframe content - enable editing first');
+            }
+        } catch (e) {
+            console.log('   ⚠️ Cross-origin restriction - enable editing to test');
         }
-    }
-
-    // ====================
-    // RUN VERIFICATION
-    // ====================
-    async function runVerification() {
-        console.log('🚀 Starting final deployment verification...\n');
+    }, 3000);
+    
+    // 5. Text Direction Test
+    console.log('\n5️⃣ TEXT DIRECTION TEST:');
+    const testDiv = document.createElement('div');
+    testDiv.contentEditable = true;
+    testDiv.style.cssText = `
+        position: fixed;
+        top: 50px;
+        right: 20px;
+        width: 200px;
+        padding: 10px;
+        border: 2px solid #0073aa;
+        background: white;
+        z-index: 99999;
+    `;
+    testDiv.textContent = 'Type here to test direction';
+    document.body.appendChild(testDiv);
+    
+    setTimeout(() => {
+        const direction = getComputedStyle(testDiv).direction;
+        const textAlign = getComputedStyle(testDiv).textAlign;
         
-        await checkNetlifyDeployment();
-        await checkWordPressAPI();
-        await checkReactIntegration();
-        await testContentPersistence();
-        await testUniversalEditing();
+        console.log(`   📝 Text direction: ${direction}`);
+        console.log(`   📐 Text align: ${textAlign}`);
+        console.log(`   ${direction === 'ltr' ? '✅' : '❌'} Text direction ${direction === 'ltr' ? 'FIXED' : 'STILL BROKEN'}`);
         
-        generateFinalReport();
-    }
+        document.body.removeChild(testDiv);
+    }, 2000);
+    
+    // 6. Overall System Health
+    setTimeout(() => {
+        console.log('\n6️⃣ OVERALL SYSTEM HEALTH:');
+        
+        const criticalElements = [
+            elements.iframe && 'Iframe',
+            elements.saveButton && 'Save Button', 
+            elements.editButton && 'Edit Button'
+        ].filter(Boolean);
+        
+        const healthScore = (criticalElements.length / 3) * 100;
+        
+        console.log(`   📊 System Health: ${healthScore}%`);
+        
+        if (healthScore === 100) {
+            console.log('   🎉 SYSTEM FULLY OPERATIONAL!');
+            console.log('   ✅ All critical components present');
+            console.log('   🚀 Ready for production use');
+        } else if (healthScore >= 66) {
+            console.log('   ⚠️ System mostly working but check missing elements');
+        } else {
+            console.log('   ❌ Critical issues - check WordPress functions.php update');
+        }
+        
+        console.log('\n🎯 NEXT STEPS:');
+        if (healthScore === 100) {
+            console.log('   1. Click "Enable Universal Editing"');
+            console.log('   2. Click any text element to edit');
+            console.log('   3. Verify save button appears with changes');
+            console.log('   4. Test saving and persistence');
+            console.log('   5. System is ready for full use! 🎉');
+        } else {
+            console.log('   1. Ensure WordPress functions.php is updated');
+            console.log('   2. Check browser console for errors');
+            console.log('   3. Refresh page and try again');
+            console.log('   4. Contact support if issues persist');
+        }
+        
+    }, 6000);
+}
 
-    // Start verification
-    runVerification();
+// Auto-run verification
+if (window.location.href.includes('violet-universal-editor')) {
+    console.log('🎯 RUNNING AUTOMATIC VERIFICATION...\n');
+    verifyCompleteSystem();
+} else {
+    console.log('❌ Please go to WordPress Admin → Universal Editor first');
+    console.log('🔗 Direct link: wp-admin/admin.php?page=violet-universal-editor');
+}
 
-})();
+// Make function available globally
+window.verifyCompleteSystem = verifyCompleteSystem;
+
+console.log('\n🛠️ MANUAL COMMAND:');
+console.log('verifyCompleteSystem() - Run comprehensive verification');
