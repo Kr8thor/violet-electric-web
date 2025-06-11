@@ -35,7 +35,7 @@ import { saveManager } from "./utils/WordPressSaveManager";
 import { wordPressCommunication, isInWordPressIframe } from "./utils/WordPressCommunication";
 
 // CRITICAL: WordPress Content Provider for dynamic content
-import { VioletContentProvider } from "./contexts/WordPressContentProvider";
+import { VioletContentProvider } from "./contexts/VioletRuntimeContent";
 
 const queryClient = new QueryClient();
 

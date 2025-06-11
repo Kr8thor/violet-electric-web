@@ -1,6 +1,6 @@
 import React from 'react';
 import { cn } from '@/lib/utils';
-import { useVioletContent } from '@/contexts/WordPressContentProvider';
+import { useVioletContent } from '@/contexts/VioletRuntimeContent';
 
 interface EditableTextProps extends React.HTMLAttributes<HTMLElement> {
   field: string;
@@ -10,22 +10,22 @@ interface EditableTextProps extends React.HTMLAttributes<HTMLElement> {
 }
 
 /**
- * 🎯 FIXED: Editable text component that prioritizes WordPress runtime content
+ * 🎯 RUNTIME-ONLY: Editable text component with zero static imports
  * 
  * Loading hierarchy (runtime wins):
- * 1. WordPress API content (authoritative, freshest)  
- * 2. localStorage cache (fast, offline, survives reload)
- * 3. Static fallback (only so page never 404s if WP unreachable)
+ * 1. WordPress API content (authoritative, fetched on every load)  
+ * 2. localStorage cache (offline fallback)
+ * 3. defaultValue prop (last resort only)
  */
 export const EditableText = React.forwardRef<HTMLElement, EditableTextProps>(
   ({ field, defaultValue = '', as: Component = 'span', className, children, ...props }, ref) => {
-    const { content, loading, error } = useVioletContent();
+    const { data, loading, error } = useVioletContent();
     
     // Get the runtime content (WordPress API or cached)
-    const runtimeValue = content[field as keyof typeof content];
+    const runtimeValue = data?.[field];
     
-    // 🏆 Runtime content always wins over defaultValue
-    const displayValue = runtimeValue || defaultValue || children;
+    // Runtime content wins, defaultValue only if WordPress has no data for this field
+    const displayValue = runtimeValue || defaultValue || children || '';
     
     // Debug logging in development
     if (import.meta.env?.DEV) {
@@ -35,34 +35,19 @@ export const EditableText = React.forwardRef<HTMLElement, EditableTextProps>(
         displayValue,
         loading,
         error,
-        source: runtimeValue ? 'WordPress/Cache' : 'Static fallback'
+        source: runtimeValue ? 'WordPress/Cache' : 'fallback'
       });
     }
     
-    // Show loading state briefly
-    if (loading) {
-      return React.createElement(
-        Component,
-        {
-          ref,
-          className: cn(className, 'violet-loading animate-pulse'),
-          'data-violet-field': field,
-          'data-violet-loading': 'true',
-          ...props
-        },
-        defaultValue || children || 'Loading...'
-      );
-    }
-    
+    // Don't show loading state - parent provider handles that
     return React.createElement(
       Component,
       {
         ref,
-        className: cn(className, 'violet-dynamic-content'),
+        className: cn(className, 'violet-runtime-content'),
         'data-violet-field': field,
         'data-violet-value': displayValue,
-        'data-original-content': displayValue,
-        'data-content-source': runtimeValue ? 'wordpress' : 'static',
+        'data-content-source': runtimeValue ? 'wordpress' : 'fallback',
         ...props
       },
       displayValue

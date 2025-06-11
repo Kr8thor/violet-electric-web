@@ -1,6 +1,6 @@
 import React from 'react';
 import { cn } from '@/lib/utils';
-import { getWordPressField } from '@/wordpress-content';
+import { useVioletContent } from '@/contexts/VioletRuntimeContent';
 
 interface BuildTimeEditableTextProps extends React.HTMLAttributes<HTMLElement> {
   field: string;
@@ -10,32 +10,33 @@ interface BuildTimeEditableTextProps extends React.HTMLAttributes<HTMLElement> {
 }
 
 /**
- * Build-Time Editable Text Component
- * Uses WordPress content fetched at BUILD TIME - no runtime API calls needed
- * Content is baked into the static build, ensuring perfect persistence
+ * Runtime Editable Text Component (formerly build-time, now unified)
+ * Uses WordPress content fetched at RUNTIME - no more static imports
  */
 export const BuildTimeEditableText = React.forwardRef<HTMLElement, BuildTimeEditableTextProps>(
   ({ field, as: Component = 'span', className, children, ...props }, ref) => {
     
-    // Get content from build-time WordPress fetch (via environment variables)
-    const buildTimeContent = getWordPressField(field as any);
+    const { data } = useVioletContent();
+    
+    // Get content from runtime WordPress fetch
+    const runtimeContent = data?.[field] || '';
     
     // Debug logging in development
     if (import.meta.env?.DEV) {
-      console.log(`🏗️ BuildTimeEditableText[${field}]: "${buildTimeContent}" (from build-time fetch)`);
+      console.log(`🏗️ BuildTimeEditableText[${field}]: "${runtimeContent}" (from runtime fetch)`);
     }
     
     return React.createElement(
       Component,
       {
         ref,
-        className: cn(className, 'violet-build-time-content'),
+        className: cn(className, 'violet-runtime-content'),
         'data-violet-field': field,
-        'data-violet-value': buildTimeContent,
-        'data-content-source': 'build-time',
+        'data-violet-value': runtimeContent,
+        'data-content-source': 'runtime',
         ...props
       },
-      buildTimeContent || children
+      runtimeContent || children
     );
   }
 );
@@ -78,12 +79,14 @@ export const HybridEditableText = React.forwardRef<HTMLElement, BuildTimeEditabl
 }>(
   ({ field, defaultValue, enableRuntimeEditing = false, as: Component = 'span', className, children, ...props }, ref) => {
     
+    const { data } = useVioletContent();
+    
     // In WordPress editor mode, use runtime editing for live editing
     const isWordPressEditor = new URLSearchParams(window.location.search).has('edit_mode');
     
-    // FIXED: Always use build-time content but enable editing attributes for WordPress
-    const buildTimeContent = getWordPressField(field as any);
-    const displayValue = buildTimeContent || defaultValue || children;
+    // Always use runtime content - no more build-time static content
+    const runtimeContent = data?.[field] || '';
+    const displayValue = runtimeContent || defaultValue || children;
     
     // Debug logging
     if (import.meta.env?.DEV) {
@@ -94,10 +97,10 @@ export const HybridEditableText = React.forwardRef<HTMLElement, BuildTimeEditabl
       Component,
       {
         ref,
-        className: cn(className, isWordPressEditor ? 'violet-runtime-content' : 'violet-build-time-content'),
+        className: cn(className, 'violet-runtime-content'),
         'data-violet-field': field,
         'data-violet-value': displayValue,
-        'data-content-source': isWordPressEditor ? 'runtime-editing' : 'build-time',
+        'data-content-source': 'runtime',
         'data-enable-editing': enableRuntimeEditing && isWordPressEditor,
         ...props
       },
