@@ -35,7 +35,9 @@ import { saveManager } from "./utils/WordPressSaveManager";
 import { wordPressCommunication, isInWordPressIframe } from "./utils/WordPressCommunication";
 
 // CRITICAL: WordPress Content Provider for dynamic content
-import { VioletContentProvider } from "./contexts/VioletRuntimeContent";
+import { VioletContentProvider } from "./contexts/VioletRuntimeContentFixed";
+import WordPressSaveHandler from "./components/WordPressSaveHandler";
+import { initializeContentPersistence } from "./utils/contentPersistenceFix";
 
 const queryClient = new QueryClient();
 
@@ -55,6 +57,9 @@ const App = () => {
       initializeDebugTools();
       console.log('🛠️ Debug tools initialized');
     }
+    
+    // CRITICAL FIX: Initialize content persistence system
+    initializeContentPersistence();
     
     // CRITICAL FIX: Initialize WordPress content sync
     initializeWordPressSync();
@@ -114,6 +119,8 @@ const App = () => {
             {!inWordPressEditor && <ContentStatus />}
             {/* WordPress Rich Editor - only render when in WordPress edit mode */}
             {inWordPressEditor && <WordPressRichEditor />}
+            {/* WordPress Save Handler - handles save operations */}
+            {inWordPressEditor && <WordPressSaveHandler />}
             <BrowserRouter>
               <Routes>
                 <Route path="/" element={<Index />} />

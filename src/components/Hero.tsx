@@ -1,6 +1,6 @@
 import { Button } from '@/components/ui/button';
 import { Link } from 'react-router-dom';
-import { EditableText } from '@/components/EditableText';
+import { EditableTextFixed as EditableText } from '@/components/EditableTextFixed';
 import { useState, useRef, useEffect } from 'react';
 
 const Hero = () => {

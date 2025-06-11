@@ -87,19 +87,40 @@ export const VioletContentProvider: React.FC<
     })();
   }, [apiBase]);
 
-  // Listen for WordPress save events
+  // Listen for WordPress save events and diagnostic requests
   useEffect(() => {
-    const handleWordPressSave = (event: MessageEvent) => {
+    const handleMessages = (event: MessageEvent) => {
       if (event.data?.type === 'violet-saved') {
         console.log('💾 WordPress save detected - clearing cache and reloading');
         localStorage.removeItem('violetContentCache');
         window.location.reload();
       }
+      
+      // Handle diagnostic requests
+      if (event.data?.type === 'violet-diagnostic-request') {
+        console.log('🔍 Diagnostic request received, responding with current state');
+        
+        // Send back comprehensive diagnostic info
+        if (event.source && event.source !== window) {
+          (event.source as Window).postMessage({
+            type: 'violet-diagnostic-response',
+            testId: event.data.testId,
+            providerLoaded: true,
+            contentLoaded: !!data,
+            loading: loading,
+            error: error,
+            currentContent: data,
+            cacheStatus: !!localStorage.getItem('violetContentCache'),
+            apiBase: apiBase,
+            timestamp: new Date().toISOString()
+          }, '*');
+        }
+      }
     };
 
-    window.addEventListener('message', handleWordPressSave);
-    return () => window.removeEventListener('message', handleWordPressSave);
-  }, []);
+    window.addEventListener('message', handleMessages);
+    return () => window.removeEventListener('message', handleMessages);
+  }, [data, loading, error, apiBase]);
 
   const set = (id: string, val: string) =>
     setData(d => (d ? { ...d, [id]: val } : d));

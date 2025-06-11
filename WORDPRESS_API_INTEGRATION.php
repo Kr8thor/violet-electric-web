@@ -168,9 +168,9 @@ add_action( 'violet_after_save', function( $saved_content ) {
 // ==============================================
 add_action( 'admin_notices', function() {
     if ( !get_option('violet_api_installed') ) {
-        echo '<div class=\"notice notice-success is-dismissible\">';
+        echo '<div class="notice notice-success is-dismissible">';
         echo '<p><strong>✅ Violet Content API Installed!</strong> ';
-        echo 'Test endpoint: <a href=\"' . home_url('/wp-json/violet/v1/content') . '\" target=\"_blank\">/wp-json/violet/v1/content</a></p>';
+        echo 'Test endpoint: <a href="' . home_url('/wp-json/violet/v1/content') . '" target="_blank">/wp-json/violet/v1/content</a></p>';
         echo '</div>';
         
         // Mark as installed
@@ -189,43 +189,43 @@ add_action( 'admin_menu', function() {
         'manage_options',
         'violet-content-api',
         function() {
-            echo '<div class=\"wrap\">';
+            echo '<div class="wrap">';
             echo '<h1>🎯 Violet Content API</h1>';
             
             $content = get_option('violet_all_content', []);
             $endpoint_url = home_url('/wp-json/violet/v1/content');
             
             echo '<h2>📡 API Status</h2>';
-            echo '<p><strong>Endpoint:</strong> <a href=\"' . $endpoint_url . '\" target=\"_blank\">' . $endpoint_url . '</a></p>';
+            echo '<p><strong>Endpoint:</strong> <a href="' . $endpoint_url . '" target="_blank">' . $endpoint_url . '</a></p>';
             echo '<p><strong>Content Fields:</strong> ' . count($content) . '</p>';
             
             echo '<h2>📋 Current Content</h2>';
-            echo '<pre style=\"background: #f0f0f0; padding: 15px; overflow-x: auto;\">';
+            echo '<pre style="background: #f0f0f0; padding: 15px; overflow-x: auto;">';
             echo htmlspecialchars(json_encode($content, JSON_PRETTY_PRINT));
             echo '</pre>';
             
             echo '<h2>🧪 Test API</h2>';
-            echo '<button onclick=\"testAPI()\" class=\"button button-primary\">Test GET Endpoint</button>';
-            echo '<div id=\"api-test-result\" style=\"margin-top: 10px;\"></div>';
+            echo '<button onclick="testAPI()" class="button button-primary">Test GET Endpoint</button>';
+            echo '<div id="api-test-result" style="margin-top: 10px;"></div>';
             
             echo '<script>
                 function testAPI() {
-                    document.getElementById(\"api-test-result\").innerHTML = \"Testing...\";
-                    fetch(\"' . $endpoint_url . '\")
+                    document.getElementById("api-test-result").innerHTML = "Testing...";
+                    fetch("' . $endpoint_url . '")
                         .then(r => r.json())
                         .then(data => {
-                            document.getElementById(\"api-test-result\").innerHTML = 
-                                \"<div style=\\\"background:#d4edda;padding:10px;border-radius:5px;\\\">\" +
-                                \"<strong>✅ API Working!</strong><br>\" +
-                                \"Fields returned: \" + Object.keys(data).length + \"<br>\" +
-                                \"Sample: \" + JSON.stringify(data).substr(0, 100) + \"...\" +
-                                \"</div>\";
+                            document.getElementById("api-test-result").innerHTML = 
+                                "<div style=\"background:#d4edda;padding:10px;border-radius:5px;\">" +
+                                "<strong>✅ API Working!</strong><br>" +
+                                "Fields returned: " + Object.keys(data).length + "<br>" +
+                                "Sample: " + JSON.stringify(data).substr(0, 100) + "..." +
+                                "</div>";
                         })
                         .catch(e => {
-                            document.getElementById(\"api-test-result\").innerHTML = 
-                                \"<div style=\\\"background:#f8d7da;padding:10px;border-radius:5px;\\\">\" +
-                                \"<strong>❌ API Error:</strong> \" + e.message +
-                                \"</div>\";
+                            document.getElementById("api-test-result").innerHTML = 
+                                "<div style=\"background:#f8d7da;padding:10px;border-radius:5px;\">" +
+                                "<strong>❌ API Error:</strong> " + e.message +
+                                "</div>";
                         });
                 }
             </script>';
