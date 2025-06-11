@@ -81,35 +81,27 @@ export const HybridEditableText = React.forwardRef<HTMLElement, BuildTimeEditabl
     // In WordPress editor mode, use runtime editing for live editing
     const isWordPressEditor = new URLSearchParams(window.location.search).has('edit_mode');
     
-    if (isWordPressEditor && enableRuntimeEditing) {
-      // Import the original EditableText for editing mode
-      const RuntimeEditableText = React.lazy(() => import('./EditableText').then(mod => ({ default: mod.EditableText })));
-      
-      return (
-        <React.Suspense fallback={<span>Loading...</span>}>
-          <RuntimeEditableText 
-            field={field} 
-            defaultValue={defaultValue || getWordPressField(field as any)}
-            as={Component}
-            className={className}
-            {...props}
-          >
-            {children}
-          </RuntimeEditableText>
-        </React.Suspense>
-      );
+    // FIXED: Always use build-time content but enable editing attributes for WordPress
+    const buildTimeContent = getWordPressField(field as any);
+    const displayValue = buildTimeContent || defaultValue || children;
+    
+    // Debug logging
+    if (import.meta.env?.DEV) {
+      console.log(`🔧 HybridEditableText[${field}]: "${displayValue}" (WordPress Editor: ${isWordPressEditor})`);
     }
     
-    // For production/static builds, use build-time content
-    return (
-      <BuildTimeEditableText 
-        field={field}
-        as={Component}
-        className={className}
-        {...props}
-      >
-        {children}
-      </BuildTimeEditableText>
+    return React.createElement(
+      Component,
+      {
+        ref,
+        className: cn(className, isWordPressEditor ? 'violet-runtime-content' : 'violet-build-time-content'),
+        'data-violet-field': field,
+        'data-violet-value': displayValue,
+        'data-content-source': isWordPressEditor ? 'runtime-editing' : 'build-time',
+        'data-enable-editing': enableRuntimeEditing && isWordPressEditor,
+        ...props
+      },
+      displayValue
     );
   }
 );

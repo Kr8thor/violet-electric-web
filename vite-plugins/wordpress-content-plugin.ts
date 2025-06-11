@@ -19,6 +19,34 @@ export function wordpressContentPlugin(config: WordPressConfig): Plugin {
     async buildStart() {
       console.log('🔄 Fetching WordPress content at build time...');
       
+      // Helper function to clean HTML content and extract text
+      const cleanContent = (value: string): string => {
+        if (!value || typeof value !== 'string') return '';
+        
+        // If it looks like HTML, extract the text content
+        if (value.includes('<') && value.includes('>')) {
+          // Basic HTML to text extraction
+          const textMatch = value.match(/>([^<]+)</);
+          if (textMatch && textMatch[1]) {
+            const cleanText = textMatch[1].trim();
+            console.log(`🧹 Cleaned HTML content: "${value.substring(0, 50)}..." → "${cleanText}"`);
+            return cleanText;
+          }
+        }
+        
+        // Clean any remaining HTML tags
+        const withoutTags = value.replace(/<[^>]*>/g, '').trim();
+        
+        // Clean any WordPress test markers or timestamps
+        const withoutTestMarkers = withoutTags
+          .replace(/TEST FROM WORDPRESS:.*$/i, '')
+          .replace(/WORDPRESS:.*$/i, '')
+          .replace(/Test at \d+:.*$/i, '')
+          .trim();
+        
+        return withoutTestMarkers || value;
+      };
+      
       try {
         // Fetch content from WordPress API
         const response = await fetch(`${config.apiUrl}/wp-json/violet/v1/content`);
@@ -26,8 +54,17 @@ export function wordpressContentPlugin(config: WordPressConfig): Plugin {
         let wordpressContent: Record<string, string> = {};
         
         if (response.ok) {
-          wordpressContent = await response.json();
-          console.log('✅ WordPress content fetched:', Object.keys(wordpressContent));
+          const rawContent = await response.json();
+          
+          // Clean all WordPress content
+          wordpressContent = Object.fromEntries(
+            Object.entries(rawContent).map(([key, value]) => [
+              key, 
+              cleanContent(value as string)
+            ])
+          );
+          
+          console.log('✅ WordPress content fetched and cleaned:', Object.keys(wordpressContent));
         } else {
           console.warn('⚠️ WordPress API not available, using fallback content');
           wordpressContent = config.fallbackContent || {};

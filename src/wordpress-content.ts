@@ -19,7 +19,7 @@ export interface WordPressContent {
 }
 
 export const WORDPRESS_CONTENT: WordPressContent = {
-  hero_title: "<span class=\"text-white violet-dynamic-content\" data-violet-field=\"hero_subtitle_line2\" data-violet-value=\"Change Your Life.\" data-original-content=\"Change Your Life.\" data-violet-editable=\"true\" data-violet-original=\"Change Your Life.\" data-violet-field-type=\"span_content\" style=\"cursor: text\">Change Your Life.</span>",
+  hero_title: "Change Your Life.",
   hero_subtitle: "Transform your potential into reality with our innovative solutions",
   hero_subtitle_line2: "Change Your Life.",
   hero_cta: "Book a Discovery Call",
