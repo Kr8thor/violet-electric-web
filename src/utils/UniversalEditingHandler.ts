@@ -87,10 +87,26 @@ class UniversalEditingMessageHandler {
     
     const styles = `
       <style id="violet-editing-styles">
+        /* Base editing styles */
         .violet-universal-editing [data-violet-field]:hover {
           outline: 2px dashed #3b82f6 !important;
           outline-offset: 2px !important;
           cursor: pointer !important;
+        }
+        
+        /* Fix text direction for contentEditable */
+        .violet-universal-editing [contenteditable="true"] {
+          direction: ltr !important;
+          text-align: inherit !important;
+          unicode-bidi: normal !important;
+        }
+        
+        /* Fix input elements direction */
+        .violet-universal-editing input[type="text"],
+        .violet-universal-editing textarea,
+        .violet-universal-editing [contenteditable] {
+          direction: ltr !important;
+          text-align: left !important;
         }
         
         .violet-universal-editing [data-violet-type="image"]:hover {
@@ -121,6 +137,7 @@ class UniversalEditingMessageHandler {
           border-radius: 4px;
           z-index: 1000;
           pointer-events: none;
+          direction: ltr !important;
         }
       </style>
     `;
