@@ -1,6 +1,6 @@
 import React from 'react';
 import { cn } from '@/lib/utils';
-import { useContentFromStorage } from '@/hooks/useContentFromStorage';
+import { useWordPressContent } from '@/contexts/WordPressContentProvider';
 
 interface EditableTextProps extends React.HTMLAttributes<HTMLElement> {
   field: string;
@@ -10,14 +10,17 @@ interface EditableTextProps extends React.HTMLAttributes<HTMLElement> {
 }
 
 /**
- * Editable text component that uses persisted content from WordPress
- * ENHANCED: Now reads from triple failsafe storage for true persistence
+ * Editable text component that uses WordPress content with triple failsafe backup
+ * ENHANCED: Now reads from WordPress + triple failsafe storage for true persistence
  */
 export const EditableText = React.forwardRef<HTMLElement, EditableTextProps>(
   ({ field, defaultValue, as: Component = 'span', className, children, ...props }, ref) => {
-    // Get content from storage with fallback to defaultValue
-    const { get, loading, error } = useContentFromStorage();
-    const value = get(field, defaultValue);
+    // Get content from WordPress with failsafe fallback
+    const { getField, loading, error, isConnected } = useWordPressContent();
+    
+    // CRITICAL FIX: Check if saved content exists first, prioritize over defaults
+    const savedValue = getField(field);
+    const hasSavedContent = savedValue !== undefined && savedValue !== null;
     
     // Show loading state briefly
     if (loading) {
@@ -50,12 +53,13 @@ export const EditableText = React.forwardRef<HTMLElement, EditableTextProps>(
       );
     }
     
-    // Use stored value or fallback
-    const displayValue = value || defaultValue;
+    // CRITICAL FIX: Prioritize saved content over defaults
+    // If we have saved content (even empty string), use it. Only use default if no saved content exists.
+    const displayValue = hasSavedContent ? savedValue : defaultValue;
     
     // Debug log in development
-    if (import.meta.env?.DEV && field === 'hero_title') {
-      console.log(`✅ EditableText[${field}]: "${displayValue}" (from storage: ${value ? 'YES' : 'NO'})`);
+    if (import.meta.env?.DEV && (field === 'hero_title' || field === 'hero_subtitle')) {
+      console.log(`✅ EditableText[${field}]: "${displayValue}" (WordPress: ${isConnected ? 'Connected' : 'Disconnected'}, Saved: ${hasSavedContent ? 'Yes' : 'No'})`);
     }
     
     return React.createElement(
@@ -66,6 +70,7 @@ export const EditableText = React.forwardRef<HTMLElement, EditableTextProps>(
         'data-violet-field': field,
         'data-violet-value': displayValue,
         'data-original-content': displayValue,
+        'data-wordpress-connected': isConnected,
         ...props
       },
       displayValue || children

@@ -31,6 +31,12 @@ const WordPressRichEditor: React.FC = () => {
         case 'violet-apply-saved-changes':
           handleApplySavedChanges(event.data);
           break;
+        case 'violet-persist-content-changes':
+          handlePersistContentChanges(event.data);
+          break;
+        case 'violet-refresh-content':
+          handleRefreshContent();
+          break;
       }
     };
 
@@ -39,37 +45,36 @@ const WordPressRichEditor: React.FC = () => {
   }, []);
 
   const enableInvisibleEditing = () => {
-    console.log('🎨 Enabling INVISIBLE editing mode - no UI changes');
+    console.log('🎨 Enabling INVISIBLE editing mode - targeting data-violet-field elements');
     isEditingEnabled.current = true;
 
-    // Make elements editable with ONLY blue outlines (no other visual changes)
-    const editableSelectors = ['h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'p', 'span', 'a', 'button', 'li'];
-    
-    editableSelectors.forEach(selector => {
-      document.querySelectorAll(selector).forEach((element) => {
-        const el = element as HTMLElement;
-        const text = el.textContent?.trim();
+    // FIXED: Target elements that already have data-violet-field attribute (from EditableText components)
+    document.querySelectorAll('[data-violet-field]').forEach((element) => {
+      const el = element as HTMLElement;
+      const text = el.textContent?.trim();
+      const existingField = el.dataset.violetField;
+      
+      if (text && text.length > 0 && existingField && !el.querySelector('img, svg, iframe')) {
+        console.log(`🎯 Making editable: ${existingField} = "${text}"`);
         
-        if (text && text.length > 0 && !el.querySelector('img, svg, iframe')) {
-          // Store original data
-          el.dataset.violetEditable = 'true';
-          el.dataset.violetOriginal = el.innerHTML;
-          el.dataset.violetFieldType = detectFieldType(el);
-          
-          // Make editable with ONLY blue outline
-          el.contentEditable = 'true';
-          el.style.outline = '2px dashed #0073aa';
-          el.style.outlineOffset = '2px';
-          el.style.cursor = 'text';
-          
-          // Add invisible event listeners
-          el.addEventListener('input', handleContentChange);
-          el.addEventListener('blur', handleElementBlur);
-        }
-      });
+        // Store original data using the existing field name
+        el.dataset.violetEditable = 'true';
+        el.dataset.violetOriginal = el.innerHTML;
+        el.dataset.violetFieldType = existingField; // Use the field name from the component
+        
+        // Make editable with ONLY blue outline
+        el.contentEditable = 'true';
+        el.style.outline = '2px dashed #0073aa';
+        el.style.outlineOffset = '2px';
+        el.style.cursor = 'text';
+        
+        // Add invisible event listeners
+        el.addEventListener('input', handleContentChange);
+        el.addEventListener('blur', handleElementBlur);
+      }
     });
 
-    console.log('✅ Invisible editing enabled - only blue outlines visible');
+    console.log('✅ Invisible editing enabled - blue outlines on data-violet-field elements');
   };
 
   const disableInvisibleEditing = () => {
@@ -95,9 +100,12 @@ const WordPressRichEditor: React.FC = () => {
 
   const handleContentChange = (event: Event) => {
     const element = event.target as HTMLElement;
-    const fieldType = element.dataset.violetFieldType || 'generic_content';
+    // FIXED: Use the field name directly from data-violet-field (set by EditableText components)
+    const fieldType = element.dataset.violetField || element.dataset.violetFieldType || 'generic_content';
     const originalValue = element.dataset.violetOriginal || '';
     const currentValue = element.innerHTML;
+
+    console.log(`📝 Content changed: ${fieldType} = "${currentValue}"`);
 
     // Track change invisibly
     const changeEntry: ChangeEntry = {
@@ -117,7 +125,7 @@ const WordPressRichEditor: React.FC = () => {
 
     // Report change to WordPress
     wordPressCommunication.reportContentChange(fieldType, currentValue);
-    console.log('📝 Content changed (invisible):', fieldType);
+    console.log('📤 Reported to WordPress:', fieldType);
   };
 
   const handleElementBlur = (event: Event) => {
@@ -165,15 +173,87 @@ const WordPressRichEditor: React.FC = () => {
 
     if (data.savedChanges) {
       data.savedChanges.forEach((change: any) => {
-        document.querySelectorAll(`[data-violet-field-type="${change.field_name}"]`).forEach((element) => {
+        // FIXED: Use data-violet-field attribute to find elements (matches what EditableText sets)
+        const elements = document.querySelectorAll(`[data-violet-field="${change.field_name}"]`);
+        console.log(`🔄 Updating field ${change.field_name} in ${elements.length} elements`);
+        
+        elements.forEach((element) => {
           const el = element as HTMLElement;
           el.innerHTML = change.field_value;
           el.dataset.violetOriginal = change.field_value;
+          el.dataset.violetValue = change.field_value; // Update the data-violet-value too
+          console.log(`✅ Updated ${change.field_name} to: "${change.field_value}"`);
         });
       });
     }
 
     console.log('🎉 Changes applied successfully (invisible)');
+  };
+
+  const handlePersistContentChanges = (data: any) => {
+    console.log('💾 Persisting content changes to localStorage');
+    
+    if (data.contentData && Array.isArray(data.contentData)) {
+      try {
+        // Get existing content from localStorage
+        const existingContent = JSON.parse(localStorage.getItem('violet-content') || '{}');
+        const content = existingContent.content || {};
+        
+        // Apply changes
+        data.contentData.forEach((change: any) => {
+          if (change.field_name && change.field_value !== undefined) {
+            content[change.field_name] = change.field_value;
+            console.log(`💾 Persisted: ${change.field_name} = "${change.field_value}"`);
+          }
+        });
+        
+        // Save back to localStorage
+        const updatedContent = {
+          version: 'v1',
+          timestamp: Date.now(),
+          source: 'wordpress-save',
+          content: content
+        };
+        
+        localStorage.setItem('violet-content', JSON.stringify(updatedContent));
+        console.log('✅ Content persisted to localStorage');
+        
+        // Trigger a content refresh event for the WordPress Content Provider
+        window.dispatchEvent(new CustomEvent('violet-content-updated', {
+          detail: { source: 'save', changes: data.contentData }
+        }));
+        
+      } catch (error) {
+        console.error('❌ Failed to persist content:', error);
+      }
+    }
+  };
+
+  const handleRefreshContent = () => {
+    console.log('🔄 Refreshing content from localStorage');
+    
+    try {
+      const storedContent = localStorage.getItem('violet-content');
+      if (storedContent) {
+        const parsedContent = JSON.parse(storedContent);
+        const content = parsedContent.content || {};
+        
+        // Update all elements with stored content
+        Object.entries(content).forEach(([fieldName, fieldValue]) => {
+          const elements = document.querySelectorAll(`[data-violet-field="${fieldName}"]`);
+          elements.forEach((element) => {
+            const el = element as HTMLElement;
+            el.innerHTML = fieldValue as string;
+            el.dataset.violetValue = fieldValue as string;
+            el.dataset.violetOriginal = fieldValue as string;
+          });
+        });
+        
+        console.log('✅ Content refreshed from localStorage');
+      }
+    } catch (error) {
+      console.error('❌ Failed to refresh content:', error);
+    }
   };
 
   const detectFieldType = (element: HTMLElement): string => {

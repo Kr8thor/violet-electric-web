@@ -34,6 +34,9 @@ import { saveManager } from "./utils/WordPressSaveManager";
 // NEW: WordPress Communication Fix
 import { wordPressCommunication, isInWordPressIframe } from "./utils/WordPressCommunication";
 
+// CRITICAL: WordPress Content Provider for dynamic content
+import { WordPressContentProvider } from "./contexts/WordPressContentProvider";
+
 const queryClient = new QueryClient();
 
 const App = () => {
@@ -104,25 +107,27 @@ const App = () => {
   return (
     <QueryClientProvider client={queryClient}>
       <ApolloProvider client={client}>
-        <ContentProvider>
-          <ContentLoader />
-          {/* NEVER show ContentStatus in WordPress editor mode - all UI should be in WordPress admin */}
-          {!inWordPressEditor && <ContentStatus />}
-          {/* WordPress Rich Editor - only render when in WordPress edit mode */}
-          {inWordPressEditor && <WordPressRichEditor />}
-          <BrowserRouter>
-            <Routes>
-              <Route path="/" element={<Index />} />
-              <Route path="/about" element={<About />} />
-              <Route path="/keynotes" element={<Keynotes />} />
-              <Route path="/testimonials" element={<Testimonials />} />
-              <Route path="/contact" element={<Contact />} />
-              <Route path="*" element={<NotFound />} />
-            </Routes>
-          </BrowserRouter>
-          <Toaster />
-          <Sonner />
-        </ContentProvider>
+        <WordPressContentProvider>
+          <ContentProvider>
+            <ContentLoader />
+            {/* NEVER show ContentStatus in WordPress editor mode - all UI should be in WordPress admin */}
+            {!inWordPressEditor && <ContentStatus />}
+            {/* WordPress Rich Editor - only render when in WordPress edit mode */}
+            {inWordPressEditor && <WordPressRichEditor />}
+            <BrowserRouter>
+              <Routes>
+                <Route path="/" element={<Index />} />
+                <Route path="/about" element={<About />} />
+                <Route path="/keynotes" element={<Keynotes />} />
+                <Route path="/testimonials" element={<Testimonials />} />
+                <Route path="/contact" element={<Contact />} />
+                <Route path="*" element={<NotFound />} />
+              </Routes>
+            </BrowserRouter>
+            <Toaster />
+            <Sonner />
+          </ContentProvider>
+        </WordPressContentProvider>
       </ApolloProvider>
     </QueryClientProvider>
   );

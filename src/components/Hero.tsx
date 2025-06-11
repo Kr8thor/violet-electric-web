@@ -1,6 +1,6 @@
 import { Button } from '@/components/ui/button';
 import { Link } from 'react-router-dom';
-import { EditableText, EditableH1, EditableP } from '@/components/EditableText';
+import { HybridEditableText } from '@/components/BuildTimeEditableText';
 import { useState, useRef, useEffect } from 'react';
 
 const Hero = () => {
@@ -76,33 +76,34 @@ const Hero = () => {
       <div className="relative z-10 container-max section-padding text-center pb-20 md:pb-32">
         <div className="max-w-4xl mx-auto animate-fade-in">
           <h1 className="text-4xl md:text-6xl lg:text-7xl font-bold mb-6 leading-tight text-white">
-            <EditableText 
+            <HybridEditableText 
               field="hero_title"
-              defaultValue="Change the Channel."
+              enableRuntimeEditing={true}
               className="bg-gradient-to-r from-luminous-300 to-blush-300 bg-clip-text text-transparent"
               as="span"
             />
             <br />
-            <EditableText 
+            <HybridEditableText 
               field="hero_subtitle_line2"
-              defaultValue="Change Your Life."
+              enableRuntimeEditing={true}
               className="text-white"
               as="span"
             />
           </h1>
           
-          <EditableP 
+          <HybridEditableText 
             field="hero_subtitle"
-            defaultValue="Transform your potential with neuroscience-backed strategies and heart-centered leadership. Discover the power within you to create extraordinary results."
+            enableRuntimeEditing={true}
             className="text-lg md:text-xl lg:text-2xl text-gray-100 mb-12 max-w-3xl mx-auto leading-relaxed"
+            as="p"
           />
 
           <div className="flex flex-col sm:flex-row gap-6 justify-center items-center">
             <Link to="/contact">
               <Button className="luminous-button px-8 py-4 text-lg rounded-full">
-                <EditableText 
+                <HybridEditableText 
                   field="hero_cta"
-                  defaultValue="Book Violet"
+                  enableRuntimeEditing={true}
                 />
               </Button>
             </Link>
@@ -111,9 +112,9 @@ const Hero = () => {
               className="px-8 py-4 text-lg rounded-full border-2 border-white/30 hover:bg-white/10 transition-all duration-300 backdrop-blur-sm text-blush-300"
               onClick={() => window.open('https://www.youtube.com/@VioletRainwater', '_blank')}
             >
-              <EditableText 
+              <HybridEditableText 
                 field="hero_cta_secondary"
-                defaultValue="Watch Violet in Action"
+                enableRuntimeEditing={true}
               />
             </Button>
           </div>
