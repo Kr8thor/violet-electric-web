@@ -1,4 +1,4 @@
-import { EditableText } from '@/components/EditableTextFixed';
+import { EditableText } from '@/components/EditableText';
 import { EditableButton, EditableContainer } from '@/components/UniversalEditingComponents';
 
 const UniqueValue = () => {

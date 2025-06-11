@@ -3,7 +3,7 @@ import { Button } from '@/components/ui/button';
 import { Link } from 'react-router-dom';
 import { useWordPressSiteContent } from '@/hooks/useWordPressSiteContent';
 import { EditableImage, EditableLink } from './UniversalEditingComponents';
-import { EditableText } from './EditableTextFixed';
+import { EditableText } from './EditableText';
 
 const Navigation = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);

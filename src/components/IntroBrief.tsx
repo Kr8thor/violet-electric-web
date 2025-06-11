@@ -1,5 +1,5 @@
 import { Button } from '@/components/ui/button';
-import { EditableText } from '@/components/EditableTextFixed';
+import { EditableText } from '@/components/EditableText';
 import { EditableImage, EditableButton, EditableContainer } from '@/components/UniversalEditingComponents';
 
 const IntroBrief = () => {

@@ -1,6 +1,6 @@
 import { Button } from '@/components/ui/button';
 import { Link } from 'react-router-dom';
-import { EditableText } from '@/components/EditableTextFixed';
+import { EditableText } from '@/components/EditableText';
 import { EditableImage, EditableButton, EditableColor, EditableContainer } from '@/components/UniversalEditingComponents';
 import { useState, useRef, useEffect } from 'react';
 
