@@ -80,41 +80,45 @@ export class ContentPersistenceManager {
   }
 
   /**
-   * Load content from WordPress API
+   * Helper to get current page from URL
+   */
+  private getCurrentPage(): string {
+    const params = new URLSearchParams(window.location.search);
+    return params.get('page') || 'home';
+  }
+
+  /**
+   * Load content from WordPress API (per page)
    */
   async loadContentFromWordPress(): Promise<WordPressContent> {
     try {
-      console.log('🔄 Loading content from WordPress API...');
-      
-      const response = await fetch(`${this.apiBase}/wp-json/violet/v1/content`, {
+      const page = this.getCurrentPage();
+      console.log('🔄 Loading content from WordPress API for page:', page);
+      const response = await fetch(`${this.apiBase}/wp-json/violet/v1/rich-content?page=${encodeURIComponent(page)}`, {
         method: 'GET',
         headers: {
           'Cache-Control': 'no-cache',
           'Pragma': 'no-cache'
         }
       });
-
       if (!response.ok) {
         throw new Error(`HTTP ${response.status}: ${response.statusText}`);
       }
-
       const freshContent = await response.json();
-      console.log('✅ WordPress content loaded:', freshContent);
-
-      // Update content and notify listeners
-      this.content = freshContent;
+      // Expecting { [field]: { content, ... }, ... } per page
+      const pageContent = freshContent[page] || {};
+      // Flatten to { field: content }
+      const flatContent: WordPressContent = {};
+      Object.keys(pageContent).forEach(field => {
+        flatContent[field] = pageContent[field].content || '';
+      });
+      this.content = flatContent;
       this.notifyContentChange();
-
-      // Cache for offline use
-      localStorage.setItem('violetContentCache', JSON.stringify(freshContent));
+      localStorage.setItem('violetContentCache', JSON.stringify(flatContent));
       localStorage.setItem('violetContentCacheTime', Date.now().toString());
-
-      return freshContent;
-
+      return flatContent;
     } catch (error) {
       console.error('❌ WordPress API failed:', error);
-      
-      // Try to load from cache
       const cached = this.loadFromCache();
       if (cached) {
         console.log('💾 Using cached content');
@@ -122,7 +126,6 @@ export class ContentPersistenceManager {
         this.notifyContentChange();
         return cached;
       }
-
       throw error;
     }
   }
@@ -168,41 +171,40 @@ export class ContentPersistenceManager {
   }
 
   /**
-   * Save all pending changes to WordPress
+   * Save all pending changes to WordPress (per page)
    */
   async saveToWordPress(): Promise<boolean> {
     if (this.pendingChanges.size === 0) {
       console.log('💾 No pending changes to save');
       return true;
     }
-
     try {
-      console.log('💾 Saving to WordPress...', Object.fromEntries(this.pendingChanges));
-
-      const response = await fetch(`${this.apiBase}/wp-json/violet/v1/content`, {
+      const page = this.getCurrentPage();
+      console.log('💾 Saving to WordPress for page:', page, Object.fromEntries(this.pendingChanges));
+      // Prepare changes as array for batch endpoint
+      const changes = Array.from(this.pendingChanges.entries()).map(([field, value]) => ({
+        field_name: field,
+        content: value,
+        format: 'rich',
+        editor: 'auto',
+        page: page
+      }));
+      const response = await fetch(`${this.apiBase}/wp-json/violet/v1/rich-content/save-batch`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify(Object.fromEntries(this.pendingChanges))
+        body: JSON.stringify({ changes })
       });
-
       if (!response.ok) {
         throw new Error(`Save failed: ${response.status}`);
       }
-
       const result = await response.json();
       console.log('✅ Content saved to WordPress:', result);
-
-      // Clear pending changes
       this.pendingChanges.clear();
-
-      // Update cache
       localStorage.setItem('violetContentCache', JSON.stringify(this.content));
       localStorage.setItem('violetContentCacheTime', Date.now().toString());
-
       return true;
-
     } catch (error) {
       console.error('❌ Save to WordPress failed:', error);
       return false;

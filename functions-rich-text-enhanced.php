@@ -4844,13 +4844,361 @@ function violet_rich_text_head_scripts() {
 
 // Add the main editor interface callback for the admin menu
 function violet_rich_text_editor_interface() {
-    echo '<div class="wrap">';
-    echo '<h1>Universal Rich Text Editor</h1>';
-    // Render the modal interface
-    echo violet_generate_rich_text_modal_html();
-    // Output modal styles and JS
-    echo violet_modal_css_styles();
-    echo violet_modal_javascript_functions();
-    echo '</div>';
+    $netlify_url = get_option('violet_netlify_url', 'https://lustrous-dolphin-447351.netlify.app');
+    $editing_params = '?edit_mode=1&wp_admin=1&rich_text=1&wp_origin=' . urlencode(admin_url());
+    // Add a page/slug selector for multi-page editing
+    $available_pages = array(
+        'home' => 'Homepage',
+        'about' => 'About',
+        'services' => 'Services',
+        'contact' => 'Contact',
+        // Add more as needed or fetch dynamically
+    );
+    $default_page = 'home';
+    ?>
+    <div class="wrap">
+        <h1>Universal Rich Text Editor</h1>
+        <div id="violet-rich-text-toolbar" style="margin-bottom: 20px; padding: 25px; background: linear-gradient(135deg, #6f42c1 0%, #5a32a3 100%); border-radius: 12px; box-shadow: 0 8px 25px rgba(111,66,193,0.3);">
+            <label for="violet-page-selector" style="margin-right: 10px; color: white; font-weight: 600;">Page:</label>
+            <select id="violet-page-selector" style="padding: 8px 12px; border-radius: 6px; border: 1px solid rgba(255,255,255,0.3); background: rgba(255,255,255,0.95); color: #333; font-weight: 600; margin-right: 20px;">
+                <?php foreach ($available_pages as $slug => $label): ?>
+                    <option value="<?php echo esc_attr($slug); ?>" <?php if ($slug === $default_page) echo 'selected'; ?>><?php echo esc_html($label); ?></option>
+                <?php endforeach; ?>
+            </select>
+            <button id="violet-enable-rich-editing" class="button" style="background: #00a32a !important; border-color: #00a32a !important; color: white !important; font-weight: 700; padding: 12px 24px; border-radius: 8px;">
+                ✏️ Enable Rich Text Editing
+            </button>
+            <button id="violet-save-rich-changes" class="button" style="background: #d63939 !important; border-color: #d63939 !important; color: white !important; font-weight: 700; padding: 12px 24px; border-radius: 8px; display: none;">
+                💾 Save Rich Text (0)
+            </button>
+            <select id="violet-editor-preference" style="padding: 8px 12px; border-radius: 6px; border: 1px solid rgba(255,255,255,0.3); background: rgba(255,255,255,0.95); color: #333; font-weight: 600;">
+                <option value="quill">🖋️ Quill Editor</option>
+                <option value="lexical">⚡ Lexical Editor</option>
+                <option value="auto">🤖 Auto-detect</option>
+            </select>
+            <button id="violet-refresh-preview" class="button" style="background: rgba(255,255,255,0.95); border: none; color: #6f42c1; font-weight: 700; padding: 12px 24px; border-radius: 8px;">
+                🔄 Refresh
+            </button>
+            <span id="violet-rich-status" style="margin-left: 10px; font-weight: bold; color: white;">Rich text ready</span>
+            <span id="violet-rich-connection" style="margin-left: 10px; color: rgba(255,255,255,0.8);">Connecting to React...</span>
+        </div>
+        <div style="margin-top: 15px; font-size: 13px; color: rgba(255,255,255,0.9); background: rgba(255,255,255,0.1); padding: 10px; border-radius: 6px;">
+            <strong>Rich Text Features:</strong> Bold, italic, underline, lists, links, headers, colors, fonts, and more. Choose between Quill (WYSIWYG) and Lexical (Advanced) editors.
+        </div>
+        <iframe 
+            id="violet-rich-text-iframe" 
+            src="<?php echo esc_url($netlify_url . $editing_params . '&page=' . $default_page); ?>" 
+            style="width: 100%; height: 80vh; border: 3px solid #6f42c1; border-radius: 12px; box-shadow: 0 8px 25px rgba(0,0,0,0.15);">
+        </iframe>
+    </div>
+    <script>
+    // === WordPress Admin <-> React Iframe Two-way Communication ===
+    (function() {
+      // Get references to toolbar controls and iframe
+      const iframe = document.getElementById('violet-rich-text-iframe');
+      const btnEnable = document.getElementById('violet-enable-rich-editing');
+      const btnSave = document.getElementById('violet-save-rich-changes');
+      const selectEditor = document.getElementById('violet-editor-preference');
+      const btnRefresh = document.getElementById('violet-refresh-preview');
+      const status = document.getElementById('violet-rich-status');
+      const connectionStatus = document.getElementById('violet-rich-connection');
+      const pageSelector = document.getElementById('violet-page-selector');
+
+      // Helper: Send message to iframe
+      function postToIframe(type, payload = {}) {
+        if (!iframe || !iframe.contentWindow) return;
+        iframe.contentWindow.postMessage({ type, ...payload }, '*');
+      }
+
+      // Enable Editing
+      btnEnable.addEventListener('click', function() {
+        postToIframe('violet-enable-editing');
+        status.textContent = 'Enabling editing...';
+      });
+
+      // Save Content
+      btnSave.addEventListener('click', function() {
+        postToIframe('violet-save-content');
+        status.textContent = 'Saving...';
+      });
+
+      // Editor Preference
+      selectEditor.addEventListener('change', function() {
+        postToIframe('violet-set-editor-preference', { editor: this.value });
+        status.textContent = 'Editor preference set: ' + this.value;
+      });
+
+      // Refresh Iframe
+      btnRefresh.addEventListener('click', function() {
+        postToIframe('violet-refresh');
+        status.textContent = 'Refreshing...';
+      });
+
+      // Page/slug selector: reload iframe with correct page param
+      pageSelector.addEventListener('change', function() {
+        const page = this.value;
+        const baseUrl = '<?php echo esc_js($netlify_url . $editing_params); ?>';
+        iframe.src = baseUrl + '&page=' + encodeURIComponent(page);
+        status.textContent = 'Loading editor for: ' + page;
+        connectionStatus.textContent = 'Connecting to React...';
+      });
+
+      // Listen for messages from React
+      window.addEventListener('message', function(event) {
+        const { type, ...data } = event.data || {};
+        if (!type || !type.startsWith('violet-')) return;
+
+        switch (type) {
+          case 'violet-iframe-ready':
+            connectionStatus.textContent = 'Connected to React!';
+            status.textContent = 'React ready';
+            break;
+          case 'violet-editing-enabled':
+            status.textContent = 'Editing enabled';
+            btnEnable.style.display = 'none';
+            btnSave.style.display = '';
+            break;
+          case 'violet-editing-disabled':
+            status.textContent = 'Editing disabled';
+            btnEnable.style.display = '';
+            btnSave.style.display = 'none';
+            break;
+          case 'violet-content-changed':
+            status.textContent = data.dirty ? 'Unsaved changes' : 'All changes saved';
+            btnSave.style.display = data.dirty ? '' : 'none';
+            if (btnSave) btnSave.innerHTML = `💾 Save Rich Text${data.dirty ? ' (1)' : ''}`;
+            break;
+          case 'violet-content-saved':
+            status.textContent = data.success ? 'Saved!' : 'Save failed';
+            btnSave.style.display = 'none';
+            break;
+          case 'violet-error':
+            status.textContent = 'Error: ' + (data.message || 'Unknown');
+            break;
+          default:
+            // Log or handle other events
+            break;
+        }
+      });
+
+      // On load, hide Save button
+      btnSave.style.display = 'none';
+    })();
+    </script>
+    <?php
+}
+
+// Submenu page: Editor Settings
+function violet_editor_settings_page() {
+    echo '<div class="wrap"><h1>Editor Settings</h1><p>Settings UI coming soon. (You can embed a React/iframe UI here as well.)</p></div>';
+}
+
+// Submenu page: Rich Content Manager
+function violet_rich_content_manager_page() {
+    echo '<div class="wrap"><h1>Rich Content Manager</h1><p>Content manager UI coming soon. (You can embed a React/iframe UI here as well.)</p></div>';
+}
+
+// Submenu page: Editor Preferences
+function violet_editor_preferences_page() {
+    echo '<div class="wrap"><h1>Editor Preferences</h1><p>Preferences UI coming soon. (You can embed a React/iframe UI here as well.)</p></div>';
+}
+
+// Update: REST API registration to accept 'page' param
+add_action('rest_api_init', function() {
+    register_rest_route('violet/v1', '/rich-content', array(
+        'methods' => 'GET',
+        'callback' => 'violet_get_rich_content_for_frontend',
+        'permission_callback' => '__return_true',
+        'args' => array(
+            'page' => array(
+                'required' => false,
+                'type' => 'string',
+                'sanitize_callback' => 'sanitize_key'
+            )
+        )
+    ));
+    register_rest_route('violet/v1', '/rich-content/save', array(
+        'methods' => 'POST',
+        'callback' => 'violet_save_rich_text_content',
+        'permission_callback' => function() {
+            return current_user_can('edit_posts');
+        },
+        'args' => array(
+            'page' => array(
+                'required' => false,
+                'type' => 'string',
+                'sanitize_callback' => 'sanitize_key'
+            ),
+            'field_name' => array(
+                'required' => true,
+                'type' => 'string',
+                'validate_callback' => function($param) {
+                    return !empty($param) && is_string($param);
+                },
+                'sanitize_callback' => 'sanitize_key'
+            ),
+            'content' => array(
+                'required' => true,
+                'type' => 'string',
+                'validate_callback' => function($param) {
+                    return is_string($param);
+                }
+            ),
+            'format' => array(
+                'required' => false,
+                'type' => 'string',
+                'default' => 'rich',
+                'enum' => array('rich', 'plain', 'markdown'),
+                'sanitize_callback' => 'sanitize_text_field'
+            ),
+            'editor' => array(
+                'required' => false,
+                'type' => 'string',
+                'default' => 'auto',
+                'enum' => array('quill', 'lexical', 'plain', 'auto'),
+                'sanitize_callback' => 'sanitize_text_field'
+            )
+        )
+    ));
+});
+
+/**
+ * Get rich content for frontend with enhanced metadata (per-page)
+ */
+function violet_get_rich_content_for_frontend($request) {
+    try {
+        $page = $request->get_param('page') ?: 'home';
+        $all_content = get_option('violet_all_content', array());
+        $page_content = isset($all_content[$page]) ? $all_content[$page] : array();
+        $rich_content = array();
+        foreach ($page_content as $field_name => $field_data) {
+            if (is_array($field_data) && isset($field_data['format'])) {
+                $rich_content[$field_name] = array(
+                    'content' => $field_data['content'],
+                    'format' => $field_data['format'],
+                    'editor' => $field_data['editor'] ?? 'unknown',
+                    'updated' => $field_data['updated'] ?? null,
+                    'preview' => violet_generate_rich_text_preview($field_data['content'], 150),
+                    'word_count' => str_word_count(wp_strip_all_tags($field_data['content'])),
+                    'character_count' => strlen(wp_strip_all_tags($field_data['content'])),
+                    'is_rich' => true
+                );
+            } else {
+                $content = is_array($field_data) ? $field_data['content'] : $field_data;
+                $rich_content[$field_name] = array(
+                    'content' => $content,
+                    'format' => 'plain',
+                    'editor' => 'plain',
+                    'updated' => null,
+                    'preview' => violet_generate_rich_text_preview($content, 150),
+                    'word_count' => str_word_count($content),
+                    'character_count' => strlen($content),
+                    'is_rich' => false
+                );
+            }
+        }
+        return rest_ensure_response($rich_content);
+    } catch (Exception $e) {
+        error_log('Violet: Get rich content error - ' . $e->getMessage());
+        return rest_ensure_response(array());
+    }
+}
+
+/**
+ * Save rich text content (per-page)
+ */
+function violet_save_rich_text_content($request) {
+    try {
+        $page = $request->get_param('page') ?: 'home';
+        $field_name = $request->get_param('field_name');
+        $content = $request->get_param('content');
+        $format = $request->get_param('format');
+        $editor = $request->get_param('editor');
+        // Process content based on editor type
+        if ($editor === 'quill') {
+            $processed_content = violet_process_quill_content($content, $field_name);
+        } elseif ($editor === 'lexical') {
+            $processed_content = violet_process_lexical_content($content, $field_name);
+        } else {
+            $processed_content = array(
+                'content' => violet_sanitize_rich_content($content),
+                'format' => $format,
+                'processed' => true,
+                'editor' => $editor
+            );
+        }
+        if (is_wp_error($processed_content)) {
+            return $processed_content;
+        }
+        // Prepare rich text data for storage
+        $rich_text_data = array(
+            'content' => $processed_content['content'],
+            'format' => $processed_content['format'],
+            'editor' => $processed_content['editor'],
+            'updated' => current_time('mysql'),
+            'user_id' => get_current_user_id()
+        );
+        // Save using enhanced content update (per-page)
+        $saved = violet_update_content($field_name, $rich_text_data, 'rich', $page);
+        if ($saved) {
+            // Clear auto-save
+            if ($editor === 'quill') {
+                violet_clear_quill_auto_save($field_name);
+            } elseif ($editor === 'lexical') {
+                violet_clear_lexical_auto_save($field_name);
+            }
+            return rest_ensure_response(array(
+                'success' => true,
+                'field_name' => $field_name,
+                'content' => $processed_content['content'],
+                'format' => $processed_content['format'],
+                'editor' => $processed_content['editor'],
+                'message' => 'Rich text content saved successfully',
+                'stats' => array(
+                    'word_count' => str_word_count(wp_strip_all_tags($processed_content['content'])),
+                    'character_count' => strlen(wp_strip_all_tags($processed_content['content']))
+                )
+            ));
+        } else {
+            return new WP_REST_Response(array(
+                'success' => false,
+                'message' => 'Failed to save content to database'
+            ), 500);
+        }
+    } catch (Exception $e) {
+        error_log('Violet: Rich text save error - ' . $e->getMessage());
+        return new WP_REST_Response(array(
+            'success' => false,
+            'message' => 'Server error: ' . $e->getMessage()
+        ), 500);
+    }
+}
+
+/**
+ * Enhanced content update function with rich text support (per-page)
+ */
+function violet_update_content($field, $value, $type = 'auto', $page = 'home') {
+    $content = get_option('violet_all_content', array());
+    if (!isset($content[$page])) {
+        $content[$page] = array();
+    }
+    if ($type === 'rich' && is_array($value)) {
+        $content[$page][$field] = $value;
+    } else {
+        if (is_array($value)) {
+            $content[$page][$field] = $value;
+        } else {
+            $content[$page][$field] = $value;
+        }
+    }
+    $updated = update_option('violet_all_content', $content);
+    // Also update individual option for backward compatibility
+    if (is_array($value) && isset($value['content'])) {
+        update_option('violet_' . $page . '_' . $field, $value['content']);
+    } else {
+        update_option('violet_' . $page . '_' . $field, $value);
+    }
+    wp_cache_flush();
+    return $updated;
 }
 ?>

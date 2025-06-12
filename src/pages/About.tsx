@@ -4,6 +4,9 @@ import { Button } from '@/components/ui/button';
 import { Link } from 'react-router-dom';
 import EditableText from '@/components/EditableText';
 
+// NOTE: All EditableText fields on this page are now page-aware (page='about')
+// Content is loaded/saved using the 'about' context from the URL param.
+
 const About = () => {
   const channels = [
     {
