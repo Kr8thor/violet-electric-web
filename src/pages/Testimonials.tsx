@@ -3,6 +3,7 @@ import Footer from '@/components/Footer';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Link } from 'react-router-dom';
+import EditableText from '@/components/EditableText';
 
 const Testimonials = () => {
   const testimonials = [{
@@ -70,11 +71,11 @@ const Testimonials = () => {
       <section className="pt-32 pb-16 bg-gradient-to-b from-gray-50 to-white">
         <div className="container-max section-padding text-center">
           <h1 className="text-5xl md:text-6xl font-bold mb-6 text-gray-800">
-            Client <span className="gradient-text">Success</span> Stories
+            <EditableText field="testimonials_hero_title" defaultValue="Client Success Stories" />
           </h1>
           <div className="w-24 h-1 bg-gradient-to-r from-violet-500 to-luminous-400 mx-auto mb-8"></div>
           <p className="text-xl text-gray-600 max-w-3xl mx-auto leading-relaxed">
-            Real results from organizations that have experienced Violet's transformative approach.
+            <EditableText field="testimonials_hero_subtitle" defaultValue={"Real results from organizations that have experienced Violet's transformative approach."} />
           </p>
         </div>
       </section>
@@ -82,7 +83,9 @@ const Testimonials = () => {
       {/* Video Testimonials Section */}
       <section className="py-16 bg-gradient-to-r from-violet-50 to-luminous-50">
         <div className="container-max section-padding">
-          <h2 className="text-3xl font-bold mb-12 text-center text-gray-800">Video Testimonials</h2>
+          <h2 className="text-3xl font-bold mb-12 text-center text-gray-800">
+            <EditableText field="testimonials_video_title" defaultValue="Video Testimonials" />
+          </h2>
           
           {/* Video grid with centered bottom row */}
           <div className="mb-12">
@@ -95,8 +98,12 @@ const Testimonials = () => {
                       <iframe src={`https://www.youtube.com/embed/${video.id}`} title={video.title} frameBorder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowFullScreen className="w-full h-full"></iframe>
                     </div>
                     <div className="p-6">
-                      <h3 className="text-xl font-semibold mb-2 text-gray-800">{video.title}</h3>
-                      <p className="text-gray-600 leading-relaxed">{video.description}</p>
+                      <h3 className="text-xl font-semibold mb-2 text-gray-800">
+                        <EditableText field={`testimonials_video_${index+1}_title`} defaultValue={video.title} />
+                      </h3>
+                      <p className="text-gray-600 leading-relaxed">
+                        <EditableText field={`testimonials_video_${index+1}_desc`} defaultValue={video.description} />
+                      </p>
                     </div>
                   </CardContent>
                 </Card>
@@ -113,8 +120,12 @@ const Testimonials = () => {
                         <iframe src={`https://www.youtube.com/embed/${video.id}`} title={video.title} frameBorder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowFullScreen className="w-full h-full"></iframe>
                       </div>
                       <div className="p-6">
-                        <h3 className="text-xl font-semibold mb-2 text-gray-800">{video.title}</h3>
-                        <p className="text-gray-600 leading-relaxed">{video.description}</p>
+                        <h3 className="text-xl font-semibold mb-2 text-gray-800">
+                          <EditableText field={`testimonials_video_${index+4}_title`} defaultValue={video.title} />
+                        </h3>
+                        <p className="text-gray-600 leading-relaxed">
+                          <EditableText field={`testimonials_video_${index+4}_desc`} defaultValue={video.description} />
+                        </p>
                       </div>
                     </CardContent>
                   </Card>
@@ -135,18 +146,24 @@ const Testimonials = () => {
       {/* Featured Testimonials */}
       {featuredTestimonials.length > 0 && <section className="py-16 bg-white">
           <div className="container-max section-padding">
-            <h2 className="text-3xl font-bold mb-12 text-center text-gray-800">Featured Testimonials</h2>
+            <h2 className="text-3xl font-bold mb-12 text-center text-gray-800">
+              <EditableText field="testimonials_featured_title" defaultValue="Featured Testimonials" />
+            </h2>
             
             <div className="space-y-12">
               {featuredTestimonials.map((testimonial, index) => <div key={index} className="bg-gradient-to-r from-violet-50 to-luminous-50 rounded-2xl p-8 md:p-10 animate-fade-in shadow-sm">
                   <div className="text-4xl text-violet-300 mb-4">"</div>
                   <blockquote className="text-xl md:text-2xl font-light text-gray-700 mb-8 leading-relaxed italic">
-                    {testimonial.quote}
+                    <EditableText field={`testimonials_featured_${index+1}_quote`} defaultValue={testimonial.quote} />
                   </blockquote>
                   <div className="flex items-center">
                     <div>
-                      <p className="font-bold text-gray-800">{testimonial.author}</p>
-                      <p className="text-gray-600">{testimonial.position}, {testimonial.company}</p>
+                      <p className="font-bold text-gray-800">
+                        <EditableText field={`testimonials_featured_${index+1}_author`} defaultValue={testimonial.author} />
+                      </p>
+                      <p className="text-gray-600">
+                        <EditableText field={`testimonials_featured_${index+1}_meta`} defaultValue={`${testimonial.position}, ${testimonial.company}`} />
+                      </p>
                     </div>
                   </div>
                 </div>)}
@@ -163,11 +180,15 @@ const Testimonials = () => {
           }}>
                 <div className="h-1 w-12 bg-violet-500 mb-6"></div>
                 <blockquote className="text-lg text-gray-700 mb-6 leading-relaxed">
-                  "{testimonial.quote}"
+                  <EditableText field={`testimonials_regular_${index+1}_quote`} defaultValue={testimonial.quote} />
                 </blockquote>
                 <div>
-                  <p className="font-semibold text-gray-800">{testimonial.author}</p>
-                  <p className="text-gray-600 text-sm">{testimonial.position}, {testimonial.company}</p>
+                  <p className="font-semibold text-gray-800">
+                    <EditableText field={`testimonials_regular_${index+1}_author`} defaultValue={testimonial.author} />
+                  </p>
+                  <p className="text-gray-600 text-sm">
+                    <EditableText field={`testimonials_regular_${index+1}_meta`} defaultValue={`${testimonial.position}, ${testimonial.company}`} />
+                  </p>
                 </div>
               </div>)}
           </div>
@@ -177,7 +198,9 @@ const Testimonials = () => {
       {/* Additional Images Section */}
       <section className="py-16 bg-gradient-to-r from-gray-50 to-violet-50">
         <div className="container-max section-padding">
-          <h2 className="text-3xl font-bold mb-12 text-center text-gray-800">Violet in Action</h2>
+          <h2 className="text-3xl font-bold mb-12 text-center text-gray-800">
+            <EditableText field="testimonials_action_title" defaultValue="Violet in Action" />
+          </h2>
           <div className="grid md:grid-cols-2 gap-8">
             <img src="/lovable-uploads/b915b2ba-9f64-45f7-b031-be6ce3816e80.png" alt="Violet with materials in garden setting" className="rounded-lg shadow-lg w-full h-64 object-scale-down" />
             <img src="/lovable-uploads/8d50f04a-9549-473a-9acd-16d4e4e15a32.png" alt="Violet relaxing in garden" className="rounded-lg shadow-lg w-full h-64 object-scale-down" />
@@ -189,14 +212,14 @@ const Testimonials = () => {
       <section className="py-20 bg-gradient-to-r from-gray-50 to-violet-50">
         <div className="container-max section-padding text-center">
           <h2 className="text-3xl md:text-4xl font-bold mb-6 text-gray-800">
-            Share This Impact With Your Audience
+            <EditableText field="testimonials_cta_title" defaultValue="Share This Impact With Your Audience" />
           </h2>
           <p className="text-xl text-gray-600 mb-10 max-w-3xl mx-auto">
-            Experience the transformative power of Violet's keynotes and workshops at your next event.
+            <EditableText field="testimonials_cta_subtitle" defaultValue={"Experience the transformative power of Violet's keynotes and workshops at your next event."} />
           </p>
           <Link to="/contact">
             <Button className="luminous-button px-8 py-4 text-lg rounded-full">
-              Contact to Book
+              <EditableText field="testimonials_cta_btn" defaultValue="Contact to Book" />
             </Button>
           </Link>
         </div>

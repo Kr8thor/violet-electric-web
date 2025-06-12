@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom';
-import { EditableText } from '@/components/EditableText';
+import EditableText from './EditableText';
 import { EditableImage, EditableLink, EditableButton, EditableContainer } from '@/components/UniversalEditingComponents';
 
 const Footer = () => {

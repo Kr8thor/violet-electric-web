@@ -2,6 +2,7 @@ import Navigation from '@/components/Navigation';
 import Footer from '@/components/Footer';
 import { Button } from '@/components/ui/button';
 import { Link } from 'react-router-dom';
+import EditableText from '@/components/EditableText';
 
 const Keynotes = () => {
   const keynotes = [
@@ -57,13 +58,13 @@ const Keynotes = () => {
         {/* Content */}
         <div className="relative z-10 container-max section-padding text-center pb-8">
           <div className="max-w-4xl mx-auto animate-fade-in">
-            <h1 className="text-5xl md:text-6xl lg:text-7xl font-bold mb-6 leading-tight">
+            <h1 className="text-5xl md:text-6xl lg:text-7xl font-bold mb-6 leading-tight" data-violet-field="keynotes_hero_title">
               <span className="bg-gradient-to-r from-luminous-300 to-blush-300 bg-clip-text text-transparent">Transformative</span>
               <br />
               <span className="text-white">Keynotes</span>
             </h1>
             <div className="w-24 h-1 bg-gradient-to-r from-violet-400 to-luminous-400 mx-auto mb-8"></div>
-            <p className="text-xl md:text-2xl text-gray-100 max-w-3xl mx-auto leading-relaxed mb-8">
+            <p className="text-xl md:text-2xl text-gray-100 max-w-3xl mx-auto leading-relaxed mb-8" data-violet-field="keynotes_hero_subtitle">
               Powerful, science-backed presentations that inspire lasting change.
               Each keynote is customized to meet your organization's specific needs and objectives.
             </p>
@@ -88,20 +89,24 @@ const Keynotes = () => {
               >
                 <div className="space-y-6">
                   <h2 className="text-3xl md:text-4xl font-bold text-gray-800">
-                    {keynote.title}
+                    <EditableText field={`keynotes_title_${index+1}`} defaultValue={keynote.title} />
                   </h2>
                   <div className="w-16 h-1 bg-violet-600"></div>
                   <p className="text-xl text-gray-700 leading-relaxed">
-                    {keynote.description}
+                    <EditableText field={`keynotes_desc_${index+1}`} defaultValue={keynote.description} />
                   </p>
                   
                   <div className="mt-8">
-                    <h3 className="text-xl font-semibold mb-4 text-gray-800">Key Takeaways:</h3>
+                    <h3 className="text-xl font-semibold mb-4 text-gray-800">
+                      <EditableText field={`keynotes_takeaways_title_${index+1}`} defaultValue="Key Takeaways:" />
+                    </h3>
                     <ul className="space-y-3">
                       {keynote.takeaways.map((takeaway, idx) => (
                         <li key={idx} className="flex items-start">
                           <span className="mr-3 text-violet-600">•</span>
-                          <span className="text-lg text-gray-600">{takeaway}</span>
+                          <span className="text-lg text-gray-600">
+                            <EditableText field={`keynotes_takeaway_${index+1}_${idx+1}`} defaultValue={takeaway} />
+                          </span>
                         </li>
                       ))}
                     </ul>
@@ -112,6 +117,7 @@ const Keynotes = () => {
                       <Button 
                         variant="outline" 
                         className="border-violet-200 text-violet-700 hover:bg-violet-50"
+                        data-violet-field={`keynotes_inquire_btn_${index+1}`}
                       >
                         Inquire About This Keynote
                       </Button>
@@ -127,15 +133,15 @@ const Keynotes = () => {
           </div>
           
           <div className="mt-20 py-12 px-8 md:px-12 bg-gradient-to-r from-violet-50 to-luminous-50 rounded-2xl text-center shadow-sm">
-            <h2 className="text-2xl md:text-3xl font-bold mb-6 text-gray-800">
+            <h2 className="text-2xl md:text-3xl font-bold mb-6 text-gray-800" data-violet-field="keynotes_cta_title">
               Transform Your Next Event
             </h2>
-            <p className="text-lg text-gray-600 mb-8 max-w-3xl mx-auto">
+            <p className="text-lg text-gray-600 mb-8 max-w-3xl mx-auto" data-violet-field="keynotes_cta_subtitle">
               Bring Violet's electrifying presence and transformative insights to your organization. 
               All keynotes can be customized for virtual or in-person delivery.
             </p>
             <Link to="/contact">
-              <Button className="luminous-button px-8 py-4 text-lg rounded-full">
+              <Button className="luminous-button px-8 py-4 text-lg rounded-full" data-violet-field="keynotes_cta_btn">
                 Book Violet
               </Button>
             </Link>

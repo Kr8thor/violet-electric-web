@@ -1,5 +1,5 @@
 import { Button } from '@/components/ui/button';
-import { EditableText } from '@/components/EditableText';
+import EditableText, { RichEditableP } from './EditableText';
 import { EditableImage, EditableButton, EditableContainer } from '@/components/UniversalEditingComponents';
 
 const IntroBrief = () => {
@@ -27,13 +27,21 @@ const IntroBrief = () => {
                 defaultValue="Violet Rainwater"
                 as="h2"
                 className="text-4xl md:text-5xl font-bold mb-6 text-gray-800"
+                richText={false}
+                maxLength={100}
+                placeholder="Enter title..."
               />
               <div className="w-20 h-1 bg-gradient-to-r from-violet-600 to-blush-400 mb-6 mx-[150px]"></div>
-              <EditableText
+              
+              {/* 🎯 UPGRADED TO RICH TEXT EDITING */}
+              <RichEditableP
                 field="intro_description"
                 defaultValue="Transforming potential with neuroscience and heart. Violet combines cutting-edge research with authentic leadership to help individuals and organizations unlock their extraordinary capabilities."
-                as="p"
                 className="text-xl text-gray-600 leading-relaxed"
+                maxLength={1000}
+                placeholder="Enter detailed description with rich formatting..."
+                preferredEditor="lexical"
+                allowedFormats={['bold', 'italic', 'underline', 'link']}
               />
             </div>
             
@@ -43,6 +51,9 @@ const IntroBrief = () => {
                   field="intro_tag_1"
                   defaultValue="Neuroscience Expert"
                   as="span"
+                  richText={false}
+                  maxLength={30}
+                  placeholder="Expertise tag..."
                 />
               </div>
               <div className="bg-white px-4 py-2 rounded-full border border-blush-200 text-violet-700 font-medium">
@@ -50,6 +61,9 @@ const IntroBrief = () => {
                   field="intro_tag_2"
                   defaultValue="Keynote Speaker"
                   as="span"
+                  richText={false}
+                  maxLength={30}
+                  placeholder="Speaking tag..."
                 />
               </div>
               <div className="bg-white px-4 py-2 rounded-full border border-blush-200 text-violet-700 font-medium">
@@ -57,21 +71,26 @@ const IntroBrief = () => {
                   field="intro_tag_3"
                   defaultValue="Transformation Coach"
                   as="span"
+                  richText={false}
+                  maxLength={30}
+                  placeholder="Coaching tag..."
                 />
               </div>
             </div>
             
-            <EditableButton
-              field="intro_cta_button"
-              textField="intro_cta_text"
-              urlField="intro_cta_url"
-              colorField="intro_cta_color"
-              defaultText="Learn More About Violet"
-              defaultUrl="/about"
-              defaultColor="#8b5cf6"
-              className="border-blush-300 px-6 py-3 rounded-full transition-all duration-300 mx-[150px] bg-violet-600 hover:bg-violet-500 text-slate-50"
-              target="_self"
-            />
+            <div className="flex justify-center">
+              {/* 🎯 UPGRADED TO EDITABLE BUTTON COMPONENT */}
+              <EditableButton
+                field="intro_cta"
+                textField="intro_cta_text"
+                urlField="intro_cta_url"
+                defaultText="Learn More About Violet"
+                defaultUrl="/about"
+                className="border-blush-300 px-6 py-3 rounded-full transition-all duration-300 mx-[150px] bg-violet-600 hover:bg-violet-500 text-slate-50 font-semibold text-lg text-center"
+                style={{ display: 'inline-block', minWidth: 220 }}
+                target="_self"
+              />
+            </div>
           </div>
         </div>
       </div>

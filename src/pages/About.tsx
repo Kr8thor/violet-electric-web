@@ -2,6 +2,7 @@ import Navigation from '@/components/Navigation';
 import Footer from '@/components/Footer';
 import { Button } from '@/components/ui/button';
 import { Link } from 'react-router-dom';
+import EditableText from '@/components/EditableText';
 
 const About = () => {
   const channels = [
@@ -45,12 +46,11 @@ const About = () => {
       <section className="pt-32 pb-16 bg-gradient-to-b from-gray-50 to-white">
         <div className="container-max section-padding text-center">
           <h1 className="text-5xl md:text-6xl font-bold mb-6 text-gray-800">
-            The Story of <span className="gradient-text">Transformation</span>
+            <EditableText field="about_hero_title" defaultValue="The Story of Transformation" />
           </h1>
           <div className="w-24 h-1 bg-gradient-to-r from-violet-600 to-blush-400 mx-auto mb-8"></div>
           <p className="text-xl text-gray-600 max-w-3xl mx-auto leading-relaxed">
-            Every transformation begins with a single decision to change the channel. 
-            This is Violet's story, and the framework that's changing lives worldwide.
+            <EditableText field="about_hero_subtitle" defaultValue={"Every transformation begins with a single decision to change the channel. This is Violet's story, and the framework that's changing lives worldwide."} />
           </p>
         </div>
       </section>
@@ -67,18 +67,17 @@ const About = () => {
               />
             </div>
             <div className="space-y-6">
-              <h2 className="text-4xl font-bold text-gray-800 mb-6">Her Journey</h2>
+              <h2 className="text-4xl font-bold text-gray-800 mb-6">
+                <EditableText field="about_her_journey_title" defaultValue="Her Journey" />
+              </h2>
               <p className="text-lg text-gray-600 leading-relaxed">
-                From corporate burnout to neuroscience breakthrough, Violet's journey began with a simple question: 
-                "What if we could literally change the channel in our brains?"
+                <EditableText field="about_her_journey_1" defaultValue={"From corporate burnout to neuroscience breakthrough, Violet's journey began with a simple question: 'What if we could literally change the channel in our brains?'"} />
               </p>
               <p className="text-lg text-gray-600 leading-relaxed">
-                After experiencing her own transformation through neuroscience-backed methodologies, 
-                Violet dedicated her life to helping others unlock their extraordinary potential.
+                <EditableText field="about_her_journey_2" defaultValue={"After experiencing her own transformation through neuroscience-backed methodologies, Violet dedicated her life to helping others unlock their extraordinary potential."} />
               </p>
               <p className="text-lg text-gray-600 leading-relaxed">
-                Today, she's spoken to over 100,000 people worldwide, helping organizations and 
-                individuals create lasting change through the revolutionary Channel V™ framework.
+                <EditableText field="about_her_journey_3" defaultValue={"Today, she's spoken to over 100,000 people worldwide, helping organizations and individuals create lasting change through the revolutionary Channel V™ framework."} />
               </p>
             </div>
           </div>
@@ -89,11 +88,10 @@ const About = () => {
       <section className="py-24 bg-gradient-to-r from-blush-50 to-luminous-50">
         <div className="container-max section-padding text-center">
           <h2 className="text-4xl md:text-5xl font-bold mb-8 text-gray-800">
-            Mission & Impact
+            <EditableText field="about_mission_title" defaultValue="Mission & Impact" />
           </h2>
           <blockquote className="text-2xl md:text-3xl font-light text-gray-700 max-w-4xl mx-auto leading-relaxed italic">
-            "To empower every individual with the neuroscience tools and heart-centered wisdom 
-            needed to transform their potential into extraordinary results."
+            <EditableText field="about_mission_quote" defaultValue={"To empower every individual with the neuroscience tools and heart-centered wisdom needed to transform their potential into extraordinary results."} />
           </blockquote>
         </div>
       </section>
@@ -103,11 +101,10 @@ const About = () => {
         <div className="container-max section-padding">
           <div className="text-center mb-16">
             <h2 className="text-4xl md:text-5xl font-bold mb-6 text-gray-800">
-              The <span className="gradient-text">Channel V™</span> Framework
+              <EditableText field="about_channelv_title" defaultValue="The Channel V™ Framework" />
             </h2>
             <p className="text-xl text-gray-600 max-w-3xl mx-auto leading-relaxed">
-              A revolutionary 5-channel system that transforms how you think, feel, and perform. 
-              Each channel builds upon the next, creating systematic and sustainable change.
+              <EditableText field="about_channelv_subtitle" defaultValue={"A revolutionary 5-channel system that transforms how you think, feel, and perform. Each channel builds upon the next, creating systematic and sustainable change."} />
             </p>
             <div className="w-24 h-1 bg-gradient-to-r from-violet-600 to-blush-400 mx-auto mt-6"></div>
           </div>
@@ -123,10 +120,10 @@ const About = () => {
                   {channel.number}
                 </div>
                 <h3 className="text-xl font-bold mb-2 text-gray-800">
-                  {channel.name}
+                  <EditableText field={`about_channelv_channel_${index+1}_name`} defaultValue={channel.name} />
                 </h3>
                 <p className="text-gray-600 text-sm">
-                  {channel.description}
+                  <EditableText field={`about_channelv_channel_${index+1}_desc`} defaultValue={channel.description} />
                 </p>
               </div>
             ))}
@@ -134,7 +131,7 @@ const About = () => {
 
           <div className="text-center">
             <Button className="luminous-button px-8 py-4 text-lg rounded-full">
-              Download the Channel V™ Guide
+              <EditableText field="about_channelv_guide_btn" defaultValue="Download the Channel V™ Guide" />
             </Button>
           </div>
         </div>
@@ -145,39 +142,49 @@ const About = () => {
         <div className="container-max section-padding">
           <div className="text-center mb-16">
             <h2 className="text-4xl font-bold mb-6 text-gray-800">
-              Credibility & Qualifications
+              <EditableText field="about_cred_title" defaultValue="Credibility & Qualifications" />
             </h2>
           </div>
           
           <div className="grid md:grid-cols-3 gap-8 max-w-4xl mx-auto">
             <div className="text-center">
               <div className="bg-white rounded-lg p-6 shadow-lg">
-                <h3 className="font-bold text-lg text-violet-700 mb-2">Neuroscience Certified</h3>
-                <p className="text-gray-600">Advanced certification in applied neuroscience</p>
+                <h3 className="font-bold text-lg text-violet-700 mb-2">
+                  <EditableText field="about_cred_1_title" defaultValue="Neuroscience Certified" />
+                </h3>
+                <p className="text-gray-600">
+                  <EditableText field="about_cred_1_desc" defaultValue="Advanced certification in applied neuroscience" />
+                </p>
               </div>
             </div>
             <div className="text-center">
               <div className="bg-white rounded-lg p-6 shadow-lg">
-                <h3 className="font-bold text-lg text-violet-700 mb-2">100,000+ Lives Impacted</h3>
-                <p className="text-gray-600">Proven track record of transformation</p>
+                <h3 className="font-bold text-lg text-violet-700 mb-2">
+                  <EditableText field="about_cred_2_title" defaultValue="100,000+ Lives Impacted" />
+                </h3>
+                <p className="text-gray-600">
+                  <EditableText field="about_cred_2_desc" defaultValue="Proven track record of transformation" />
+                </p>
               </div>
             </div>
             <div className="text-center">
               <div className="bg-white rounded-lg p-6 shadow-lg">
-                <h3 className="font-bold text-lg text-violet-700 mb-2">Fortune 500 Speaker</h3>
-                <p className="text-gray-600">Trusted by leading organizations worldwide</p>
+                <h3 className="font-bold text-lg text-violet-700 mb-2">
+                  <EditableText field="about_cred_3_title" defaultValue="Fortune 500 Speaker" />
+                </h3>
+                <p className="text-gray-600">
+                  <EditableText field="about_cred_3_desc" defaultValue="Trusted by leading organizations worldwide" />
+                </p>
               </div>
             </div>
           </div>
 
           <div className="text-center mt-16">
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
-              <Link to="/contact">
-                <Button className="luminous-button px-8 py-4 text-lg rounded-full">
-                  Book Violet to Speak
-                </Button>
-              </Link>
-              <Button variant="outline" className="px-8 py-4 text-lg rounded-full border-blush-200 text-violet-700 hover:bg-blush-50">
+              <Button className="luminous-button px-8 py-4 text-lg rounded-full" data-violet-field="about_cred_cta_btn">
+                Book Violet to Speak
+              </Button>
+              <Button variant="outline" className="px-8 py-4 text-lg rounded-full border-blush-200 text-violet-700 hover:bg-blush-50" data-violet-field="about_cred_speakerkit_btn">
                 Download Speaker Kit
               </Button>
             </div>
