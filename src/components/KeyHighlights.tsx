@@ -100,7 +100,7 @@ const KeyHighlights = () => {
               <div className="text-left">
                 <EditableText
                   field="testimonial_quote"
-                  defaultValue=""Violet's Channel V™ framework didn't just change our team's performance—it transformed how we see ourselves and our potential. The results were immediate and lasting.""
+                  defaultValue="Violet's Channel V™ framework didn't just change our team's performance—it transformed how we see ourselves and our potential. The results were immediate and lasting."
                   as="blockquote"
                   className="text-2xl md:text-3xl font-light text-gray-700 mb-8 leading-relaxed italic"
                 />
