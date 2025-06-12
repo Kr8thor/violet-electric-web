@@ -4,6 +4,7 @@ import { useVioletContent } from '@/contexts/VioletRuntimeContentFixed';
 import RichTextModal from './editors/RichTextModal';
 import { getFieldConfig, getEditorTitle } from '@/utils/editorConfig';
 import DOMPurify from 'dompurify';
+import { useEditModeContext } from '@/contexts/EditModeContext';
 
 interface EditableTextProps {
   field: string;
@@ -42,8 +43,8 @@ const EditableText: React.FC<EditableTextProps> = ({
   preferredEditor
 }) => {
   const { getField, updateField, loading, error } = useVioletContent();
+  const { isEditing } = useEditModeContext();
   const [value, setValue] = useState<string>(defaultValue);
-  const [editMode, setEditMode] = useState(false);
   const [showModal, setShowModal] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const originalValue = useRef<string>(defaultValue);
@@ -54,20 +55,28 @@ const EditableText: React.FC<EditableTextProps> = ({
   const finalMaxLength = maxLength || fieldConfig.maxLength;
   const finalAllowedFormats = allowedFormats || fieldConfig.allowedFormats;
   const finalPlaceholder = placeholder || fieldConfig.placeholder;
-  const finalPreferredEditor = preferredEditor || fieldConfig.preferredEditor;
+  const allowedEditors = ['quill', 'lexical', 'plain'];
+  let finalPreferredEditor: 'quill' | 'lexical' | 'plain' = 'quill';
+  if (preferredEditor && allowedEditors.includes(preferredEditor)) {
+    finalPreferredEditor = preferredEditor as 'quill' | 'lexical' | 'plain';
+  } else if (fieldConfig.preferredEditor && allowedEditors.includes(fieldConfig.preferredEditor)) {
+    finalPreferredEditor = fieldConfig.preferredEditor as 'quill' | 'lexical' | 'plain';
+  }
 
   // Get the current value from WordPress (never use defaultValue if WordPress has data)
   const wordPressValue = getField(field);
   const displayValue = wordPressValue || defaultValue || '';
   
-  // Check if we're in WordPress edit mode
-  const isInWordPressEditor = window.location.search.includes('edit_mode=1') && 
-                              window.location.search.includes('wp_admin=1');
-
   // Update local value when WordPress value changes
   useEffect(() => {
     setValue(displayValue);
-  }, [displayValue]);
+    // Extra debug logging
+    try {
+      const pageCtx = (window as any).contentManager?.getCurrentPage?.() || '';
+      // eslint-disable-next-line no-console
+      console.log(`[EditableText] field=${field} value="${displayValue}" isEditing=${isEditing} page=${pageCtx}`);
+    } catch {}
+  }, [displayValue, isEditing, field]);
 
   // Debug logging in development
   useEffect(() => {
@@ -80,11 +89,10 @@ const EditableText: React.FC<EditableTextProps> = ({
         fieldConfig,
         loading,
         error,
-        isInWordPressEditor,
         source: wordPressValue ? 'WordPress' : 'fallback'
       });
     }
-  }, [field, wordPressValue, defaultValue, displayValue, richText, fieldConfig, loading, error, isInWordPressEditor]);
+  }, [field, wordPressValue, defaultValue, displayValue, richText, fieldConfig, loading, error]);
 
   // Listen for parent messages
   useEffect(() => {
@@ -111,15 +119,6 @@ const EditableText: React.FC<EditableTextProps> = ({
           }
           break;
           
-        case 'violet-enable-editing':
-          setEditMode(true);
-          break;
-          
-        case 'violet-disable-editing':
-          setEditMode(false);
-          setShowModal(false);
-          break;
-          
         case 'violet-edit-text':
           if (event.data.field === field) {
             setShowModal(true);
@@ -134,13 +133,10 @@ const EditableText: React.FC<EditableTextProps> = ({
 
   // Handle click to edit
   const handleClick = () => {
-    if (!editMode || !isInWordPressEditor) return;
-
+    if (!isEditing) return;
     if (richText) {
-      // Open rich text modal
       setShowModal(true);
     } else {
-      // Fall back to simple prompt for plain text
       const newValue = prompt(`Edit ${field}:`, value);
       if (newValue !== null && newValue !== value) {
         handleSave(newValue);
@@ -216,7 +212,7 @@ const EditableText: React.FC<EditableTextProps> = ({
   const modalTitle = getEditorTitle(field);
 
   // Editing mode with enhanced styling and text direction fix
-  if (editMode && isInWordPressEditor) {
+  if (isEditing) {
     return (
       <>
         <Tag
@@ -277,12 +273,10 @@ const EditableText: React.FC<EditableTextProps> = ({
             isOpen={showModal}
             onClose={handleCloseModal}
             onSave={handleSave}
-            initialValue={value}
-            title={modalTitle}
+            initialContent={value}
             field={field}
-            placeholder={finalPlaceholder}
+            fieldLabel={modalTitle}
             maxLength={finalMaxLength}
-            allowedFormats={finalAllowedFormats}
             preferredEditor={finalPreferredEditor}
           />
         )}
@@ -295,7 +289,7 @@ const EditableText: React.FC<EditableTextProps> = ({
     className,
     'violet-runtime-content',
     richText && 'rich-text-content',
-    isInWordPressEditor && [
+    isEditing && [
       'violet-editable',
       'cursor-pointer',
       'hover:bg-blue-50',
@@ -319,9 +313,9 @@ const EditableText: React.FC<EditableTextProps> = ({
       data-violet-value={displayValue}
       data-violet-rich-text={richText}
       data-content-source={wordPressValue ? 'wordpress' : 'fallback'}
-      data-violet-editable={isInWordPressEditor ? 'true' : 'false'}
-      title={isInWordPressEditor ? `Click to edit ${field} (${richText ? 'Rich Text' : 'Plain Text'})` : undefined}
-      tabIndex={editMode ? 0 : -1}
+      data-violet-editable={isEditing ? 'true' : 'false'}
+      title={isEditing ? `Click to edit ${field} (${richText ? 'Rich Text' : 'Plain Text'})` : undefined}
+      tabIndex={isEditing ? 0 : -1}
       className={viewModeClasses}
       style={{
         direction: 'ltr',
@@ -334,7 +328,7 @@ const EditableText: React.FC<EditableTextProps> = ({
       {renderContent()}
       
       {/* Edit hint for WordPress editor */}
-      {isInWordPressEditor && editMode && (
+      {isEditing && (
         <div className="absolute -top-6 left-0 opacity-0 group-hover:opacity-100 transition-opacity z-10">
           <div className="bg-gray-800 text-white text-xs px-2 py-1 rounded-md font-medium whitespace-nowrap">
             {richText ? '📝 Rich Text Editor' : '✏️ Text Editor'} - Click to edit
@@ -388,12 +382,6 @@ export const RichEditableP: React.FC<Omit<EditableTextProps, 'as' | 'richText'>>
 export const RichEditableDiv: React.FC<Omit<EditableTextProps, 'as' | 'richText'>> = (props) => (
   <EditableText as="div" richText={true} {...props} />
 );
-
-// Hook to check if we're in edit mode
-export const useIsEditMode = () => {
-  const urlParams = new URLSearchParams(window.location.search);
-  return urlParams.get('edit_mode') === '1' && urlParams.get('wp_admin') === '1';
-};
 
 // Hook to get field configuration
 export const useFieldConfig = (field: string) => {

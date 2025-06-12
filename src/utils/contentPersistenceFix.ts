@@ -80,11 +80,17 @@ export class ContentPersistenceManager {
   }
 
   /**
-   * Helper to get current page from URL
+   * Helper to get current page from URL or path
    */
   private getCurrentPage(): string {
     const params = new URLSearchParams(window.location.search);
-    return params.get('page') || 'home';
+    let page = params.get('page');
+    if (page) return page;
+    // Fallback: infer from pathname
+    const path = window.location.pathname.replace(/^\//, '').replace(/\/$/, '');
+    if (!path || path === '' || path === 'index' || path === 'home') return 'home';
+    // Use first segment as page slug
+    return path.split('/')[0];
   }
 
   /**

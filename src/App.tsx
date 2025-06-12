@@ -1,3 +1,4 @@
+import React from "react";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
@@ -5,6 +6,7 @@ import { ApolloProvider } from "@apollo/client";
 import { BrowserRouter, Routes, Route, useLocation } from "react-router-dom";
 import { client } from "./lib/graphql-client";
 import { useEffect } from "react";
+import PageRichTextEditor from "./components/PageRichTextEditor";
 
 // Keep your existing beautiful pages
 import Index from "./pages/Index";
@@ -44,6 +46,7 @@ import { initializeContentPersistence } from "./utils/contentPersistenceFix";
 
 // NEW: Universal Editing System
 import universalEditingHandler from "./utils/UniversalEditingHandler";
+import { EditModeProvider } from "./contexts/EditModeContext";
 
 const queryClient = new QueryClient();
 
@@ -193,44 +196,30 @@ const App = () => {
   };
 
   return (
-    <QueryClientProvider client={queryClient}>
-      <ApolloProvider client={client}>
-        <VioletContentProvider>
-          <ContentProvider>
-            <ContentLoader />
-            {/* NEVER show ContentStatus in WordPress editor mode - all UI should be in WordPress admin */}
-            {!inWordPressEditor && <ContentStatus />}
-            {/* WordPress Rich Editor - only render when in WordPress edit mode */}
-            {inWordPressEditor && <WordPressRichEditor />}
-            {/* WordPress Save Handler - handles save operations */}
-            {inWordPressEditor && <WordPressSaveHandler />}
-            
-            {/* NEW: Rich Text WordPress Integration - Advanced modal editing */}
-            {richTextEnabled && (
-              <RichTextWordPressIntegration
-                onContentChange={handleRichTextContentChange}
-              />
-            )}
-            
-            {/* Universal Editing Indicator */}
-            {inWordPressEditor && (
-              <div id="violet-universal-editing-indicator" style={{ display: 'none' }}>
-                <div className="fixed top-4 right-4 bg-blue-600 text-white px-4 py-2 rounded-lg shadow-lg z-50">
-                  ✏️ Universal Editing Mode Active
-                  <div className="text-xs mt-1">Click any element to edit</div>
-                </div>
-              </div>
-            )}
-            
-            <BrowserRouter>
-              <RouterWithNotifier />
-            </BrowserRouter>
-            <Toaster />
-            <Sonner />
-          </ContentProvider>
-        </VioletContentProvider>
-      </ApolloProvider>
-    </QueryClientProvider>
+    <EditModeProvider>
+      <div>
+        <PageRichTextEditor />
+        <QueryClientProvider client={queryClient}>
+          <ApolloProvider client={client}>
+            <VioletContentProvider>
+              <BrowserRouter>
+                <RouterWithNotifier />
+              </BrowserRouter>
+              <ContentLoader />
+              <ContentStatus />
+              <ContentDebugPanel />
+              <ContentTestComponent />
+              <ContentDebugger />
+              <WordPressRichEditor />
+              <WordPressSaveHandler />
+              <RichTextWordPressIntegration />
+              <Sonner />
+              <Toaster />
+            </VioletContentProvider>
+          </ApolloProvider>
+        </QueryClientProvider>
+      </div>
+    </EditModeProvider>
   );
 };
 
