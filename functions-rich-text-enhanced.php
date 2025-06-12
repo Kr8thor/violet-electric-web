@@ -2929,7 +2929,7 @@ function violet_handle_auto_save($request) {
  * Get auto-save
  */
 function violet_get_auto_save($request) {
-    $field_name = $request['field_name'];
+    $field_name = $request->get_param('field_name');
     $user_id = get_current_user_id();
     
     // Try different editor auto-saves
@@ -3052,7 +3052,7 @@ function violet_import_rich_text_endpoint($request) {
  * Collaboration endpoints
  */
 function violet_start_collaboration_endpoint($request) {
-    $field_name = $request['field_name'];
+    $field_name = $request->get_param('field_name');
     $user_id = get_current_user_id();
     
     $active_users = violet_lexical_start_collaboration($field_name, $user_id);
@@ -3065,7 +3065,7 @@ function violet_start_collaboration_endpoint($request) {
 }
 
 function violet_end_collaboration_endpoint($request) {
-    $field_name = $request['field_name'];
+    $field_name = $request->get_param('field_name');
     $user_id = get_current_user_id();
     
     $active_users = violet_lexical_end_collaboration($field_name, $user_id);

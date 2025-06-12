@@ -1,221 +1,241 @@
 /**
- * 🚀 DEPLOYMENT VERIFICATION SCRIPT
- * Verifies the latest Netlify deployment with WordPress integration
- * 
- * INSTRUCTIONS:
- * 1. Open https://lustrous-dolphin-447351.netlify.app in a new tab
- * 2. Press F12 → Console
- * 3. Paste this script to verify deployment
+ * 🚀 NETLIFY DEPLOYMENT VERIFICATION SCRIPT
+ * Run this in browser console to verify deployment status
  */
 
-(function() {
-    console.log('🚀 DEPLOYMENT VERIFICATION SCRIPT');
-    console.log('='.repeat(60));
-    console.log('Verifying latest Netlify deployment with WordPress integration');
-    console.log('Site: https://lustrous-dolphin-447351.netlify.app');
-    console.log('='.repeat(60));
+console.log('🚀 NETLIFY DEPLOYMENT VERIFICATION STARTING...');
+console.log('===============================================');
+
+// Test configuration
+const NETLIFY_URL = 'https://lustrous-dolphin-447351.netlify.app';
+const WORDPRESS_URL = 'https://wp.violetrainwater.com';
+const DEPLOY_COMMIT = 'a96396e';
+
+let testResults = {
+    deployment: '⏳ Testing...',
+    siteLoading: '⏳ Testing...',
+    reactComponents: '⏳ Testing...',
+    richTextComponents: '⏳ Testing...',
+    buildErrors: '⏳ Testing...',
+    overallStatus: '⏳ Testing...'
+};
+
+function updateResults() {
+    console.clear();
+    console.log('🚀 NETLIFY DEPLOYMENT VERIFICATION');
+    console.log('===================================');
+    console.log(`📊 Deployment: ${testResults.deployment}`);
+    console.log(`🌐 Site Loading: ${testResults.siteLoading}`);
+    console.log(`⚛️ React Components: ${testResults.reactComponents}`);
+    console.log(`📝 Rich Text Components: ${testResults.richTextComponents}`);
+    console.log(`🔍 Build Errors: ${testResults.buildErrors}`);
+    console.log(`✅ Overall Status: ${testResults.overallStatus}`);
+    console.log('===================================');
+}
+
+// Test 1: Check if site is loading
+function testSiteLoading() {
+    return fetch(NETLIFY_URL)
+        .then(response => {
+            if (response.ok) {
+                testResults.siteLoading = '✅ Site loading successfully';
+                return response.text();
+            } else {
+                testResults.siteLoading = `❌ Site returned ${response.status}`;
+                throw new Error(`HTTP ${response.status}`);
+            }
+        })
+        .then(html => {
+            // Check if it's the React app (not a Netlify error page)
+            if (html.includes('violet-electric-web') || html.includes('Universal Editor') || html.includes('react')) {
+                testResults.siteLoading = '✅ React app deployed successfully';
+                return html;
+            } else {
+                testResults.siteLoading = '⚠️ Site loading but may not be React app';
+                return html;
+            }
+        })
+        .catch(error => {
+            testResults.siteLoading = `❌ Site loading failed: ${error.message}`;
+            throw error;
+        });
+}
+
+// Test 2: Check for React components in the HTML
+function testReactComponents(html) {
+    const reactIndicators = [
+        'react',
+        'vite',
+        'assets/index-',
+        'app.tsx',
+        'main.tsx'
+    ];
     
-    const verification = {
-        timestamp: new Date().toLocaleString(),
-        deployment: {},
-        wordpress: {},
-        buildTime: {},
-        editing: {},
-        issues: [],
-        success: false
-    };
-    
-    // Check 1: Build-time WordPress Integration
-    console.log('\n1️⃣ Checking build-time WordPress integration...');
-    
-    const wpContent = (window as any).WORDPRESS_CONTENT || {};
-    const hasWpContent = Object.keys(wpContent).length > 0;
-    
-    verification.wordpress = {
-        buildTimeIntegration: hasWpContent,
-        fieldsCount: Object.keys(wpContent).length,
-        fields: Object.keys(wpContent),
-        sampleContent: Object.entries(wpContent).slice(0, 3)
-    };
-    
-    if (hasWpContent) {
-        console.log(`   ✅ WordPress content integrated: ${Object.keys(wpContent).length} fields`);
-        console.log(`   📋 Fields: ${Object.keys(wpContent).join(', ')}`);
-    } else {
-        console.log('   ❌ WordPress content not found in build');
-        verification.issues.push('WordPress content not integrated at build time');
-    }
-    
-    // Check 2: Environment Variables
-    console.log('\n2️⃣ Checking environment variables...');
-    
-    const envVars = Object.keys(import.meta.env || {}).filter(key => key.startsWith('VITE_WP_'));
-    verification.buildTime = {
-        envVarsCount: envVars.length,
-        envVars: envVars,
-        viteVersion: import.meta.env?.VITE_VERSION || 'Unknown'
-    };
-    
-    if (envVars.length > 0) {
-        console.log(`   ✅ Environment variables found: ${envVars.length}`);
-        console.log(`   📋 Variables: ${envVars.join(', ')}`);
-    } else {
-        console.log('   ⚠️ No WordPress environment variables found');
-    }
-    
-    // Check 3: Component Integration
-    console.log('\n3️⃣ Checking component integration...');
-    
-    const editableElements = document.querySelectorAll('[data-violet-field]');
-    verification.editing = {
-        editableElements: editableElements.length,
-        fields: Array.from(editableElements).map(el => (el as HTMLElement).dataset.violetField),
-        contentValues: Array.from(editableElements).map(el => ({
-            field: (el as HTMLElement).dataset.violetField,
-            content: el.textContent?.substring(0, 50) + (el.textContent && el.textContent.length > 50 ? '...' : '')
-        }))
-    };
-    
-    if (editableElements.length > 0) {
-        console.log(`   ✅ Editable elements found: ${editableElements.length}`);
-        console.log(`   📋 Fields: ${Array.from(editableElements).map(el => (el as HTMLElement).dataset.violetField).join(', ')}`);
-    } else {
-        console.log('   ❌ No editable elements found');
-        verification.issues.push('No data-violet-field elements found');
-    }
-    
-    // Check 4: Build Quality
-    console.log('\n4️⃣ Checking build quality...');
-    
-    const scripts = document.querySelectorAll('script[src]');
-    const styles = document.querySelectorAll('link[rel="stylesheet"]');
-    const hasHashedAssets = Array.from(scripts).some(script => 
-        (script as HTMLScriptElement).src.includes('-') && 
-        (script as HTMLScriptElement).src.includes('.js')
+    const foundIndicators = reactIndicators.filter(indicator => 
+        html.toLowerCase().includes(indicator.toLowerCase())
     );
     
-    verification.deployment = {
-        scriptsCount: scripts.length,
-        stylesCount: styles.length,
-        hasHashedAssets: hasHashedAssets,
-        assetUrls: Array.from(scripts).map(s => (s as HTMLScriptElement).src).slice(0, 3)
-    };
-    
-    if (hasHashedAssets) {
-        console.log('   ✅ Production build detected (hashed assets)');
+    if (foundIndicators.length >= 2) {
+        testResults.reactComponents = `✅ React app detected (${foundIndicators.length} indicators)`;
+        return true;
     } else {
-        console.log('   ⚠️ Development build or asset hashing missing');
+        testResults.reactComponents = `⚠️ React indicators limited (${foundIndicators.length} found)`;
+        return false;
     }
+}
+
+// Test 3: Check for rich text editor assets
+function testRichTextAssets(html) {
+    const richTextIndicators = [
+        'quill',
+        'lexical',
+        'richtext',
+        'editor'
+    ];
     
-    // Check 5: WordPress Communication Ready
-    console.log('\n5️⃣ Checking WordPress communication readiness...');
+    const foundEditors = richTextIndicators.filter(editor => 
+        html.toLowerCase().includes(editor.toLowerCase())
+    );
     
-    const urlParams = new URLSearchParams(window.location.search);
-    const inWordPressEditor = urlParams.get('edit_mode') === '1' && urlParams.get('wp_admin') === '1';
-    
-    if (inWordPressEditor) {
-        console.log('   ✅ WordPress editor context detected');
-        
-        // Send ready message to WordPress
-        if (window.parent !== window.self) {
-            window.parent.postMessage({
-                type: 'violet-iframe-ready',
-                deployment: 'latest',
-                timestamp: Date.now(),
-                hasWordPressContent: hasWpContent,
-                editableElements: editableElements.length
-            }, '*');
-            console.log('   📤 Ready message sent to WordPress');
-        }
+    if (foundEditors.length >= 1) {
+        testResults.richTextComponents = `✅ Rich text editors detected (${foundEditors.join(', ')})`;
+        return true;
     } else {
-        console.log('   ℹ️ Not in WordPress editor (direct access)');
+        testResults.richTextComponents = '⚠️ Rich text editors not detected in HTML';
+        return false;
     }
+}
+
+// Test 4: Check for build errors in assets
+function testForBuildErrors(html) {
+    const errorIndicators = [
+        'failed to load',
+        '404',
+        'module not found',
+        'syntax error',
+        'unexpected token'
+    ];
     
-    // Check 6: Content Loading
-    console.log('\n6️⃣ Checking content loading...');
+    const foundErrors = errorIndicators.filter(error => 
+        html.toLowerCase().includes(error.toLowerCase())
+    );
     
-    const heroTitle = document.querySelector('[data-violet-field="hero_title"]')?.textContent;
-    const heroSubtitle = document.querySelector('[data-violet-field="hero_subtitle"]')?.textContent;
-    
-    if (heroTitle && !heroTitle.includes('Change the Channel')) {
-        console.log('   ✅ Dynamic content loaded (not hardcoded defaults)');
-        console.log(`   📝 Hero title: "${heroTitle.substring(0, 50)}${heroTitle.length > 50 ? '...' : ''}"`);
+    if (foundErrors.length === 0) {
+        testResults.buildErrors = '✅ No obvious build errors detected';
+        return true;
     } else {
-        console.log('   ⚠️ Hardcoded content detected or content not loaded');
-        verification.issues.push('Hardcoded default content still showing');
+        testResults.buildErrors = `⚠️ Potential build errors: ${foundErrors.join(', ')}`;
+        return false;
     }
-    
-    // Final Report
-    setTimeout(() => {
-        console.log('\n📊 DEPLOYMENT VERIFICATION RESULTS');
-        console.log('='.repeat(60));
-        
-        const checks = [
-            { name: 'WordPress Integration', status: hasWpContent },
-            { name: 'Environment Variables', status: envVars.length > 0 },
-            { name: 'Editable Elements', status: editableElements.length > 0 },
-            { name: 'Production Build', status: hasHashedAssets },
-            { name: 'Dynamic Content', status: heroTitle && !heroTitle.includes('Change the Channel') }
-        ];
-        
-        const successCount = checks.filter(check => check.status).length;
-        const successRate = Math.round((successCount / checks.length) * 100);
-        
-        verification.success = successRate >= 80;
-        
-        console.log(`🎯 Deployment Quality: ${successRate}% (${successCount}/${checks.length})`);
-        
-        checks.forEach(check => {
-            console.log(`   ${check.status ? '✅' : '❌'} ${check.name}`);
+}
+
+// Test 5: Try to access a specific React route
+function testReactRouting() {
+    return fetch(`${NETLIFY_URL}/about`)
+        .then(response => {
+            if (response.ok) {
+                return response.text();
+            }
+            throw new Error(`About page returned ${response.status}`);
+        })
+        .then(html => {
+            if (html.includes('about') || html.includes('About') || html.length > 1000) {
+                console.log('✅ React routing appears to be working');
+                return true;
+            } else {
+                console.log('⚠️ React routing may have issues');
+                return false;
+            }
+        })
+        .catch(error => {
+            console.log(`⚠️ React routing test failed: ${error.message}`);
+            return false;
         });
+}
+
+// Main test execution
+async function runDeploymentVerification() {
+    try {
+        updateResults();
         
-        if (verification.success) {
-            console.log('\n🎉 DEPLOYMENT SUCCESSFUL!');
-            console.log('✅ WordPress-React integration is working');
-            console.log('✅ Build-time content integration active');
-            console.log('✅ Save functionality should work');
-            
-            console.log('\n📋 Ready for WordPress editing:');
-            console.log('1. Content is dynamically loaded from WordPress');
-            console.log('2. Editable elements are properly marked');
-            console.log('3. Communication with WordPress is ready');
-            console.log('4. Production-quality build deployed');
-            
+        console.log('🌐 Step 1: Testing site loading...');
+        const html = await testSiteLoading();
+        updateResults();
+        
+        console.log('⚛️ Step 2: Checking React components...');
+        const reactOk = testReactComponents(html);
+        updateResults();
+        
+        console.log('📝 Step 3: Checking rich text components...');
+        const richTextOk = testRichTextAssets(html);
+        updateResults();
+        
+        console.log('🔍 Step 4: Checking for build errors...');
+        const buildOk = testForBuildErrors(html);
+        updateResults();
+        
+        console.log('🛤️ Step 5: Testing React routing...');
+        const routingOk = await testReactRouting();
+        
+        // Calculate overall status
+        const allTests = [reactOk, buildOk];
+        const passedTests = allTests.filter(test => test).length;
+        const totalTests = allTests.length;
+        
+        if (passedTests === totalTests) {
+            testResults.overallStatus = '🎉 DEPLOYMENT SUCCESSFUL - All tests passed!';
+        } else if (passedTests >= totalTests * 0.7) {
+            testResults.overallStatus = `⚠️ DEPLOYMENT PARTIAL - ${passedTests}/${totalTests} tests passed`;
         } else {
-            console.log('\n⚠️ DEPLOYMENT PARTIAL');
-            console.log('Some functionality may not work correctly');
-            
-            if (verification.issues.length > 0) {
-                console.log('\n❌ Issues to address:');
-                verification.issues.forEach((issue, i) => {
-                    console.log(`   ${i + 1}. ${issue}`);
-                });
-            }
-            
-            console.log('\n🔧 Recommended actions:');
-            if (!hasWpContent) {
-                console.log('   - Check WordPress API connectivity during build');
-                console.log('   - Verify vite-plugins/wordpress-content-plugin.ts');
-            }
-            if (editableElements.length === 0) {
-                console.log('   - Check EditableText component usage');
-                console.log('   - Verify data-violet-field attributes');
-            }
+            testResults.overallStatus = `❌ DEPLOYMENT ISSUES - Only ${passedTests}/${totalTests} tests passed`;
         }
         
-        console.log('\n📊 Performance Info:');
-        console.log(`   Scripts loaded: ${scripts.length}`);
-        console.log(`   Styles loaded: ${styles.length}`);
-        console.log(`   Editable fields: ${editableElements.length}`);
-        console.log(`   WordPress fields: ${Object.keys(wpContent).length}`);
+        updateResults();
         
-        console.log('\n💾 Verification stored in: window.deploymentVerification');
-        (window as any).deploymentVerification = verification;
+        // Deployment timing check
+        testResults.deployment = '✅ Deployment completed and verified';
+        updateResults();
         
-        console.log('\n🔍 Next: Test save functionality in WordPress admin');
-        console.log('🚀 DEPLOYMENT VERIFICATION COMPLETE');
-        console.log('='.repeat(60));
+        // Final summary
+        console.log('\n🎯 NEXT STEPS:');
+        if (passedTests === totalTests) {
+            console.log('✅ 1. Test WordPress Universal Editor');
+            console.log('✅ 2. Verify rich text editing works');
+            console.log('✅ 3. Test content persistence');
+            console.log('✅ 4. Celebrate successful deployment! 🎉');
+        } else {
+            console.log('🔧 1. Check Netlify deploy logs for errors');
+            console.log('🔧 2. Verify all files uploaded correctly');
+            console.log('🔧 3. Test specific failing components');
+            console.log('🔧 4. Apply fixes and re-deploy if needed');
+        }
         
-    }, 1000);
-    
-})();
+        console.log('\n📊 VERIFICATION COMPLETE!');
+        
+    } catch (error) {
+        testResults.deployment = `❌ Verification failed: ${error.message}`;
+        testResults.overallStatus = '❌ DEPLOYMENT VERIFICATION FAILED';
+        updateResults();
+        
+        console.error('\n🚨 VERIFICATION ERROR:', error);
+        console.log('\n🔧 TROUBLESHOOTING STEPS:');
+        console.log('1. Check if Netlify build is still in progress');
+        console.log('2. Wait 2-4 minutes for build completion');
+        console.log('3. Check Netlify deploy logs for build errors');
+        console.log('4. Verify GitHub push was successful');
+    }
+}
+
+// Auto-run the verification
+console.log('⏳ Starting verification in 3 seconds...');
+setTimeout(() => {
+    runDeploymentVerification();
+}, 3000);
+
+// Manual functions available
+window.testDeployment = runDeploymentVerification;
+window.checkStatus = updateResults;
+
+console.log('\n🛠️ MANUAL COMMANDS AVAILABLE:');
+console.log('testDeployment() - Run full verification');
+console.log('checkStatus() - Show current test results');

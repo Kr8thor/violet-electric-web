@@ -595,6 +595,7 @@ function violet_frontend_editor_page_fixed() {
     
     $netlify_url = get_option('violet_netlify_url', 'https://lustrous-dolphin-447351.netlify.app');
     $wp_url = get_option('violet_wp_url', 'https://violetrainwater.com');
+    $hook = get_option('violet_netlify_hook', 'https://api.netlify.com/build_hooks/684054a7aed5fdf9f3793a0f');
     ?>
     <div class="wrap">
         <h1>🎨 React Frontend Editor - FIXED</h1>
@@ -1041,7 +1042,7 @@ function violet_editor_settings_page() {
         echo '<div class="notice notice-success"><p><strong>✅ Settings saved successfully!</strong></p></div>';
     }
     
-    $hook = get_option('violet_netlify_hook', '');
+    $hook = get_option('violet_netlify_hook', 'https://api.netlify.com/build_hooks/684054a7aed5fdf9f3793a0f');
     $netlify_url = get_option('violet_netlify_url', 'https://lustrous-dolphin-447351.netlify.app');
     $wp_url = get_option('violet_wp_url', 'https://violetrainwater.com');
     $auto_rebuild = get_option('violet_auto_rebuild', '1');

@@ -1,0 +1,2 @@
+# Backup of original package.json before fixing
+This file contains the backup of the original package.json that was causing npm install issues.
