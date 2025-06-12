@@ -239,7 +239,7 @@ function violet_rich_text_admin_menu() {
         'Universal Rich Text Editor',
         '🎨 Rich Text Editor',
         'edit_posts',
-        'violet-rich-text-editor',
+        'violet-universal-editor', // Changed from 'violet-rich-text-editor' to match URL
         'violet_rich_text_editor_interface',
         'dashicons-edit',
         25
@@ -247,7 +247,7 @@ function violet_rich_text_admin_menu() {
 
     // Editor Settings
     add_submenu_page(
-        'violet-rich-text-editor',
+        'violet-universal-editor', // Changed parent slug
         'Editor Settings',
         '⚙️ Editor Settings',
         'edit_posts',
@@ -257,7 +257,7 @@ function violet_rich_text_admin_menu() {
 
     // Content Manager with Rich Text
     add_submenu_page(
-        'violet-rich-text-editor',
+        'violet-universal-editor', // Changed parent slug
         'Rich Content Manager',
         '📝 Rich Content',
         'edit_posts',
@@ -267,7 +267,7 @@ function violet_rich_text_admin_menu() {
     
     // User Preferences
     add_submenu_page(
-        'violet-rich-text-editor',
+        'violet-universal-editor', // Changed parent slug
         'Editor Preferences',
         '👤 My Preferences',
         'read',
@@ -4841,4 +4841,16 @@ function violet_rich_text_head_scripts() {
  * This system transforms basic text editing into professional
  * rich text editing capabilities that rival premium solutions.
  */
+
+// Add the main editor interface callback for the admin menu
+function violet_rich_text_editor_interface() {
+    echo '<div class="wrap">';
+    echo '<h1>Universal Rich Text Editor</h1>';
+    // Render the modal interface
+    echo violet_generate_rich_text_modal_html();
+    // Output modal styles and JS
+    echo violet_modal_css_styles();
+    echo violet_modal_javascript_functions();
+    echo '</div>';
+}
 ?>
