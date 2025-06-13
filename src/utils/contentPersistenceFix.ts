@@ -1,357 +1,244 @@
-import React from 'react';
+// Enhanced content persistence with immediate initialization
+import { saveContent, getAllContentSync } from './contentStorage';
 
-/**
- * 🎯 CRITICAL CONTENT PERSISTENCE FIX
- * This file contains the complete solution for fixing content persistence
- * and establishing universal editing capabilities
- */
-
-export interface ContentField {
-  id: string;
-  value: string;
-  type: 'text' | 'image' | 'link' | 'color' | 'button' | 'layout';
-  element?: HTMLElement;
+export interface SavedChange {
+  field_name: string;
+  field_value: string;
+  field_type?: string;
 }
 
-export interface WordPressContent {
-  [key: string]: string;
-}
+// Debug logger with timestamp
+const debugLog = (message: string, data?: any) => {
+  const timestamp = new Date().toISOString();
+  console.log(`[${timestamp}] 🔧 ContentPersistence: ${message}`, data || '');
+};
 
-/**
- * Content Persistence Manager - Handles WordPress ↔ React content sync
- */
-export class ContentPersistenceManager {
-  private static instance: ContentPersistenceManager;
-  private content: WordPressContent = {};
-  private pendingChanges: Map<string, string> = new Map();
-  private apiBase: string = '';
-  private listeners: Map<string, Set<(value: string) => void>> = new Map();
+// Track if we've initialized
+let initialized = false;
 
-  constructor() {
-    this.initializeAPIBase();
-    this.setupMessageHandlers();
-    this.loadContentFromWordPress();
+// Apply saved changes from WordPress
+export const applyWordPressSavedChanges = (savedChanges: SavedChange[]): boolean => {
+  debugLog('Applying saved changes from WordPress', savedChanges);
+  
+  if (!Array.isArray(savedChanges) || savedChanges.length === 0) {
+    debugLog('ERROR: No valid changes to apply');
+    return false;
   }
 
-  static getInstance(): ContentPersistenceManager {
-    if (!ContentPersistenceManager.instance) {
-      ContentPersistenceManager.instance = new ContentPersistenceManager();
-    }
-    return ContentPersistenceManager.instance;
-  }
-
-  /**
-   * Initialize API base URL detection
-   */
-  private initializeAPIBase(): void {
-    // Try to detect WordPress URL from current location
-    const currentUrl = window.location.href;
+  try {
+    // Convert array of changes to content object
+    const contentToSave: Record<string, string> = {};
     
-    if (currentUrl.includes('lustrous-dolphin-447351.netlify.app')) {
-      // On Netlify - use proxy
-      this.apiBase = '';
-    } else if (currentUrl.includes('wp.violetrainwater.com')) {
-      // On WordPress directly
-      this.apiBase = '';
-    } else {
-      // Fallback to WordPress direct
-      this.apiBase = 'https://wp.violetrainwater.com';
-    }
-
-    console.log('🌐 Content API Base:', this.apiBase || 'current domain');
-  }
-
-  /**
-   * Set up message handlers for WordPress communication
-   */
-  private setupMessageHandlers(): void {
-    window.addEventListener('message', (event) => {
-      if (event.data?.type?.startsWith('violet-')) {
-        this.handleWordPressMessage(event.data, event);
-      }
-    });
-
-    // Handle save events
-    window.addEventListener('violet-apply-changes', (event: any) => {
-      if (event.detail?.savedChanges) {
-        this.applyChangesFromWordPress(event.detail.savedChanges);
-      }
-    });
-  }
-
-  /**
-   * Helper to get current page from URL or path
-   */
-  private getCurrentPage(): string {
-    const params = new URLSearchParams(window.location.search);
-    let page = params.get('page');
-    if (page) return page;
-    // Fallback: infer from pathname
-    const path = window.location.pathname.replace(/^\//, '').replace(/\/$/, '');
-    if (!path || path === '' || path === 'index' || path === 'home') return 'home';
-    // Use first segment as page slug
-    return path.split('/')[0];
-  }
-
-  /**
-   * Load content from WordPress API (per page)
-   */
-  async loadContentFromWordPress(): Promise<WordPressContent> {
-    try {
-      const page = this.getCurrentPage();
-      console.log('🔄 Loading content from WordPress API for page:', page);
-      const response = await fetch(`${this.apiBase}/wp-json/violet/v1/rich-content?page=${encodeURIComponent(page)}`, {
-        method: 'GET',
-        headers: {
-          'Cache-Control': 'no-cache',
-          'Pragma': 'no-cache'
-        }
-      });
-      if (!response.ok) {
-        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-      }
-      const freshContent = await response.json();
-      // Expecting { [field]: { content, ... }, ... } per page
-      const pageContent = freshContent[page] || {};
-      // Flatten to { field: content }
-      const flatContent: WordPressContent = {};
-      Object.keys(pageContent).forEach(field => {
-        flatContent[field] = pageContent[field].content || '';
-      });
-      this.content = flatContent;
-      this.notifyContentChange();
-      localStorage.setItem('violetContentCache', JSON.stringify(flatContent));
-      localStorage.setItem('violetContentCacheTime', Date.now().toString());
-      return flatContent;
-    } catch (error) {
-      console.error('❌ WordPress API failed:', error);
-      const cached = this.loadFromCache();
-      if (cached) {
-        console.log('💾 Using cached content');
-        this.content = cached;
-        this.notifyContentChange();
-        return cached;
-      }
-      throw error;
-    }
-  }
-
-  /**
-   * Load content from cache
-   */
-  private loadFromCache(): WordPressContent | null {
-    try {
-      const cached = localStorage.getItem('violetContentCache');
-      const cacheTime = localStorage.getItem('violetContentCacheTime');
+    savedChanges.forEach((change, index) => {
+      debugLog(`Processing change ${index + 1}/${savedChanges.length}`, change);
       
-      if (cached && cacheTime) {
-        const age = Date.now() - parseInt(cacheTime);
-        // Use cache if less than 1 hour old
-        if (age < 3600000) {
-          return JSON.parse(cached);
-        }
+      if (change.field_name && change.field_value !== undefined) {
+        contentToSave[change.field_name] = change.field_value;
+        debugLog(`Added to save: ${change.field_name} = "${change.field_value}"`);
+      } else {
+        debugLog(`WARNING: Invalid change structure`, change);
       }
-    } catch (error) {
-      console.warn('❌ Cache read failed:', error);
-    }
-    return null;
-  }
+    });
 
-  /**
-   * Get content field value
-   */
-  getField(fieldId: string, defaultValue: string = ''): string {
-    const value = this.content[fieldId];
-    return value !== undefined && value !== null ? value : defaultValue;
-  }
-
-  /**
-   * Update content field (in memory)
-   */
-  updateField(fieldId: string, value: string): void {
-    this.content[fieldId] = value;
-    this.pendingChanges.set(fieldId, value);
-    this.notifyFieldChange(fieldId, value);
+    // Save to localStorage
+    debugLog('Saving content to localStorage', contentToSave);
+    const saveResult = saveContent(contentToSave, true); // merge with existing
     
-    console.log(`📝 Field updated: ${fieldId} = "${value}"`);
-  }
-
-  /**
-   * Save all pending changes to WordPress (per page)
-   */
-  async saveToWordPress(): Promise<boolean> {
-    if (this.pendingChanges.size === 0) {
-      console.log('💾 No pending changes to save');
-      return true;
-    }
-    try {
-      const page = this.getCurrentPage();
-      console.log('💾 Saving to WordPress for page:', page, Object.fromEntries(this.pendingChanges));
-      // Prepare changes as array for batch endpoint
-      const changes = Array.from(this.pendingChanges.entries()).map(([field, value]) => ({
-        field_name: field,
-        content: value,
-        format: 'rich',
-        editor: 'auto',
-        page: page
-      }));
-      const response = await fetch(`${this.apiBase}/wp-json/violet/v1/rich-content/save-batch`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ changes })
+    if (saveResult) {
+      debugLog('✅ Content saved successfully to localStorage');
+      
+      // Verify the save
+      const verifyContent = getAllContentSync();
+      debugLog('Verification - Current localStorage content:', verifyContent);
+      
+      // Check if our changes were applied
+      let allApplied = true;
+      Object.entries(contentToSave).forEach(([field, value]) => {
+        if (verifyContent[field] !== value) {
+          debugLog(`ERROR: Field ${field} was not saved correctly. Expected: "${value}", Got: "${verifyContent[field]}"`);
+          allApplied = false;
+        } else {
+          debugLog(`✅ Verified: ${field} = "${value}"`);
+        }
       });
-      if (!response.ok) {
-        throw new Error(`Save failed: ${response.status}`);
+      
+      // Dispatch update event
+      window.dispatchEvent(new CustomEvent('violet-content-persisted', {
+        detail: {
+          content: verifyContent,
+          changes: contentToSave,
+          timestamp: Date.now()
+        }
+      }));
+      
+      // Don't force reload - let React handle updates reactively
+      if (allApplied) {
+        debugLog('✅ Content applied successfully - React will update automatically');
+        // Removed: window.location.reload();
       }
-      const result = await response.json();
-      console.log('✅ Content saved to WordPress:', result);
-      this.pendingChanges.clear();
-      localStorage.setItem('violetContentCache', JSON.stringify(this.content));
-      localStorage.setItem('violetContentCacheTime', Date.now().toString());
-      return true;
-    } catch (error) {
-      console.error('❌ Save to WordPress failed:', error);
+      
+      return allApplied;
+    } else {
+      debugLog('❌ Failed to save content to localStorage');
       return false;
     }
+  } catch (error) {
+    debugLog('ERROR: Exception during save', error);
+    return false;
   }
+};
 
-  /**
-   * Apply changes from WordPress (after save)
-   */
-  private applyChangesFromWordPress(changes: any[]): void {
-    console.log('📥 Applying changes from WordPress:', changes);
+// Initialize message listener for WordPress communication
+export const initializeWordPressPersistence = () => {
+  if (initialized) {
+    debugLog('Already initialized, skipping...');
+    return;
+  }
+  
+  initialized = true;
+  debugLog('Initializing WordPress persistence listener');
+  
+  const handleMessage = (event: MessageEvent) => {
+    // Log ALL messages for debugging
+    console.log('🎯 React received message:', { 
+      type: event.data?.type, 
+      origin: event.origin,
+      data: event.data 
+    });
     
-    changes.forEach(change => {
-      if (change.field_name && change.field_value !== undefined) {
-        this.content[change.field_name] = change.field_value;
-        this.notifyFieldChange(change.field_name, change.field_value);
+    // Handle saved changes from WordPress - check for correct message type
+    if (event.data && (
+      event.data.type === 'violet-apply-saved-changes' || 
+      event.data.type === 'violet-save-content' ||
+      event.data.type === 'violet-persist-content'
+    )) {
+      debugLog('🎯 Received save message type: ' + event.data.type, event.data);
+      
+      // Handle different message formats
+      let changesToApply: SavedChange[] = [];
+      
+      if (event.data.savedChanges) {
+        changesToApply = event.data.savedChanges;
+      } else if (event.data.content) {
+        // Convert content object to changes array
+        changesToApply = Object.entries(event.data.content).map(([field_name, field_value]) => ({
+          field_name,
+          field_value: field_value as string
+        }));
       }
-    });
-
-    // Update cache
-    localStorage.setItem('violetContentCache', JSON.stringify(this.content));
-    
-    // Notify all listeners of global content change
-    this.notifyContentChange();
-  }
-
-  /**
-   * Handle WordPress messages
-   */
-  private handleWordPressMessage(data: any, event: MessageEvent): void {
-    switch (data.type) {
-      case 'violet-content-saved':
-        console.log('💾 WordPress reports content saved');
-        this.loadContentFromWordPress();
-        break;
+      
+      if (changesToApply.length > 0) {
+        const success = applyWordPressSavedChanges(changesToApply);
         
-      case 'violet-refresh-content':
-        console.log('🔄 WordPress requesting content refresh');
-        this.loadContentFromWordPress();
-        break;
+        // Send confirmation back to WordPress
+        if (event.source) {
+          const response = {
+            type: 'violet-save-confirmation',
+            success,
+            timestamp: Date.now(),
+            savedFields: changesToApply.map(c => c.field_name)
+          };
+          
+          debugLog('Sending confirmation to WordPress', response);
+          (event.source as Window).postMessage(response, event.origin);
+        }
+        
+        // Show visual notification
+        showSaveNotification(success);
+      }
     }
-  }
+  };
+  
+  window.addEventListener('message', handleMessage);
+  debugLog('✅ WordPress persistence listener initialized and listening for messages');
+  
+  // Also listen for the specific content changed event from WordPressEditor
+  window.addEventListener('violet-content-changed', (event: any) => {
+    debugLog('Received violet-content-changed event', event.detail);
+  });
+  
+  // Return cleanup function
+  return () => {
+    window.removeEventListener('message', handleMessage);
+    initialized = false;
+  };
+};
 
-  /**
-   * Subscribe to field changes
-   */
-  subscribeToField(fieldId: string, callback: (value: string) => void): () => void {
-    if (!this.listeners.has(fieldId)) {
-      this.listeners.set(fieldId, new Set());
+// Show visual notification
+const showSaveNotification = (success: boolean) => {
+  const notification = document.createElement('div');
+  notification.style.cssText = `
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    padding: 16px 24px;
+    background: ${success ? '#10b981' : '#ef4444'};
+    color: white;
+    border-radius: 8px;
+    font-weight: 600;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    z-index: 999999;
+    animation: slideIn 0.3s ease-out;
+  `;
+  notification.textContent = success ? '✅ Content saved and persisted!' : '❌ Failed to save content';
+  
+  // Add animation
+  const style = document.createElement('style');
+  style.textContent = `
+    @keyframes slideIn {
+      from { transform: translateX(100%); opacity: 0; }
+      to { transform: translateX(0); opacity: 1; }
     }
-    
-    this.listeners.get(fieldId)!.add(callback);
+  `;
+  document.head.appendChild(style);
+  
+  document.body.appendChild(notification);
+  
+  setTimeout(() => {
+    notification.style.animation = 'slideIn 0.3s ease-out reverse';
+    setTimeout(() => {
+      document.body.removeChild(notification);
+      document.head.removeChild(style);
+    }, 300);
+  }, 3000);
+};
 
-    // Immediately call with current value
-    callback(this.getField(fieldId));
+// Debug helper to check current state
+export const debugContentState = () => {
+  const content = getAllContentSync();
+  const rawStorage = localStorage.getItem('violet-content');
+  
+  console.group('🔍 Content Persistence Debug State');
+  console.log('Current content from getAllContentSync():', content);
+  console.log('Raw localStorage violet-content:', rawStorage);
+  console.log('Number of fields:', Object.keys(content).length);
+  console.log('Sample values:');
+  console.log('  hero_title:', content.hero_title);
+  console.log('  hero_subtitle:', content.hero_subtitle);
+  console.log('  hero_cta:', content.hero_cta);
+  console.groupEnd();
+  
+  return content;
+};
 
-    // Return unsubscribe function
-    return () => {
-      this.listeners.get(fieldId)?.delete(callback);
-    };
-  }
-
-  /**
-   * Notify field change to listeners
-   */
-  private notifyFieldChange(fieldId: string, value: string): void {
-    const fieldListeners = this.listeners.get(fieldId);
-    if (fieldListeners) {
-      fieldListeners.forEach(callback => callback(value));
+// Export for window access in development
+if (typeof window !== 'undefined') {
+  (window as any).violetDebug = {
+    checkContent: debugContentState,
+    applyChanges: applyWordPressSavedChanges,
+    testSave: () => {
+      const testChanges = [
+        { field_name: 'hero_title', field_value: 'TEST: This is a test title' },
+        { field_name: 'hero_subtitle', field_value: 'TEST: This is a test subtitle' }
+      ];
+      return applyWordPressSavedChanges(testChanges);
     }
-  }
-
-  /**
-   * Notify all listeners of content change
-   */
-  private notifyContentChange(): void {
-    this.listeners.forEach((callbacks, fieldId) => {
-      const value = this.getField(fieldId);
-      callbacks.forEach(callback => callback(value));
-    });
-  }
-
-  /**
-   * Get all content
-   */
-  getAllContent(): WordPressContent {
-    return { ...this.content };
-  }
-
-  /**
-   * Get pending changes
-   */
-  getPendingChanges(): Map<string, string> {
-    return new Map(this.pendingChanges);
-  }
+  };
+  
+  debugLog('Debug tools available at window.violetDebug');
 }
 
-/**
- * Global instance
- */
-export const contentManager = ContentPersistenceManager.getInstance();
-
-/**
- * React hook for WordPress content
- */
-export function useWordPressField(fieldId: string, defaultValue: string = '') {
-  const [value, setValue] = React.useState(defaultValue);
-  const [loading, setLoading] = React.useState(true);
-
-  React.useEffect(() => {
-    const unsubscribe = contentManager.subscribeToField(fieldId, (newValue) => {
-      setValue(newValue || defaultValue);
-      setLoading(false);
-    });
-
-    return unsubscribe;
-  }, [fieldId, defaultValue]);
-
-  const updateValue = (newValue: string) => {
-    contentManager.updateField(fieldId, newValue);
-  };
-
-  return {
-    value,
-    updateValue,
-    loading,
-    save: () => contentManager.saveToWordPress()
-  };
-}
-
-/**
- * Initialize content persistence system
- */
-export function initializeContentPersistence(): void {
-  console.log('🎯 Initializing Content Persistence System...');
-  
-  // Get the global instance (creates it if needed)
-  const manager = ContentPersistenceManager.getInstance();
-  
-  // Make it globally available for debugging
-  (window as any).violetContentManager = manager;
-  
-  console.log('✅ Content Persistence System ready');
+// Auto-initialize if in iframe
+if (typeof window !== 'undefined' && window.parent !== window) {
+  initializeWordPressPersistence();
 }

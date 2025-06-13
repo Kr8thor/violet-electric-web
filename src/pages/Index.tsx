@@ -5,13 +5,9 @@ import KeyHighlights from '@/components/KeyHighlights';
 import UniqueValue from '@/components/UniqueValue';
 import Newsletter from '@/components/Newsletter';
 import Footer from '@/components/Footer';
-import EditableText from '@/components/EditableText';
 
 // ONLY ADD: Small WordPress status test
 // import WordPressBackendStatus from '@/components/WordPressBackendStatus';
-
-// NOTE: All EditableText fields on this page are now page-aware (page='home')
-// Content is loaded/saved using the 'home' context from the URL param.
 
 const Index = () => {
   return (

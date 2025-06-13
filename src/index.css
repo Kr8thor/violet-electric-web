@@ -71,9 +71,6 @@
 @layer base {
   * {
     @apply border-border;
-    /* 🎯 TEXT DIRECTION FIX - Enforce LTR globally */
-    direction: ltr !important;
-    unicode-bidi: normal !important;
   }
 
   body {
@@ -83,17 +80,6 @@
 
   h1, h2, h3, h4, h5, h6 {
     @apply font-display;
-  }
-
-  /* 🎯 CRITICAL TEXT DIRECTION FIXES */
-  input, 
-  textarea, 
-  [contenteditable], 
-  .violet-editable-element,
-  .violet-rich-editable {
-    direction: ltr !important;
-    text-align: left !important;
-    unicode-bidi: normal !important;
   }
 }
 

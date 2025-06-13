@@ -1,46 +1,160 @@
-import React from 'react';
-import { useEditModeContext } from '@/contexts/EditModeContext';
-import { useVioletContent } from '@/contexts/VioletRuntimeContentFixed';
+import React, { useState, useEffect } from 'react';
+import { getAllContentSync } from '@/utils/contentStorage';
+import { useContent } from '@/contexts/ContentContext';
 
-/**
- * Content Debug Panel
- * Helps diagnose content persistence issues
- */
-export const ContentDebugPanel: React.FC = () => {
-  const { isEditing, setEditing } = useEditModeContext();
-  const { data, loading, error, refreshContent } = useVioletContent();
-  const [page, setPage] = React.useState('');
-  const [fields, setFields] = React.useState<string[]>([]);
+const ContentDebugPanel: React.FC = () => {
+  const [storageContent, setStorageContent] = useState<any>({});
+  const [isVisible, setIsVisible] = useState(false);
+  const { content, isLoading } = useContent();
 
-  React.useEffect(() => {
-    // Get current page context from contentPersistenceFix
-    try {
-      const pageCtx = (window as any).contentManager?.getCurrentPage?.() || '';
-      setPage(pageCtx);
-    } catch {}
-    // Get all visible EditableText fields
-    const nodes = document.querySelectorAll('[data-violet-field]');
-    setFields(Array.from(nodes).map(n => n.getAttribute('data-violet-field') || ''));
-  }, [data, isEditing]);
+  useEffect(() => {
+    // Check localStorage every second
+    const interval = setInterval(() => {
+      const stored = getAllContentSync();
+      setStorageContent(stored);
+    }, 1000);
+
+    return () => clearInterval(interval);
+  }, []);
+
+  // Only show in development or when edit mode is active
+  const isDev = import.meta.env?.DEV || false;
+  const isEditMode = window.location.search.includes('edit_mode=1');
+  const showDebug = isDev || isEditMode;
+
+  if (!showDebug) return null;
 
   return (
-    <div style={{ position: 'fixed', bottom: 16, right: 16, zIndex: 9999, background: 'rgba(0,0,0,0.85)', color: '#fff', padding: 16, borderRadius: 8, fontSize: 14, maxWidth: 340 }}>
-      <div style={{ fontWeight: 'bold', marginBottom: 8 }}>🛠️ Content Debug Panel</div>
-      <div>Edit Mode: <b style={{ color: isEditing ? '#4ade80' : '#f87171' }}>{isEditing ? 'ENABLED' : 'DISABLED'}</b></div>
-      <div>Page Context: <b>{page}</b></div>
-      <div>Provider Loading: <b>{loading ? 'true' : 'false'}</b></div>
-      <div>Provider Error: <b>{error || 'none'}</b></div>
-      <div style={{ margin: '8px 0' }}>Fields on page:
-        <ul style={{ maxHeight: 80, overflow: 'auto', margin: 0, padding: 0, listStyle: 'none' }}>
-          {fields.map(f => <li key={f} style={{ color: '#a5b4fc' }}>{f}</li>)}
-        </ul>
-      </div>
-      <div style={{ margin: '8px 0' }}>Content snapshot:
-        <pre style={{ fontSize: 12, background: '#222', color: '#a5b4fc', padding: 8, borderRadius: 4, maxHeight: 100, overflow: 'auto' }}>{JSON.stringify(data, null, 2)}</pre>
-      </div>
-      <button style={{ marginRight: 8, background: '#4ade80', color: '#222', border: 'none', borderRadius: 4, padding: '4px 10px', cursor: 'pointer' }} onClick={() => refreshContent()}>Force Refresh</button>
-      <button style={{ background: isEditing ? '#f87171' : '#4ade80', color: '#222', border: 'none', borderRadius: 4, padding: '4px 10px', cursor: 'pointer' }} onClick={() => setEditing(!isEditing)}>{isEditing ? 'Disable' : 'Enable'} Edit Mode</button>
-    </div>
+    <>
+      <button
+        onClick={() => setIsVisible(!isVisible)}
+        style={{
+          position: 'fixed',
+          bottom: '20px',
+          left: '20px',
+          background: '#0073aa',
+          color: 'white',
+          padding: '8px 16px',
+          borderRadius: '20px',
+          border: 'none',
+          cursor: 'pointer',
+          zIndex: 9999,
+          fontSize: '12px',
+          fontWeight: 'bold',
+          boxShadow: '0 2px 10px rgba(0,0,0,0.3)'
+        }}
+      >
+        🐛 Debug Content ({Object.keys(storageContent).length} fields)
+      </button>
+
+      {isVisible && (
+        <div
+          style={{
+            position: 'fixed',
+            bottom: '60px',
+            left: '20px',
+            background: 'rgba(0, 0, 0, 0.95)',
+            color: 'white',
+            padding: '20px',
+            borderRadius: '10px',
+            maxWidth: '500px',
+            maxHeight: '70vh',
+            overflow: 'auto',
+            zIndex: 9999,
+            fontSize: '12px',
+            fontFamily: 'monospace',
+            boxShadow: '0 4px 20px rgba(0,0,0,0.5)'
+          }}
+        >
+          <h3 style={{ marginTop: 0, color: '#00ff00' }}>🔍 Content Debug Panel</h3>
+          
+          <div style={{ marginBottom: '15px' }}>
+            <strong style={{ color: '#ffff00' }}>Loading State:</strong> {isLoading ? '⏳ Loading...' : '✅ Ready'}
+          </div>
+
+          <div style={{ marginBottom: '15px' }}>
+            <strong style={{ color: '#ffff00' }}>Context Content ({Object.keys(content).length} fields):</strong>
+            <pre style={{ 
+              background: 'rgba(255,255,255,0.1)', 
+              padding: '10px', 
+              borderRadius: '5px',
+              maxHeight: '200px',
+              overflow: 'auto',
+              marginTop: '5px'
+            }}>
+              {JSON.stringify(content, null, 2)}
+            </pre>
+          </div>
+
+          <div style={{ marginBottom: '15px' }}>
+            <strong style={{ color: '#ffff00' }}>LocalStorage Content ({Object.keys(storageContent).length} fields):</strong>
+            <pre style={{ 
+              background: 'rgba(255,255,255,0.1)', 
+              padding: '10px', 
+              borderRadius: '5px',
+              maxHeight: '200px',
+              overflow: 'auto',
+              marginTop: '5px'
+            }}>
+              {JSON.stringify(storageContent, null, 2)}
+            </pre>
+          </div>
+
+          <div style={{ marginBottom: '15px' }}>
+            <strong style={{ color: '#ffff00' }}>Raw LocalStorage:</strong>
+            <pre style={{ 
+              background: 'rgba(255,255,255,0.1)', 
+              padding: '10px', 
+              borderRadius: '5px',
+              fontSize: '10px',
+              wordBreak: 'break-all',
+              marginTop: '5px'
+            }}>
+              {localStorage.getItem('violet-content') || 'null'}
+            </pre>
+          </div>
+
+          <div style={{ display: 'flex', gap: '10px', marginTop: '15px' }}>
+            <button
+              onClick={() => {
+                localStorage.removeItem('violet-content');
+                window.location.reload();
+              }}
+              style={{
+                background: '#d63939',
+                color: 'white',
+                padding: '5px 10px',
+                borderRadius: '5px',
+                border: 'none',
+                cursor: 'pointer',
+                fontSize: '11px'
+              }}
+            >
+              🗑️ Clear Storage & Reload
+            </button>
+            <button
+              onClick={() => {
+                console.log('=== CONTENT DEBUG ===');
+                console.log('Context:', content);
+                console.log('Storage:', storageContent);
+                console.log('Raw:', localStorage.getItem('violet-content'));
+              }}
+              style={{
+                background: '#0073aa',
+                color: 'white',
+                padding: '5px 10px',
+                borderRadius: '5px',
+                border: 'none',
+                cursor: 'pointer',
+                fontSize: '11px'
+              }}
+            >
+              📋 Log to Console
+            </button>
+          </div>
+        </div>
+      )}
+    </>
   );
 };
 

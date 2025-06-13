@@ -1,5 +1,5 @@
 [build]
-  command = "npm install --legacy-peer-deps && npm run build"
+  command = "npm run build"
   publish = "dist"
   
 [build.environment]
@@ -63,11 +63,12 @@
 [[headers]]
   for = "/*"
   [headers.values]
-    X-Frame-Options = ""
+    X-Frame-Options = "SAMEORIGIN"
     X-XSS-Protection = "1; mode=block"
     X-Content-Type-Options = "nosniff"
     Referrer-Policy = "strict-origin-when-cross-origin"
-    Content-Security-Policy = "frame-ancestors 'self' https://wp.violetrainwater.com https://violetrainwater.com https://www.violetrainwater.com https://lustrous-dolphin-447351.netlify.app http://localhost:* https://*.violetrainwater.com"
+    # Allow iframe embedding from WordPress admin
+    Content-Security-Policy = "frame-ancestors 'self' https://wp.violetrainwater.com https://violetrainwater.com"
 
 # Cache control for static assets
 [[headers]]

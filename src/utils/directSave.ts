@@ -46,6 +46,12 @@ export const saveWordPressContent = (changes: any[]) => {
     localStorage.setItem('violet-content', JSON.stringify(toSave));
     console.log('💾 Saved to localStorage:', toSave);
     
+    // Force reload to show changes
+    setTimeout(() => {
+      console.log('🔄 Reloading page to show new content...');
+      window.location.reload();
+    }, 500);
+    
     return true;
   } catch (error) {
     console.error('❌ Error saving content:', error);

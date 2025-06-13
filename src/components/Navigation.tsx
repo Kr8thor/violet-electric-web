@@ -2,85 +2,53 @@ import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Link } from 'react-router-dom';
 import { useWordPressSiteContent } from '@/hooks/useWordPressSiteContent';
-import { EditableImage, EditableLink } from './UniversalEditingComponents';
-import EditableText from './EditableText';
 
 const Navigation = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const { siteTitle, loading } = useWordPressSiteContent();
+  
+  const navItems = [{
+    name: 'Home',
+    href: '/'
+  }, {
+    name: 'About',
+    href: '/about'
+  }, {
+    name: 'Keynotes',
+    href: '/keynotes'
+  }, {
+    name: 'Testimonials',
+    href: '/testimonials'
+  }, {
+    name: 'Contact',
+    href: '/contact'
+  }];
 
   return (
     <nav className="fixed top-0 left-0 right-0 z-50 bg-violet-600 w-full">
       <div className="max-w-7xl mx-auto px-6 lg:px-8">
         <div className="flex items-center justify-between h-20">
-          {/* Logo - Now fully editable */}
+          {/* Logo - WordPress-powered title but keep exact styling */}
           <Link to="/" className="flex items-center space-x-3">
-            <EditableImage
-              field="nav_logo"
-              defaultSrc="/lovable-uploads/4a037212-f4a5-420d-ad52-9064e5032e1d.png"
-              alt="Violet Rainwater Logo"
-              className="h-12 w-auto"
-            />
+            <img src="/lovable-uploads/4a037212-f4a5-420d-ad52-9064e5032e1d.png" alt="Violet Rainwater Logo" className="h-12 w-auto" />
             <span className="text-2xl font-bold gradient-text text-slate-50">
-              <EditableText
-                field="nav_site_title"
-                defaultValue={loading ? 'Violet Rainwater' : siteTitle || 'Violet Rainwater'}
-                as="span"
-                className="text-2xl font-bold gradient-text text-slate-50"
-              />
+              {loading ? 'Violet Rainwater' : siteTitle}
             </span>
           </Link>
 
-          {/* Desktop Navigation - All links now editable */}
+          {/* Desktop Navigation - Keep exactly the same */}
           <div className="hidden md:flex items-center space-x-8">
-            <a
-              data-violet-field="nav_home"
-              href="/"
-              className="text-white hover:text-white font-medium transition-colors duration-200 relative group"
-            >
-              <EditableText field="nav_home" defaultValue="Home" />
-              <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-violet-700 transition-all duration-300 group-hover:w-full"></span>
-            </a>
-            <a
-              data-violet-field="nav_about"
-              href="/about"
-              className="text-white hover:text-white font-medium transition-colors duration-200 relative group"
-            >
-              <EditableText field="nav_about" defaultValue="About" />
-              <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-violet-700 transition-all duration-300 group-hover:w-full"></span>
-            </a>
-            <a
-              data-violet-field="nav_keynotes"
-              href="/keynotes"
-              className="text-white hover:text-white font-medium transition-colors duration-200 relative group"
-            >
-              <EditableText field="nav_keynotes" defaultValue="Keynotes" />
-              <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-violet-700 transition-all duration-300 group-hover:w-full"></span>
-            </a>
-            <a
-              data-violet-field="nav_testimonials"
-              href="/testimonials"
-              className="text-white hover:text-white font-medium transition-colors duration-200 relative group"
-            >
-              <EditableText field="nav_testimonials" defaultValue="Testimonials" />
-              <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-violet-700 transition-all duration-300 group-hover:w-full"></span>
-            </a>
-            <a
-              data-violet-field="nav_contact"
-              href="/contact"
-              className="text-white hover:text-white font-medium transition-colors duration-200 relative group"
-            >
-              <EditableText field="nav_contact" defaultValue="Contact" />
-              <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-violet-700 transition-all duration-300 group-hover:w-full"></span>
-            </a>
-            <a
-              data-violet-field="nav_cta_button"
-              href="/contact"
-              className="luminous-button px-6 py-2 rounded-full"
-              style={{ backgroundColor: '#fbbf24', color: '#fff' }}
-            >
-              <EditableText field="nav_book_violet" defaultValue="Book Violet" />
-            </a>
+            {navItems.map(item => (
+              <Link key={item.name} to={item.href} className="text-white hover:text-white font-medium transition-colors duration-200 relative group">
+                {item.name}
+                <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-violet-700 transition-all duration-300 group-hover:w-full"></span>
+              </Link>
+            ))}
+            <Link to="/contact">
+              <Button className="luminous-button px-6 py-2 rounded-full">
+                Book Violet
+              </Button>
+            </Link>
           </div>
 
           {/* Mobile Menu Button - Keep exactly the same */}
@@ -93,66 +61,17 @@ const Navigation = () => {
           </button>
         </div>
 
-        {/* Mobile Menu - Also editable */}
+        {/* Mobile Menu - Keep exactly the same */}
         {isMenuOpen && (
           <div className="md:hidden py-4 border-t border-violet-700">
-            <EditableLink
-              field="nav_home_mobile"
-              textField="nav_home_text"
-              urlField="nav_home_url"
-              defaultText="Home"
-              defaultUrl="/"
-              className="block py-3 text-white hover:text-violet-200 font-medium transition-colors duration-200"
-              target="_self"
-            />
-
-            <EditableLink
-              field="nav_about_mobile"
-              textField="nav_about_text"
-              urlField="nav_about_url"
-              defaultText="About"
-              defaultUrl="/about"
-              className="block py-3 text-white hover:text-violet-200 font-medium transition-colors duration-200"
-              target="_self"
-            />
-
-            <EditableLink
-              field="nav_keynotes_mobile"
-              textField="nav_keynotes_text"
-              urlField="nav_keynotes_url"
-              defaultText="Keynotes"
-              defaultUrl="/keynotes"
-              className="block py-3 text-white hover:text-violet-200 font-medium transition-colors duration-200"
-              target="_self"
-            />
-
-            <EditableLink
-              field="nav_testimonials_mobile"
-              textField="nav_testimonials_text"
-              urlField="nav_testimonials_url"
-              defaultText="Testimonials"
-              defaultUrl="/testimonials"
-              className="block py-3 text-white hover:text-violet-200 font-medium transition-colors duration-200"
-              target="_self"
-            />
-
-            <EditableLink
-              field="nav_contact_mobile"
-              textField="nav_contact_text"
-              urlField="nav_contact_url"
-              defaultText="Contact"
-              defaultUrl="/contact"
-              className="block py-3 text-white hover:text-violet-200 font-medium transition-colors duration-200"
-              target="_self"
-            />
-
+            {navItems.map(item => (
+              <Link key={item.name} to={item.href} className="block py-3 text-white hover:text-violet-200 font-medium transition-colors duration-200" onClick={() => setIsMenuOpen(false)}>
+                {item.name}
+              </Link>
+            ))}
             <Link to="/contact" onClick={() => setIsMenuOpen(false)}>
               <Button className="luminous-button w-full mt-4 rounded-full">
-                <EditableText
-                  field="nav_cta_button_mobile"
-                  defaultValue="Book Violet"
-                  as="span"
-                />
+                Book Violet
               </Button>
             </Link>
           </div>

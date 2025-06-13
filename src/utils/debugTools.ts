@@ -1,29 +1,13 @@
 // Global debug utilities for testing content persistence
-// Enhanced with content state management debugging
-
-import { initializeContentDebugTools } from './contentDebugTools';
+// Add this to your window object for debugging
 
 declare global {
   interface Window {
     violetDebug: {
-      // Original debug tools
       testSave: (fieldName: string, value: string) => void;
       clearAll: () => void;
       showContent: () => void;
       simulateWordPressSave: (changes: Array<{field_name: string, field_value: string}>) => void;
-      
-      // Enhanced content state tools
-      getContentState: () => any;
-      getCachedState: () => any;
-      getLastSync: () => Date | null;
-      getLastSave: () => Date | null;
-      forceSync: () => Promise<void>;
-      clearCache: () => void;
-      simulateSave: (field: string, value: string) => void;
-      isInGracePeriod: () => boolean;
-      getGracePeriodRemaining: () => number;
-      enableLogging: () => void;
-      disableLogging: () => void;
     };
   }
 }
@@ -32,16 +16,12 @@ export const initializeDebugTools = () => {
   if (typeof window === 'undefined') return;
   
   // Don't reinitialize if already exists
-  if (window.violetDebug && window.violetDebug.getContentState) {
+  if (window.violetDebug) {
     console.log('🛠️ Debug tools already initialized');
     return;
   }
 
-  // Initialize the enhanced content debug tools first
-  initializeContentDebugTools();
-  
-  // Add the original debug tools
-  const originalTools = {
+  window.violetDebug = {
     // Test saving a single field
     testSave: (fieldName: string, value: string) => {
       console.log(`🧪 Testing save: ${fieldName} = ${value}`);
@@ -61,10 +41,7 @@ export const initializeDebugTools = () => {
     clearAll: () => {
       console.log('🗑️ Clearing all content...');
       localStorage.removeItem('violet-content');
-      localStorage.removeItem('violet-content-state');
-      localStorage.removeItem('violet-content-cache');
-      localStorage.removeItem('violet-last-sync-timestamp');
-      console.log('✅ All content cleared. Refresh page to see changes.');
+      console.log('✅ Content cleared. Refresh page to see changes.');
     },
 
     // Show current content
@@ -72,53 +49,44 @@ export const initializeDebugTools = () => {
       const raw = localStorage.getItem('violet-content');
       console.log('📦 Raw localStorage:', raw);
       
-      try {
-        const parsed = raw ? JSON.parse(raw) : {};
-        console.log('📝 Parsed content:', parsed);
-        console.table(parsed);
-      } catch (e) {
-        console.error('❌ Failed to parse content:', e);
+      if (raw) {
+        try {
+          const parsed = JSON.parse(raw);
+          console.log('📄 Parsed content:', parsed);
+          console.table(parsed.content);
+        } catch (e) {
+          console.error('❌ Failed to parse content:', e);
+        }
+      } else {
+        console.log('📭 No content in localStorage');
       }
     },
 
     // Simulate a WordPress save message
-    simulateWordPressSave: (changes: Array<{field_name: string, field_value: string}>) => {
-      console.log('🔧 Simulating WordPress save...', changes);
+    simulateWordPressSave: (changes) => {
+      console.log('🎭 Simulating WordPress save with changes:', changes);
       
-      // Simulate the postMessage from WordPress
       window.postMessage({
         type: 'violet-apply-saved-changes',
         savedChanges: changes,
-        timestamp: Date.now(),
-        syncDelay: 30000
+        timestamp: Date.now()
       }, window.location.origin);
       
-      console.log('✅ Save message sent. Check content with showContent()');
+      console.log('✅ Message posted. Check console for processing logs.');
     }
-  };
-  
-  // Merge with existing tools
-  window.violetDebug = {
-    ...window.violetDebug,
-    ...originalTools
   };
 
   console.log(`
-🛠️ Violet Debug Tools Enhanced!
+🛠️ Violet Debug Tools Loaded!
+Available commands:
 
-Quick test commands:
-1. Test if saves persist:
-   violetDebug.simulateSave('hero_title', 'Test ' + Date.now())
-   
-2. Check grace period:
-   violetDebug.isInGracePeriod()
-   violetDebug.getGracePeriodRemaining()
-   
-3. View content state:
-   violetDebug.getContentState()
-   
-4. Force sync (after grace period):
-   violetDebug.forceSync()
+window.violetDebug.testSave('hero_title', 'New Title')
+window.violetDebug.clearAll()
+window.violetDebug.showContent()
+window.violetDebug.simulateWordPressSave([
+  { field_name: 'hero_title', field_value: 'Test Title' },
+  { field_name: 'hero_subtitle', field_value: 'Test Subtitle' }
+])
   `);
 };
 
