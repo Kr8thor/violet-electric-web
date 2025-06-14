@@ -90,38 +90,83 @@ class WordPressCommunication {
       element.classList.add('violet-editable');
       (element as HTMLElement).setAttribute('data-violet-editable', 'true');
       
-      // Make element editable and add click handler
+      // Add click handler for inline editing
       element.addEventListener('click', this.handleElementClick.bind(this));
       
-      // Add visual editing indicators
+      // Professional visual editing indicators
       const htmlElement = element as HTMLElement;
       htmlElement.style.outline = '2px dashed #0073aa';
       htmlElement.style.outlineOffset = '2px';
       htmlElement.style.cursor = 'text';
+      htmlElement.style.transition = 'all 0.2s ease';
+      
+      // Add hover effects for better UX
+      const handleMouseEnter = () => {
+        if (!htmlElement.hasAttribute('data-violet-editing')) {
+          htmlElement.style.outline = '2px solid #0073aa';
+          htmlElement.style.backgroundColor = 'rgba(0, 115, 170, 0.05)';
+          htmlElement.style.transform = 'translateY(-1px)';
+          htmlElement.style.boxShadow = '0 2px 8px rgba(0, 115, 170, 0.15)';
+        }
+      };
+      
+      const handleMouseLeave = () => {
+        if (!htmlElement.hasAttribute('data-violet-editing')) {
+          htmlElement.style.outline = '2px dashed #0073aa';
+          htmlElement.style.backgroundColor = '';
+          htmlElement.style.transform = '';
+          htmlElement.style.boxShadow = '';
+        }
+      };
+      
+      element.addEventListener('mouseenter', handleMouseEnter);
+      element.addEventListener('mouseleave', handleMouseLeave);
+      
+      // Store cleanup functions
+      (element as any).__violetHoverCleanup = () => {
+        element.removeEventListener('mouseenter', handleMouseEnter);
+        element.removeEventListener('mouseleave', handleMouseLeave);
+      };
     });
 
     this.sendToWordPress({
       type: 'violet-editing-enabled',
-      message: 'Editing mode activated'
+      message: 'Inline editing mode activated - click any text to edit directly'
     });
   }
 
   private disableEditing() {
-    // Remove editing indicators
+    // Remove editing indicators and cleanup
     document.querySelectorAll('[data-violet-editable]').forEach(element => {
       element.removeAttribute('data-violet-editable');
       element.removeEventListener('click', this.handleElementClick.bind(this));
       
-      // Remove visual indicators
+      // Clean up hover effects
+      if ((element as any).__violetHoverCleanup) {
+        (element as any).__violetHoverCleanup();
+        delete (element as any).__violetHoverCleanup;
+      }
+      
+      // Clean up any active inline editing
+      if (element.hasAttribute('data-violet-editing')) {
+        this.cleanupInlineEditing(element as HTMLElement);
+      }
+      
+      // Remove all visual indicators
       const htmlElement = element as HTMLElement;
       htmlElement.style.outline = '';
       htmlElement.style.outlineOffset = '';
       htmlElement.style.cursor = '';
+      htmlElement.style.backgroundColor = '';
+      htmlElement.style.transform = '';
+      htmlElement.style.boxShadow = '';
+      htmlElement.style.transition = '';
+      htmlElement.contentEditable = 'false';
     });
 
     this.sendToWordPress({
       type: 'violet-editing-disabled',
-      message: 'Editing mode deactivated'
+      message: 'Inline editing disabled'
     });
   }
 
@@ -131,18 +176,123 @@ class WordPressCommunication {
 
     const element = event.target as HTMLElement;
     const field = element.getAttribute('data-violet-field');
-    const currentValue = this.getCleanTextContent(element);
+    
+    if (field && !element.hasAttribute('data-violet-editing')) {
+      console.log('🎯 Element clicked for inline editing:', field);
+      this.enableInlineEditing(element, field);
+    }
+  }
 
-    if (field) {
-      console.log('🎯 Element clicked for editing:', field, currentValue);
-      
-      // For now, use simple prompt - can be enhanced to rich text modal later
-      const newValue = prompt(`Edit ${field}:`, currentValue);
-      
-      if (newValue !== null && newValue !== currentValue) {
-        this.updateElementContent(element, newValue);
-        this.markAsChanged(field, newValue);
+  private enableInlineEditing(element: HTMLElement, field: string) {
+    // Mark as currently being edited
+    element.setAttribute('data-violet-editing', 'true');
+    
+    // Store original content for undo
+    const originalContent = this.getCleanTextContent(element);
+    element.setAttribute('data-violet-original', originalContent);
+    
+    // Make element directly editable
+    element.contentEditable = 'true';
+    element.focus();
+    
+    // Enhanced visual feedback for active editing
+    element.style.outline = '2px solid #00a32a';  // Green outline when editing
+    element.style.outlineOffset = '2px';
+    element.style.backgroundColor = 'rgba(0, 163, 42, 0.05)';  // Subtle green background
+    element.style.cursor = 'text';
+    
+    // Position cursor at end of text
+    this.setCursorToEnd(element);
+    
+    // Add event listeners for save/cancel
+    const saveEdit = () => this.saveInlineEdit(element, field);
+    const cancelEdit = () => this.cancelInlineEdit(element);
+    
+    // Auto-save on blur (click outside)
+    element.addEventListener('blur', saveEdit, { once: true });
+    
+    // Save on Enter, cancel on Escape
+    const handleKeyPress = (e: KeyboardEvent) => {
+      if (e.key === 'Enter' && !e.shiftKey) {
+        e.preventDefault();
+        element.blur(); // This will trigger save
+      } else if (e.key === 'Escape') {
+        e.preventDefault();
+        cancelEdit();
       }
+    };
+    
+    element.addEventListener('keydown', handleKeyPress);
+    
+    // Store cleanup function
+    (element as any).__violetCleanup = () => {
+      element.removeEventListener('keydown', handleKeyPress);
+    };
+  }
+
+  private saveInlineEdit(element: HTMLElement, field: string) {
+    const newValue = this.getCleanTextContent(element);
+    const originalValue = element.getAttribute('data-violet-original') || '';
+    
+    // Cleanup editing state
+    this.cleanupInlineEditing(element);
+    
+    // Only save if content actually changed
+    if (newValue !== originalValue) {
+      console.log('💾 Saving inline edit:', field, newValue);
+      this.markAsChanged(field, newValue);
+      
+      // Visual feedback for successful edit
+      element.style.backgroundColor = 'rgba(0, 163, 42, 0.1)';
+      setTimeout(() => {
+        element.style.backgroundColor = '';
+      }, 500);
+    }
+  }
+
+  private cancelInlineEdit(element: HTMLElement) {
+    const originalValue = element.getAttribute('data-violet-original') || '';
+    
+    // Restore original content
+    if (element.tagName === 'INPUT' || element.tagName === 'TEXTAREA') {
+      (element as HTMLInputElement).value = originalValue;
+    } else {
+      element.textContent = originalValue;
+    }
+    
+    this.cleanupInlineEditing(element);
+    console.log('❌ Inline edit cancelled');
+  }
+
+  private cleanupInlineEditing(element: HTMLElement) {
+    // Remove editing attributes
+    element.removeAttribute('data-violet-editing');
+    element.removeAttribute('data-violet-original');
+    element.contentEditable = 'false';
+    
+    // Restore normal editing visual state
+    element.style.outline = '2px dashed #0073aa';
+    element.style.outlineOffset = '2px';
+    element.style.backgroundColor = '';
+    element.style.cursor = 'text';
+    
+    // Cleanup event listeners
+    if ((element as any).__violetCleanup) {
+      (element as any).__violetCleanup();
+      delete (element as any).__violetCleanup;
+    }
+  }
+
+  private setCursorToEnd(element: HTMLElement) {
+    // Set cursor position to end of content
+    const range = document.createRange();
+    const selection = window.getSelection();
+    
+    if (selection && element.childNodes.length > 0) {
+      range.selectNodeContents(element);
+      range.collapse(false); // Collapse to end
+      selection.removeAllRanges();
+      selection.addRange(range);
     }
   }
 
