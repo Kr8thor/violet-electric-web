@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import './WordPressEditor.css';
 import EditorToolbar from './EditorToolbar';
-import { WP_JWT_TOKEN } from '../utils/wpJwtToken';
+import { getJwtToken } from '../utils/wpJwtToken';
 import { saveToWordPressAPI, elementToSaveChange, testWordPressAPI } from '../utils/directWordPressSave';
 import { wordPressCommunication } from '../utils/WordPressCommunication';
 
@@ -556,7 +556,7 @@ const WordPressRichEditor: React.FC = () => {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
-            'Authorization': `Bearer ${WP_JWT_TOKEN}`
+            'Authorization': `Bearer ${getJwtToken()}`
           },
           body: JSON.stringify({ changes })
         });
