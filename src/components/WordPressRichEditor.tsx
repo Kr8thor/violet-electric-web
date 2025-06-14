@@ -87,7 +87,7 @@ const WordPressRichEditor: React.FC = () => {
       } else if (type === 'violet-open-rich-text-modal') {
         console.log('📝 Rich text modal requested for field:', event.data.field);
         // Handle rich text modal opening
-        handleRichTextModalRequest(event.data);
+        // handleRichTextModalRequest(event.data);
       }
     };
 
