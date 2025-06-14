@@ -550,30 +550,52 @@ const WordPressRichEditor: React.FC = () => {
           editor: 'rich',
         };
       });
+      
       try {
         console.log('[VIOLET] Attempting to save content:', changes);
+        
+        // Check for JWT token
+        const jwtToken = getJwtToken();
+        if (!jwtToken || jwtToken.trim() === '') {
+          console.warn('[VIOLET] No JWT token available, attempting save without authentication');
+          // Try to save without authentication header (let WordPress handle it)
+        }
+        
+        // Prepare headers
+        const headers: Record<string, string> = {
+          'Content-Type': 'application/json'
+        };
+        
+        // Only add authorization header if we have a valid token
+        if (jwtToken && jwtToken.trim() !== '') {
+          headers['Authorization'] = `Bearer ${jwtToken}`;
+          console.log('[VIOLET] Using JWT token for authentication');
+        } else {
+          console.log('[VIOLET] No JWT token - using cookie authentication');
+        }
+        
         const res = await fetch('https://wp.violetrainwater.com/wp-json/violet/v1/rich-content/save-batch', {
           method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${getJwtToken()}`
-          },
+          headers: headers,
+          credentials: 'include', // Include cookies for WordPress auth
           body: JSON.stringify({ changes })
         });
+        
         const data = await res.json();
         console.log('[VIOLET] Save API response:', data);
+        
         if (data.success) {
           window.parent.postMessage({ type: 'violet-content-saved', success: true, details: data }, '*');
           return true;
         } else {
           window.parent.postMessage({ type: 'violet-content-saved', success: false, error: data.message || 'Save failed', details: data }, '*');
-          alert('[VIOLET] Save failed: ' + (data.message || 'Unknown error'));
+          console.error('[VIOLET] Save failed:', data.message || 'Unknown error');
           return false;
         }
       } catch (err) {
         console.error('[VIOLET] Save error:', err);
         window.parent.postMessage({ type: 'violet-content-saved', success: false, error: err?.message || 'Save error', details: err }, '*');
-        alert('[VIOLET] Save error: ' + (err?.message || err));
+        console.error('[VIOLET] Save error:', err?.message || err);
         return false;
       }
     }
