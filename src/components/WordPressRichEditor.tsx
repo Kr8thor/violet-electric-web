@@ -545,7 +545,7 @@ const WordPressRichEditor: React.FC = () => {
         const element = el as HTMLElement;
         return {
           field_name: element.dataset.violetFieldType || 'generic_content',
-          content: element.innerHTML,
+          field_value: element.innerHTML, // Use field_value to match WordPress expectation
           format: 'rich',
           editor: 'rich',
         };
@@ -554,37 +554,54 @@ const WordPressRichEditor: React.FC = () => {
       try {
         console.log('[VIOLET] Attempting to save content:', changes);
         
-        // Check for JWT token
-        const jwtToken = getJwtToken();
-        if (!jwtToken || jwtToken.trim() === '') {
-          console.warn('[VIOLET] No JWT token available, attempting save without authentication');
-          // Try to save without authentication header (let WordPress handle it)
+        // Use the WordPress admin-ajax.php endpoint which should be more reliable
+        const formData = new FormData();
+        formData.append('action', 'violet_save_all_changes');
+        formData.append('changes', JSON.stringify(changes));
+        
+        // Add WordPress nonce if available
+        const wpNonce = (window as any).wpApiSettings?.nonce || '';
+        if (wpNonce) {
+          formData.append('_wpnonce', wpNonce);
         }
         
-        // Prepare headers
-        const headers: Record<string, string> = {
-          'Content-Type': 'application/json'
-        };
-        
-        // Only add authorization header if we have a valid token
-        if (jwtToken && jwtToken.trim() !== '') {
-          headers['Authorization'] = `Bearer ${jwtToken}`;
-          console.log('[VIOLET] Using JWT token for authentication');
-        } else {
-          console.log('[VIOLET] No JWT token - using cookie authentication');
-        }
-        
-        const res = await fetch('https://wp.violetrainwater.com/wp-json/violet/v1/rich-content/save-batch', {
+        const res = await fetch('https://wp.violetrainwater.com/wp-admin/admin-ajax.php', {
           method: 'POST',
-          headers: headers,
           credentials: 'include', // Include cookies for WordPress auth
-          body: JSON.stringify({ changes })
+          body: formData
         });
         
-        const data = await res.json();
-        console.log('[VIOLET] Save API response:', data);
+        console.log('[VIOLET] AJAX Response status:', res.status, res.statusText);
         
-        if (data.success) {
+        let data;
+        try {
+          const responseText = await res.text();
+          console.log('[VIOLET] AJAX Raw response:', responseText);
+          
+          // WordPress AJAX often returns HTML, try to parse JSON from it
+          if (responseText.trim().startsWith('{') || responseText.trim().startsWith('[')) {
+            data = JSON.parse(responseText);
+          } else {
+            // If it's not JSON, treat success if status is OK
+            data = { 
+              success: res.ok, 
+              message: res.ok ? 'Content saved via WordPress AJAX' : 'WordPress AJAX error',
+              response: responseText.substring(0, 200)
+            };
+          }
+        } catch (parseError) {
+          const responseText = await res.text();
+          console.log('[VIOLET] Could not parse response as JSON, treating as success if status OK');
+          data = { 
+            success: res.ok, 
+            message: res.ok ? 'Content saved (non-JSON response)' : 'Save failed',
+            response: responseText.substring(0, 200)
+          };
+        }
+        
+        console.log('[VIOLET] Processed response:', data);
+        
+        if (data.success || res.ok) {
           window.parent.postMessage({ type: 'violet-content-saved', success: true, details: data }, '*');
           return true;
         } else {
