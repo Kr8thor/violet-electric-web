@@ -1,0 +1,13 @@
+WordPress REST API Connectivity Test PRD
+
+Goal: Verify that the WordPress REST API is accessible and functional for both GET and POST requests via the /wp-json/violet/v1/test-auth and /wp-json/violet/v1/rich-content/save endpoints.
+
+Requirements:
+- Test GET request to /wp-json/violet/v1/test-auth and confirm valid JSON response.
+- Test POST request to /wp-json/violet/v1/rich-content/save with sample data and confirm success response.
+- Log results and errors for both requests.
+- Ensure CORS and authentication are handled if required.
+
+Success Criteria:
+- Both GET and POST requests return expected responses without errors.
+- Any issues are logged and reported for debugging. 

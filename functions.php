@@ -34,57 +34,17 @@ if (!defined('ABSPATH')) {
     exit;
 }
 
-// ============================================================================
-// 🚨 EMERGENCY CORS FIX - CRITICAL FOR OPTIONS REQUESTS
-// ============================================================================
-
-// URGENT: Handle OPTIONS requests BEFORE WordPress processes anything
-add_action('plugins_loaded', 'violet_emergency_cors_fix', -999999);
-function violet_emergency_cors_fix() {
-    if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
-        // Get the origin
-        $origin = isset($_SERVER['HTTP_ORIGIN']) ? $_SERVER['HTTP_ORIGIN'] : '';
-        $allowed_origins = array(
-            'https://lustrous-dolphin-447351.netlify.app',
-            'https://violetrainwater.com',
-            'https://www.violetrainwater.com'
-        );
-        
-        // Always allow if it's from allowed origins
-        if ($origin && in_array($origin, $allowed_origins, true)) {
-            header('Access-Control-Allow-Origin: ' . $origin);
-        }
-        
-        // Set all required CORS headers
-        header('Access-Control-Allow-Methods: GET, POST, OPTIONS');
-        header('Access-Control-Allow-Headers: Content-Type, Authorization, X-Requested-With, X-WP-Nonce');
-        header('Access-Control-Allow-Credentials: true');
-        header('Access-Control-Max-Age: 86400');
-        
-        // Return 200 OK and exit immediately
-        http_response_code(200);
-        exit();
-    }
-}
-
-// Even more aggressive - handle at the very earliest possible moment
-if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
-    $origin = isset($_SERVER['HTTP_ORIGIN']) ? $_SERVER['HTTP_ORIGIN'] : '';
-    $allowed_origins = array(
-        'https://lustrous-dolphin-447351.netlify.app',
-        'https://violetrainwater.com',
-        'https://www.violetrainwater.com'
-    );
-    
-    if ($origin && in_array($origin, $allowed_origins, true)) {
-        header('Access-Control-Allow-Origin: ' . $origin);
-        header('Access-Control-Allow-Methods: GET, POST, OPTIONS');
-        header('Access-Control-Allow-Headers: Content-Type, Authorization, X-Requested-With, X-WP-Nonce');
-        header('Access-Control-Allow-Credentials: true');
-        header('Access-Control-Max-Age: 86400');
-        http_response_code(200);
-        exit();
-    }
+// Emergency CORS preflight fix for Netlify/React editor
+if (
+    isset($_SERVER['REQUEST_METHOD']) && $_SERVER['REQUEST_METHOD'] === 'OPTIONS' &&
+    isset($_SERVER['HTTP_ORIGIN']) && $_SERVER['HTTP_ORIGIN'] === 'https://lustrous-dolphin-447351.netlify.app'
+) {
+    header('Access-Control-Allow-Origin: https://lustrous-dolphin-447351.netlify.app');
+    header('Access-Control-Allow-Credentials: true');
+    header('Access-Control-Allow-Methods: POST, GET, OPTIONS');
+    header('Access-Control-Allow-Headers: X-Requested-With, Content-Type, Accept, Origin, Authorization, X-WP-Nonce');
+    status_header(200);
+    exit;
 }
 
 // ============================================================================
@@ -5149,4 +5109,207 @@ function violet_save_all_changes_handler() {
         'received' => $changes
     ]);
 }
+
+// CORS for Netlify frontend
+add_action('init', function() {
+    $allowed_origin = 'https://lustrous-dolphin-447351.netlify.app';
+    if (isset($_SERVER['HTTP_ORIGIN']) && $_SERVER['HTTP_ORIGIN'] === $allowed_origin) {
+        header('Access-Control-Allow-Origin: ' . $allowed_origin);
+        header('Access-Control-Allow-Credentials: true');
+        header('Access-Control-Allow-Methods: POST, GET, OPTIONS');
+        header('Access-Control-Allow-Headers: X-Requested-With, Content-Type, Accept, Origin, Authorization, X-WP-Nonce');
+        if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
+            status_header(200);
+            exit;
+        }
+    }
+});
+
+// ============================================================================
+// 🔍 WORDPRESS AJAX HANDLER DEBUG - Add to functions.php
+// ============================================================================
+
+// 1. Verify our AJAX handler is registered
+add_action('init', function() {
+    error_log('🔍 VIOLET DEBUG: Checking AJAX handler registration...');
+    error_log('🔍 wp_ajax_violet_save_all_changes registered: ' . (has_action('wp_ajax_violet_save_all_changes') ? 'YES' : 'NO'));
+    error_log('🔍 wp_ajax_nopriv_violet_save_all_changes registered: ' . (has_action('wp_ajax_nopriv_violet_save_all_changes') ? 'YES' : 'NO'));
+});
+
+// 2. Debug ALL incoming requests to admin-ajax.php
+add_action('wp_ajax_violet_save_all_changes', 'violet_debug_handler', 1);
+add_action('wp_ajax_nopriv_violet_save_all_changes', 'violet_debug_handler', 1);
+
+function violet_debug_handler() {
+    error_log('🎯 VIOLET AJAX HANDLER EXECUTED!');
+    error_log('🔍 REQUEST_METHOD: ' . $_SERVER['REQUEST_METHOD']);
+    error_log('🔍 POST data: ' . print_r($_POST, true));
+    error_log('🔍 Action parameter: ' . ($_POST['action'] ?? 'MISSING'));
+    error_log('🔍 Changes parameter: ' . ($_POST['changes'] ?? 'MISSING'));
+    error_log('🔍 Current user: ' . wp_get_current_user()->user_login);
+    error_log('🔍 User logged in: ' . (is_user_logged_in() ? 'YES' : 'NO'));
+    error_log('🔍 User can edit: ' . (current_user_can('edit_posts') ? 'YES' : 'NO'));
+    // Don't interfere with the actual handler - remove this debug hook
+    remove_action('wp_ajax_violet_save_all_changes', 'violet_debug_handler', 1);
+    remove_action('wp_ajax_nopriv_violet_save_all_changes', 'violet_debug_handler', 1);
+}
+
+// 3. Debug ALL admin-ajax.php requests to see what's happening
+add_action('init', function() {
+    if (defined('DOING_AJAX') && DOING_AJAX) {
+        error_log('🔍 AJAX REQUEST DETECTED');
+        error_log('🔍 Action: ' . ($_POST['action'] ?? $_GET['action'] ?? 'NO ACTION'));
+        error_log('🔍 All POST data: ' . print_r($_POST, true));
+    }
+});
+
+// 4. Intercept heartbeat to see if that's conflicting
+add_filter('heartbeat_received', function($response, $data) {
+    error_log('💓 HEARTBEAT INTERCEPTED - this might be conflicting!');
+    error_log('💓 Heartbeat data: ' . print_r($data, true));
+    return $response;
+}, 10, 2);
+
+// 5. Enhanced AJAX handler with more debugging
+add_action('wp_ajax_violet_save_all_changes', 'violet_save_all_changes_handler_debug');
+add_action('wp_ajax_nopriv_violet_save_all_changes', 'violet_save_all_changes_handler_debug');
+
+function violet_save_all_changes_handler_debug() {
+    error_log('🎯 VIOLET SAVE HANDLER STARTING...');
+    // Check user permissions
+    if (!current_user_can('edit_posts')) {
+        error_log('❌ User permission check failed');
+        wp_send_json_error(['message' => 'Insufficient permissions']);
+    }
+    error_log('✅ User has edit permissions');
+    // Parse changes from POST
+    $changes = json_decode(stripslashes($_POST['changes'] ?? '[]'), true);
+    if (!is_array($changes)) {
+        error_log('❌ Changes data is not valid array');
+        wp_send_json_error(['message' => 'Invalid changes data']);
+    }
+    error_log('✅ Changes parsed successfully: ' . count($changes) . ' items');
+    // For now, just return success to test the communication
+    wp_send_json_success([
+        'message' => 'AJAX Handler Working!', 
+        'debug' => 'Custom handler executed successfully',
+        'received_changes' => count($changes),
+        'timestamp' => current_time('mysql')
+    ]);
+}
+
+// ============================================================================
+// JWT AUTHENTICATION SUPPORT FOR AJAX HANDLERS
+// ============================================================================
+function violet_jwt_authenticate_user() {
+    if (is_user_logged_in()) {
+        return true;
+    }
+    // Check for Authorization header
+    if (function_exists('getallheaders')) {
+        $headers = getallheaders();
+        if (!empty($headers['Authorization'])) {
+            $auth = $headers['Authorization'];
+            if (stripos($auth, 'Bearer ') === 0) {
+                $token = trim(substr($auth, 7));
+                if (class_exists('JWT_Auth')) {
+                    $jwt = new JWT_Auth();
+                    $user = $jwt->validate_token($token);
+                    if ($user && !is_wp_error($user)) {
+                        wp_set_current_user($user->data->ID);
+                        return true;
+                    }
+                }
+            }
+        }
+    }
+    return false;
+}
+
+// Update AJAX handler permission checks to use JWT authentication
+// Example for violet_save_all_changes_handler_debug:
+// Replace:
+// if (!current_user_can('edit_posts')) {
+//     error_log('❌ User permission check failed');
+//     wp_send_json_error(['message' => 'Insufficient permissions']);
+// }
+// With:
+//
+if (!violet_jwt_authenticate_user() || !current_user_can('edit_posts')) {
+    error_log('❌ User permission check failed (JWT or capability)');
+    wp_send_json_error(['message' => 'Insufficient permissions']);
+}
+
+// === TEMPORARY USER CAPABILITY DEBUG ===
+add_action('rest_api_init', function() {
+    $current_user = wp_get_current_user();
+    error_log('=== USER DEBUG INFO ===');
+    error_log('User ID: ' . $current_user->ID);
+    error_log('User Login: ' . $current_user->user_login);
+    error_log('User Roles: ' . implode(', ', $current_user->roles));
+    error_log('Can edit posts: ' . (current_user_can('edit_posts') ? 'YES' : 'NO'));
+    error_log('Can publish posts: ' . (current_user_can('publish_posts') ? 'YES' : 'NO'));
+    error_log('Can manage options: ' . (current_user_can('manage_options') ? 'YES' : 'NO'));
+    error_log('All capabilities: ' . implode(', ', array_keys($current_user->allcaps)));
+});
+
+// JWT-SAFE: Application Password authentication ONLY for Violet endpoints
+add_filter('rest_authentication_errors', function($result) {
+    // Skip if already authenticated or has errors
+    if (!empty($result)) {
+        return $result;
+    }
+    
+    // CRITICAL: Only apply to Violet endpoints, NOT JWT endpoints
+    $request_uri = $_SERVER['REQUEST_URI'] ?? '';
+    if (strpos($request_uri, '/wp-json/violet/') === false) {
+        // Not a Violet endpoint - let other plugins (like JWT) handle it
+        return $result;
+    }
+    
+    // Only handle Basic Auth for Violet endpoints
+    $auth_header = $_SERVER['HTTP_AUTHORIZATION'] ?? $_SERVER['REDIRECT_HTTP_AUTHORIZATION'] ?? '';
+    
+    if ($auth_header && strpos($auth_header, 'Basic ') === 0) {
+        $credentials = base64_decode(substr($auth_header, 6));
+        if (strpos($credentials, ':') !== false) {
+            list($username, $password) = explode(':', $credentials, 2);
+            if ($username && $password) {
+                // Try Application Password authentication
+                $user = wp_authenticate_application_password(null, $username, $password);
+                if (!is_wp_error($user) && $user) {
+                    wp_set_current_user($user->ID);
+                    error_log('✅ Violet: Application Password auth successful for: ' . $user->user_login);
+                    return true;
+                }
+                
+                // Don't try regular password for security
+                error_log('⚠️ Violet: Application Password auth failed for: ' . $username);
+            }
+        }
+    }
+    
+    // For Violet endpoints without valid auth, return original result
+    return $result;
+}, 20); // Lower priority so JWT plugins run first
+
+// Add debug endpoint to test authentication
+add_action('rest_api_init', function() {
+    register_rest_route('violet/v1', '/test-auth', array(
+        'methods' => 'GET',
+        'callback' => function() {
+            return array(
+                'success' => true,
+                'authenticated' => is_user_logged_in(),
+                'user_id' => get_current_user_id(),
+                'username' => wp_get_current_user()->user_login,
+                'can_edit_posts' => current_user_can('edit_posts'),
+                'can_manage_options' => current_user_can('manage_options'),
+                'user_roles' => wp_get_current_user()->roles,
+                'timestamp' => current_time('mysql')
+            );
+        },
+        'permission_callback' => '__return_true' // Open for testing
+    ));
+});
 ?>

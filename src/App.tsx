@@ -17,6 +17,7 @@ import NotFound from "./pages/NotFound";
 // Debug component (remove in production)
 // import WordPressBackendStatus from "./components/WordPressBackendStatus";
 import ContentDebugPanel from "./components/ContentDebugPanel";
+import ConnectivityTest from "./components/ConnectivityTest";
 import initializeDebugTools from "./utils/debugTools";
 
 // WordPress Editor Communication
@@ -27,6 +28,9 @@ import { ContentProvider } from "./contexts/ContentContext";
 
 // CRITICAL FIX: WordPress content sync
 import { initializeWordPressSync } from "./utils/wordpressContentSync";
+
+// WordPress Communication Handler - INITIALIZE IMMEDIATELY
+import "./utils/WordPressCommunication";
 
 const queryClient = new QueryClient();
 
@@ -85,6 +89,9 @@ const App = () => {
           
           {/* Content Debug Panel - helps diagnose save issues */}
           <ContentDebugPanel />
+          
+          {/* Connectivity Test - shows backend connection status */}
+          {import.meta.env.DEV && <ConnectivityTest />}
         </BrowserRouter>
       </ContentProvider>
     </ApolloProvider>

@@ -28,16 +28,21 @@ const IntroBrief = () => {
                 Neuroscience Expert
               </div>
               <div className="bg-white px-4 py-2 rounded-full border border-blush-200 text-violet-700 font-medium">
-                Keynote Speaker
+                Leadership Coach
               </div>
               <div className="bg-white px-4 py-2 rounded-full border border-blush-200 text-violet-700 font-medium">
-                Transformation Coach
+                Keynote Speaker
               </div>
             </div>
             
-            <Button variant="outline" className="border-blush-300 px-6 py-3 rounded-full transition-all duration-300 mx-[150px] bg-violet-600 hover:bg-violet-500 text-slate-50">
-              Learn More About Violet
-            </Button>
+            <div className="flex gap-4">
+              <Button size="lg" className="bg-gradient-to-r from-violet-600 to-blush-400 hover:from-violet-700 hover:to-blush-500 text-white font-semibold px-8 py-3 rounded-full shadow-lg hover:shadow-xl transition-all duration-300">
+                Book Consultation
+              </Button>
+              <Button variant="outline" size="lg" className="border-violet-600 text-violet-600 hover:bg-violet-50 font-semibold px-8 py-3 rounded-full">
+                Learn More
+              </Button>
+            </div>
           </div>
         </div>
       </div>

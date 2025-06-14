@@ -1,0 +1,16 @@
+# Emergency CORS fix for OPTIONS requests
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+    
+    # Handle OPTIONS requests for CORS preflight
+    RewriteCond %{REQUEST_METHOD} OPTIONS
+    RewriteCond %{HTTP_ORIGIN} ^https://(lustrous-dolphin-447351\.netlify\.app|violetrainwater\.com|www\.violetrainwater\.com)$
+    RewriteRule ^(.*)$ - [R=200,L]
+    
+    # Add CORS headers for OPTIONS requests
+    Header always set Access-Control-Allow-Origin "%{HTTP_ORIGIN}e" env=HTTP_ORIGIN
+    Header always set Access-Control-Allow-Methods "GET, POST, OPTIONS"
+    Header always set Access-Control-Allow-Headers "Content-Type, Authorization, X-Requested-With, X-WP-Nonce"
+    Header always set Access-Control-Allow-Credentials "true"
+    Header always set Access-Control-Max-Age "86400"
+</IfModule>
