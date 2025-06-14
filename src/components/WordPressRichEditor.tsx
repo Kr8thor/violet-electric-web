@@ -2,7 +2,6 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 import './WordPressEditor.css';
 import EditorToolbar from './EditorToolbar';
 import { getJwtToken } from '../utils/wpJwtToken';
-import { saveToWordPressAPI, elementToSaveChange, testWordPressAPI } from '../utils/directWordPressSave';
 import { wordPressCommunication } from '../utils/WordPressCommunication';
 
 interface RichEditableElement extends HTMLElement {
@@ -75,15 +74,15 @@ const WordPressRichEditor: React.FC = () => {
         handleSaveResponse(event.data);
       } else if (type === 'violet-test-api') {
         // Test API connection when requested
-        testWordPressAPI().then(result => {
-          console.log('🧪 API Test Result:', result);
-          if (window.parent !== window.self) {
-            window.parent.postMessage({
-              type: 'violet-api-test-result',
-              data: result
-            }, '*');
-          }
-        });
+        // testWordPressAPI().then(result => {
+        //   console.log('🧪 API Test Result:', result);
+        //   if (window.parent !== window.self) {
+        //     window.parent.postMessage({
+        //       type: 'violet-api-test-result',
+        //       data: result
+        //     }, '*');
+        //   }
+        // });
       } else if (type === 'violet-open-rich-text-modal') {
         console.log('📝 Rich text modal requested for field:', event.data.field);
         // Handle rich text modal opening
@@ -105,18 +104,6 @@ const WordPressRichEditor: React.FC = () => {
       window.removeEventListener('message', handleMessage);
       window.removeEventListener('wordpress-message', handleWordPressEvent as EventListener);
     };
-  }, []);
-
-  // Test API connection on component mount
-  useEffect(() => {
-    console.log('🔌 Testing WordPress API connection on mount...');
-    testWordPressAPI().then(result => {
-      if (result.success) {
-        console.log('✅ WordPress API connected successfully:', result.data);
-      } else {
-        console.warn('⚠️ WordPress API connection failed:', result.message);
-      }
-    });
   }, []);
 
   // Keyboard shortcuts for undo/redo only (no save)
@@ -200,7 +187,7 @@ const WordPressRichEditor: React.FC = () => {
     if (editorState.hasUnsavedChanges) {
       const confirmSave = window.confirm('You have unsaved changes. Do you want to save them before exiting edit mode?');
       if (confirmSave) {
-        saveAllChanges();
+        // saveAllChanges();
       }
     }
     
@@ -337,7 +324,7 @@ const WordPressRichEditor: React.FC = () => {
     
     // Set new auto-save timeout (3 seconds)
     saveTimeoutRef.current = setTimeout(() => {
-      saveAllChanges();
+      // saveAllChanges();
     }, 3000);
   };
 
@@ -347,66 +334,6 @@ const WordPressRichEditor: React.FC = () => {
     
     // Add visual indicator
     element.style.borderLeft = '4px solid #f0ad4e';
-  };
-
-  const saveAllChanges = async () => {
-    if (changedElements.size === 0) {
-      console.log('📝 No changes to save');
-      return;
-    }
-    
-    console.log(`💾 Saving ${changedElements.size} changed elements...`);
-    setEditorState(prev => ({ ...prev, isSaving: true }));
-    
-    // Show saving indicator
-    showSavingIndicator();
-    
-    try {
-      // Convert changed elements to save format
-      const changes = Array.from(changedElements).map(element => elementToSaveChange(element));
-      
-      // Save directly to WordPress API using JWT
-      const result = await saveToWordPressAPI(changes);
-      
-      if (result.success) {
-        console.log('✅ Content saved successfully to WordPress API');
-        
-        // Clear changed indicators
-        changedElements.forEach(element => {
-          element.style.borderLeft = '';
-        });
-        
-        setChangedElements(new Set());
-        setEditorState(prev => ({ 
-          ...prev, 
-          hasUnsavedChanges: false,
-          isSaving: false 
-        }));
-        
-        hideSavingIndicator();
-        showSaveSuccessIndicator();
-        
-        // Also notify parent window for backwards compatibility
-        if (window.parent !== window.self) {
-          window.parent.postMessage({
-            type: 'violet-content-saved',
-            data: { success: true, changes: changes }
-          }, '*');
-        }
-        
-      } else {
-        console.error('❌ Save failed:', result.message);
-        setEditorState(prev => ({ ...prev, isSaving: false }));
-        hideSavingIndicator();
-        showSaveErrorIndicator();
-      }
-      
-    } catch (error) {
-      console.error('❌ Save error:', error);
-      setEditorState(prev => ({ ...prev, isSaving: false }));
-      hideSavingIndicator();
-      showSaveErrorIndicator();
-    }
   };
 
   const handleSaveResponse = (data: any) => {
@@ -538,91 +465,70 @@ const WordPressRichEditor: React.FC = () => {
 
   // Add robust message handler for save and rebuild
   useEffect(() => {
+    // Enhanced debug version of handleSaveContent
     async function handleSaveContent() {
-      // Gather all editable content
+      console.log('🚀 Starting save process...');
       const editableElements = document.querySelectorAll('[data-violet-editable]');
       const changes = Array.from(editableElements).map((el) => {
         const element = el as HTMLElement;
         return {
           field_name: element.dataset.violetFieldType || 'generic_content',
-          field_value: element.innerHTML, // Use field_value to match WordPress expectation
+          field_value: element.innerHTML,
           format: 'rich',
           editor: 'rich',
         };
       });
-      
+      console.log('📝 Changes to save:', changes);
+      // Enhanced FormData with debugging
+      const formData = new FormData();
+      formData.append('action', 'violet_save_all_changes');
+      formData.append('changes', JSON.stringify(changes));
+      // Add multiple nonce sources for debugging
+      const wpNonce = (window as any).wpApiSettings?.nonce ||
+        (window as any).ajaxurl_nonce ||
+        document.querySelector('meta[name="wp-nonce"]')?.getAttribute('content') || '';
+      if (wpNonce) {
+        formData.append('_wpnonce', wpNonce);
+        console.log('🔑 Using nonce:', wpNonce.substring(0, 10) + '...');
+      } else {
+        console.warn('⚠️ No nonce found');
+      }
+      // Debug the FormData
+      console.log('📤 Form data being sent:');
+      for (let [key, value] of formData.entries()) {
+        console.log(`  ${key}:`, value);
+      }
       try {
-        console.log('[VIOLET] Attempting to save content:', changes);
-        
-        // Use the WordPress admin-ajax.php endpoint which should be more reliable
-        const formData = new FormData();
-        formData.append('action', 'violet_save_all_changes');
-        formData.append('changes', JSON.stringify(changes));
-        
-        // Add WordPress nonce if available
-        const wpNonce = (window as any).wpApiSettings?.nonce || '';
-        if (wpNonce) {
-          formData.append('_wpnonce', wpNonce);
-        }
-        
         const res = await fetch('https://wp.violetrainwater.com/wp-admin/admin-ajax.php', {
           method: 'POST',
-          credentials: 'include', // Include cookies for WordPress auth
-          body: formData
+          credentials: 'include',
+          body: formData,
+          headers: {
+            // Don't set Content-Type - let browser set it for FormData
+            'X-Requested-With': 'XMLHttpRequest'
+          }
         });
-        
-        console.log('[VIOLET] AJAX Response status:', res.status, res.statusText);
-        
-        let data;
+        console.log('📡 Response status:', res.status);
+        console.log('📡 Response headers:', Object.fromEntries(res.headers.entries()));
+        const responseText = await res.text();
+        console.log('📥 Raw response:', responseText);
         try {
-          const responseText = await res.text();
-          console.log('[VIOLET] AJAX Raw response:', responseText);
-          
-          // WordPress AJAX often returns HTML, try to parse JSON from it
-          if (responseText.trim().startsWith('{') || responseText.trim().startsWith('[')) {
-            data = JSON.parse(responseText);
-          } else {
-            // If it's not JSON, treat success if status is OK
-            data = { 
-              success: res.ok, 
-              message: res.ok ? 'Content saved via WordPress AJAX' : 'WordPress AJAX error',
-              response: responseText.substring(0, 200)
-            };
+          const jsonResponse = JSON.parse(responseText);
+          console.log('📊 Parsed response:', jsonResponse);
+          if (jsonResponse['wp-auth-check']) {
+            console.error('❌ WordPress returned heartbeat response instead of custom handler');
+            console.error('🔍 This means the action parameter is not reaching WordPress correctly');
           }
         } catch (parseError) {
-          const responseText = await res.text();
-          console.log('[VIOLET] Could not parse response as JSON, treating as success if status OK');
-          data = { 
-            success: res.ok, 
-            message: res.ok ? 'Content saved (non-JSON response)' : 'Save failed',
-            response: responseText.substring(0, 200)
-          };
+          console.error('❌ Failed to parse JSON response:', parseError);
         }
-        
-        console.log('[VIOLET] Processed response:', data);
-        
-        if (data.success || res.ok) {
-          window.parent.postMessage({ type: 'violet-content-saved', success: true, details: data }, '*');
-          return true;
-        } else {
-          window.parent.postMessage({ type: 'violet-content-saved', success: false, error: data.message || 'Save failed', details: data }, '*');
-          console.error('[VIOLET] Save failed:', data.message || 'Unknown error');
-          return false;
-        }
-      } catch (err) {
-        console.error('[VIOLET] Save error:', err);
-        window.parent.postMessage({ type: 'violet-content-saved', success: false, error: err?.message || 'Save error', details: err }, '*');
-        console.error('[VIOLET] Save error:', err?.message || err);
-        return false;
+      } catch (error) {
+        console.error('🚨 AJAX request failed:', error);
       }
     }
 
     async function handleRebuildSite() {
-      const saved = await handleSaveContent();
-      if (!saved) {
-        window.parent.postMessage({ type: 'violet-content-live', success: false, error: 'Save failed, rebuild aborted' }, '*');
-        return;
-      }
+      await handleSaveContent();
       // Trigger Netlify rebuild via AJAX endpoint
       try {
         const nonce = (window as any).VioletRichTextConfig?.nonce || '';
