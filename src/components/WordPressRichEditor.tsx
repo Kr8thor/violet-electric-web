@@ -1,6 +1,9 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import './WordPressEditor.css';
 import EditorToolbar from './EditorToolbar';
+import { WP_JWT_TOKEN } from '../utils/wpJwtToken';
+import { saveToWordPressAPI, elementToSaveChange, testWordPressAPI } from '../utils/directWordPressSave';
+import { wordPressCommunication } from '../utils/WordPressCommunication';
 
 interface RichEditableElement extends HTMLElement {
   dataset: DOMStringMap & {
@@ -53,16 +56,67 @@ const WordPressRichEditor: React.FC = () => {
       const { type } = event.data;
       
       if (type === 'violet-enable-editing') {
+        console.log('🟢 Enabling rich text editing mode');
         enableEditMode();
+        // Notify WordPress that editing is enabled
+        wordPressCommunication.sendToWordPress({
+          type: 'violet-editing-enabled',
+          data: { timestamp: Date.now() }
+        });
       } else if (type === 'violet-disable-editing') {
+        console.log('🔴 Disabling rich text editing mode');
         disableEditMode();
+        // Notify WordPress that editing is disabled
+        wordPressCommunication.sendToWordPress({
+          type: 'violet-editing-disabled',
+          data: { timestamp: Date.now() }
+        });
       } else if (type === 'violet-save-response') {
         handleSaveResponse(event.data);
+      } else if (type === 'violet-test-api') {
+        // Test API connection when requested
+        testWordPressAPI().then(result => {
+          console.log('🧪 API Test Result:', result);
+          if (window.parent !== window.self) {
+            window.parent.postMessage({
+              type: 'violet-api-test-result',
+              data: result
+            }, '*');
+          }
+        });
+      } else if (type === 'violet-open-rich-text-modal') {
+        console.log('📝 Rich text modal requested for field:', event.data.field);
+        // Handle rich text modal opening
+        handleRichTextModalRequest(event.data);
       }
     };
 
+    // Listen for WordPress messages
     window.addEventListener('message', handleMessage);
-    return () => window.removeEventListener('message', handleMessage);
+    
+    // Also listen for enhanced communication events
+    const handleWordPressEvent = (event: CustomEvent) => {
+      handleMessage({ data: { type: event.detail.type, ...event.detail.data } } as MessageEvent);
+    };
+    
+    window.addEventListener('wordpress-message', handleWordPressEvent as EventListener);
+    
+    return () => {
+      window.removeEventListener('message', handleMessage);
+      window.removeEventListener('wordpress-message', handleWordPressEvent as EventListener);
+    };
+  }, []);
+
+  // Test API connection on component mount
+  useEffect(() => {
+    console.log('🔌 Testing WordPress API connection on mount...');
+    testWordPressAPI().then(result => {
+      if (result.success) {
+        console.log('✅ WordPress API connected successfully:', result.data);
+      } else {
+        console.warn('⚠️ WordPress API connection failed:', result.message);
+      }
+    });
   }, []);
 
   // Keyboard shortcuts for undo/redo only (no save)
@@ -307,44 +361,52 @@ const WordPressRichEditor: React.FC = () => {
     // Show saving indicator
     showSavingIndicator();
     
-    const savePromises = Array.from(changedElements).map(element => {
-      const fieldType = detectFieldType(element);
+    try {
+      // Convert changed elements to save format
+      const changes = Array.from(changedElements).map(element => elementToSaveChange(element));
       
-      return new Promise((resolve) => {
+      // Save directly to WordPress API using JWT
+      const result = await saveToWordPressAPI(changes);
+      
+      if (result.success) {
+        console.log('✅ Content saved successfully to WordPress API');
+        
+        // Clear changed indicators
+        changedElements.forEach(element => {
+          element.style.borderLeft = '';
+        });
+        
+        setChangedElements(new Set());
+        setEditorState(prev => ({ 
+          ...prev, 
+          hasUnsavedChanges: false,
+          isSaving: false 
+        }));
+        
+        hideSavingIndicator();
+        showSaveSuccessIndicator();
+        
+        // Also notify parent window for backwards compatibility
         if (window.parent !== window.self) {
           window.parent.postMessage({
-            type: 'violet-save-content',
-            data: {
-              fieldType,
-              value: element.innerHTML,
-              text: element.textContent,
-              html: element.innerHTML,
-              id: `save-${Date.now()}-${Math.random()}`
-            }
+            type: 'violet-content-saved',
+            data: { success: true, changes: changes }
           }, '*');
         }
         
-        // Assume success after timeout (real response handled by handleSaveResponse)
-        setTimeout(resolve, 500);
-      });
-    });
-    
-    await Promise.all(savePromises);
-    
-    // Clear changed indicators
-    changedElements.forEach(element => {
-      element.style.borderLeft = '';
-    });
-    
-    setChangedElements(new Set());
-    setEditorState(prev => ({ 
-      ...prev, 
-      hasUnsavedChanges: false,
-      isSaving: false 
-    }));
-    
-    hideSavingIndicator();
-    showSaveSuccessIndicator();
+      } else {
+        console.error('❌ Save failed:', result.message);
+        setEditorState(prev => ({ ...prev, isSaving: false }));
+        hideSavingIndicator();
+        showSaveErrorIndicator();
+      }
+      
+    } catch (error) {
+      console.error('❌ Save error:', error);
+      setEditorState(prev => ({ ...prev, isSaving: false }));
+      hideSavingIndicator();
+      showSaveErrorIndicator();
+    }
   };
 
   const handleSaveResponse = (data: any) => {
@@ -472,6 +534,107 @@ const WordPressRichEditor: React.FC = () => {
         features: ['rich-text', 'formatting', 'colors', 'fonts', 'alignment', 'save', 'undo', 'redo']
       }, '*');
     }
+  }, []);
+
+  // Add robust message handler for save and rebuild
+  useEffect(() => {
+    async function handleSaveContent() {
+      // Gather all editable content
+      const editableElements = document.querySelectorAll('[data-violet-editable]');
+      const changes = Array.from(editableElements).map((el) => {
+        const element = el as HTMLElement;
+        return {
+          field_name: element.dataset.violetFieldType || 'generic_content',
+          content: element.innerHTML,
+          format: 'rich',
+          editor: 'rich',
+        };
+      });
+      try {
+        console.log('[VIOLET] Attempting to save content:', changes);
+        const res = await fetch('https://wp.violetrainwater.com/wp-json/violet/v1/rich-content/save-batch', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${WP_JWT_TOKEN}`
+          },
+          body: JSON.stringify({ changes })
+        });
+        const data = await res.json();
+        console.log('[VIOLET] Save API response:', data);
+        if (data.success) {
+          window.parent.postMessage({ type: 'violet-content-saved', success: true, details: data }, '*');
+          return true;
+        } else {
+          window.parent.postMessage({ type: 'violet-content-saved', success: false, error: data.message || 'Save failed', details: data }, '*');
+          alert('[VIOLET] Save failed: ' + (data.message || 'Unknown error'));
+          return false;
+        }
+      } catch (err) {
+        console.error('[VIOLET] Save error:', err);
+        window.parent.postMessage({ type: 'violet-content-saved', success: false, error: err?.message || 'Save error', details: err }, '*');
+        alert('[VIOLET] Save error: ' + (err?.message || err));
+        return false;
+      }
+    }
+
+    async function handleRebuildSite() {
+      const saved = await handleSaveContent();
+      if (!saved) {
+        window.parent.postMessage({ type: 'violet-content-live', success: false, error: 'Save failed, rebuild aborted' }, '*');
+        return;
+      }
+      // Trigger Netlify rebuild via AJAX endpoint
+      try {
+        const nonce = (window as any).VioletRichTextConfig?.nonce || '';
+        const formData = new FormData();
+        formData.append('action', 'violet_trigger_rebuild');
+        formData.append('nonce', nonce);
+        const res = await fetch('/wp-admin/admin-ajax.php', {
+          method: 'POST',
+          credentials: 'same-origin',
+          body: formData
+        });
+        const data = await res.json();
+        if (data.success) {
+          window.parent.postMessage({ type: 'violet-content-live', success: true, details: data }, '*');
+        } else {
+          window.parent.postMessage({ type: 'violet-content-live', success: false, error: data.data?.message || 'Rebuild failed' }, '*');
+        }
+      } catch (err) {
+        window.parent.postMessage({ type: 'violet-content-live', success: false, error: err?.message || 'Rebuild error' }, '*');
+      }
+    }
+
+    function onMessage(event: MessageEvent) {
+      console.log('[VIOLET] Received message:', event.data);
+      if (!event.data || typeof event.data.type !== 'string') return;
+      switch (event.data.type) {
+        case 'violet-save-content':
+          handleSaveContent();
+          break;
+        case 'violet-trigger-rebuild':
+          handleRebuildSite();
+          break;
+        case 'violet-open-rich-text-modal':
+          console.log('📝 Rich text modal requested:', event.data);
+          // Acknowledge the request
+          wordPressCommunication.sendToWordPress({
+            type: 'violet-rich-text-modal-acknowledged',
+            data: {
+              field: event.data.field || 'unknown',
+              status: 'communication-working',
+              message: 'Rich text modal communication established',
+              timestamp: Date.now()
+            }
+          });
+          break;
+        default:
+          break;
+      }
+    }
+    window.addEventListener('message', onMessage);
+    return () => window.removeEventListener('message', onMessage);
   }, []);
 
   return (
