@@ -1,3 +1,4 @@
+
 import './utils/messageInterceptor' // Load message interceptor first
 import './utils/directSave' // Load direct save handler
 import './utils/WordPressCommunication' // Initialize WordPress communication
@@ -9,6 +10,7 @@ import './utils/autoInitDebug'
 import { initializeWordPressPersistence } from './utils/contentPersistenceFix'
 import { initializeWordPressSync } from './utils/wordpressContentSync'
 import { wordPressCommunication } from './utils/WordPressCommunication'
+import { wordPressSaveHandler } from './utils/wordPressSaveHandler'
 
 // Enhanced WordPress Communication Initialization
 console.log('🚀 Starting React app with WordPress integration...');
@@ -57,6 +59,9 @@ console.log('🔄 WordPress content sync initialized');
 // Initialize WordPress persistence handler early
 initializeWordPressPersistence();
 console.log('🎯 WordPress persistence handler initialized in main.tsx');
+
+// Initialize the new save handler
+console.log('💾 WordPress save handler initialized');
 
 // Log current state for debugging
 console.log('📦 Current localStorage:', localStorage.getItem('violet-content'));
