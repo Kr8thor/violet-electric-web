@@ -1,4 +1,3 @@
-
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
@@ -18,7 +17,6 @@ import NotFound from "./pages/NotFound";
 // Debug component (remove in production)
 // import WordPressBackendStatus from "./components/WordPressBackendStatus";
 import ContentDebugPanel from "./components/ContentDebugPanel";
-import ConnectivityTest from "./components/ConnectivityTest";
 import initializeDebugTools from "./utils/debugTools";
 
 // WordPress Editor Communication
@@ -96,9 +94,6 @@ const App = () => {
           
           {/* Content Debug Panel - helps diagnose save issues */}
           <ContentDebugPanel />
-          
-          {/* Connectivity Test - shows backend connection status */}
-          {import.meta.env.DEV && <ConnectivityTest />}
         </BrowserRouter>
       </ContentProvider>
     </ApolloProvider>

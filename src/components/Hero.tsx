@@ -83,13 +83,6 @@ const Hero = () => {
               className="bg-gradient-to-r from-luminous-300 to-blush-300 bg-clip-text text-transparent"
               as="span"
             />
-            <br />
-            <EditableText 
-              field="hero_subtitle_line2"
-              defaultValue="Change Your Life!"
-              className="text-white"
-              as="span"
-            />
           </h1>
           
           <EditableP 
