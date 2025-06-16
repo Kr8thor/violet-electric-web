@@ -39,10 +39,12 @@ if (saveBtn) {
     // 6. Test button functionality
     saveBtn.onclick = function() {
         console.log('Save button clicked!');
-        if (typeof violetSaveAllChanges === 'function') {
+        if (typeof violetSaveAllChangesFixed === 'function') {
+            violetSaveAllChangesFixed();
+        } else if (typeof violetSaveAllChanges === 'function') {
             violetSaveAllChanges();
         } else {
-            console.error('violetSaveAllChanges function not found!');
+            console.error('No save function found!');
         }
     };
     

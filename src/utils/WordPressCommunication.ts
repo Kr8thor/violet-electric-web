@@ -10,7 +10,7 @@ interface WordPressMessage {
 
 interface ContentChange {
   field_name: string;
-  field_value: string;
+  content: string;
   format?: string;
   editor?: string;
 }
@@ -333,28 +333,131 @@ class WordPressCommunication {
     }
   }
 
-  private markAsChanged(field: string, value: string) {
-    // Store changed values for batch save
-    if (!window.violetChanges) {
-      window.violetChanges = new Map();
-    }
-    
-    window.violetChanges.set(field, {
-      field_name: field,
-      field_value: value,
-      format: 'rich',
-      editor: 'rich'
-    });
-
-    // Notify WordPress of changes
-    this.sendToWordPress({
-      type: 'violet-content-changed',
-      field: field,
-      value: value,
-      dirty: true
-    });
+  /**
+   * Helper: Map known label text to canonical field names
+   */
+  private static mapLabelToFieldName(label: string): string | null {
+    const mapping: Record<string, string> = {
+      'Home': 'nav_home',
+      'About': 'nav_about',
+      'Keynotes': 'nav_keynotes',
+      'Testimonials': 'nav_testimonials',
+      'Contact': 'nav_contact',
+      'Book Violet': 'hero_cta',
+      'Change The Channel!': 'hero_title',
+      'Change Your Life!': 'hero_subtitle',
+      // Add more mappings as needed
+    };
+    return mapping[label.trim()] || null;
   }
 
+  /**
+   * Helper: Extract field name from element or HTML string
+   */
+  private static extractFieldName(input: HTMLElement | string): string | null {
+    if (typeof input === 'string') {
+      // Try to extract from data-violet-field in HTML string
+      const match = input.match(/data-violet-field=["']([^"']+)["']/);
+      if (match) return match[1];
+      // Try to map from label text
+      const label = input.replace(/<[^>]+>/g, '').trim();
+      return WordPressCommunication.mapLabelToFieldName(label);
+    } else {
+      // HTMLElement
+      const attr = input.getAttribute('data-violet-field');
+      if (attr) return attr;
+      const label = input.textContent?.trim() || '';
+      return WordPressCommunication.mapLabelToFieldName(label);
+    }
+  }
+
+  /**
+   * Helper: Determine if a field is simple (plain text) or rich
+   */
+  private static isSimpleField(fieldName: string): boolean {
+    const simpleFields = [
+      'nav_home', 'nav_about', 'nav_keynotes', 'nav_testimonials', 'nav_contact',
+      'hero_cta', 'hero_title', 'hero_subtitle', 'button_text', 'link_text',
+      // Add more as needed
+    ];
+    return simpleFields.includes(fieldName);
+  }
+
+  /**
+   * Helper: Sanitize HTML for rich fields
+   */
+  private static sanitizeRichHTML(html: string): string {
+    // Remove dangerous attributes, scripts, etc. (basic client-side)
+    return html.replace(/<script[^>]*>[\s\S]*?<\/script>/gi, '')
+      .replace(/on\w+="[^"]*"/g, '')
+      .replace(/javascript:/gi, '')
+      .replace(/style="[^"]*expression[^"]*"/gi, '');
+  }
+
+  /**
+   * Clean and deduplicate changes, extract real field names, strip HTML for simple fields
+   */
+  private prepareChangesForSave(changes: ContentChange[]): ContentChange[] {
+    const cleaned: Record<string, ContentChange> = {};
+    for (const change of changes) {
+      let fieldName = change.field_name;
+      // Always extract from content if generic_content or missing
+      if (!fieldName || fieldName === 'generic_content') {
+        fieldName = WordPressCommunication.extractFieldName(change.content);
+        if (!fieldName) {
+          console.warn('Skipping change with unknown field:', change);
+          continue;
+        }
+      }
+      let value = change.content;
+      let format = change.format;
+      let editor = change.editor;
+      if (WordPressCommunication.isSimpleField(fieldName)) {
+        // For simple fields, strip HTML
+        const div = document.createElement('div');
+        div.innerHTML = value;
+        value = div.textContent || div.innerText || '';
+        format = 'plain';
+        editor = 'plain';
+      } else {
+        // For rich fields, sanitize HTML
+        value = WordPressCommunication.sanitizeRichHTML(value);
+        format = 'rich';
+        editor = 'rich';
+      }
+      if (!value || !fieldName) {
+        console.warn('Skipping empty or unknown field:', fieldName, value);
+        continue;
+      }
+      cleaned[fieldName] = {
+        field_name: fieldName,
+        content: value,
+        format,
+        editor
+      };
+      console.log('Prepared change:', cleaned[fieldName]);
+    }
+    return Object.values(cleaned);
+  }
+
+  /**
+   * Mark a field as changed (for batch save)
+   */
+  private markAsChanged(field: string, value: string) {
+    if (!window.violetChanges) window.violetChanges = new Map();
+    // Always use robust extraction and cleaning
+    const fieldName = WordPressCommunication.extractFieldName(field) || field;
+    const change: ContentChange = { field_name: fieldName, content: value };
+    const cleaned = this.prepareChangesForSave([change]);
+    if (cleaned.length > 0) {
+      window.violetChanges.set(cleaned[0].field_name, cleaned[0]);
+      this.sendToWordPress({ type: 'violet-content-changed', dirty: true });
+    }
+  }
+
+  /**
+   * Save all changes to WordPress
+   */
   private async saveContent() {
     if (!window.violetChanges || window.violetChanges.size === 0) {
       this.sendToWordPress({
@@ -364,54 +467,39 @@ class WordPressCommunication {
       });
       return;
     }
-
-    // Convert changes to array format
+    // Prepare and clean changes
     const changes: ContentChange[] = Array.from(window.violetChanges.values());
-    
-    // Clean up duplicate field names by keeping the last value for each field
-    const cleanedChanges = new Map<string, ContentChange>();
-    changes.forEach(change => {
-      cleanedChanges.set(change.field_name, change);
-    });
-    
-    const finalChanges = Array.from(cleanedChanges.values());
-
-    console.log('💾 Saving changes:', finalChanges);
-
-    try {
-      // Use the correct REST API endpoint
-      const response = await fetch('https://wp.violetrainwater.com/wp-json/violet/v1/rich-content/save-batch', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          changes: finalChanges
-        })
-      });
-
-      const result = await response.json();
-      
-      if (result.success) {
-        // Clear changes after successful save
-        window.violetChanges.clear();
-        
-        this.sendToWordPress({
-          type: 'violet-content-saved',
-          success: true,
-          message: `Saved ${finalChanges.length} changes successfully`
-        });
-      } else {
-        throw new Error(result.message || 'Save failed');
-      }
-    } catch (error) {
-      console.error('❌ Save failed:', error);
-      
+    const cleaned = this.prepareChangesForSave(changes);
+    if (cleaned.length === 0) {
       this.sendToWordPress({
         type: 'violet-content-saved',
         success: false,
-        message: `Save failed: ${error instanceof Error ? error.message : 'Unknown error'}`
+        message: 'No valid changes to save'
       });
+      return;
+    }
+    // Debug log
+    console.log('🟣 [Violet] Saving cleaned changes:', cleaned);
+    try {
+      const response = await fetch('https://wp.violetrainwater.com/wp-json/violet/v1/save-batch', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-WP-Nonce': (window as any).wpApiSettings?.nonce || ''
+        },
+        credentials: 'include',
+        body: JSON.stringify({ changes: cleaned })
+      });
+      const result = await response.json();
+      if (result.success) {
+        window.violetChanges.clear();
+        this.sendToWordPress({ type: 'violet-content-saved', success: true, message: result.message });
+      } else {
+        this.sendToWordPress({ type: 'violet-content-saved', success: false, message: result.message });
+      }
+    } catch (err) {
+      console.error('🟣 [Violet] Save error:', err);
+      this.sendToWordPress({ type: 'violet-content-saved', success: false, message: 'Save failed: ' + err });
     }
   }
 

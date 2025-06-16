@@ -19,7 +19,7 @@ if (saveBtn) {
 }
 
 // 3. Check if the save function exists
-console.log('Save function exists:', typeof violetSaveAllChanges === 'function');
+console.log('Save function exists:', typeof violetSaveAllChangesFixed === 'function' || typeof violetSaveAllChanges === 'function');
 
 // 4. Add a test change to see if button updates
 if (typeof violetPendingChanges !== 'undefined') {
@@ -47,10 +47,12 @@ if (!saveBtn) {
         newSaveBtn.className = 'button button-hero violet-save-button';
         newSaveBtn.innerHTML = '💾 Save All Changes (<span id="violet-changes-count">0</span>)';
         newSaveBtn.onclick = function() { 
-            if (typeof violetSaveAllChanges === 'function') {
+            if (typeof violetSaveAllChangesFixed === 'function') {
+                violetSaveAllChangesFixed();
+            } else if (typeof violetSaveAllChanges === 'function') {
                 violetSaveAllChanges();
             } else {
-                console.error('Save function not found');
+                console.error('No save function found!');
             }
         };
         

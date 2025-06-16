@@ -8,10 +8,10 @@ async function handleSaveContent() {
     
     const editableElements = document.querySelectorAll('[data-violet-editable]');
     const changes = Array.from(editableElements).map((el) => {
-        const element = el as HTMLElement;
+        const element = el;
         return {
             field_name: element.dataset.violetFieldType || 'generic_content',
-            field_value: element.innerHTML,
+            content: element.innerHTML,
             format: 'rich',
             editor: 'rich',
         };
@@ -22,22 +22,19 @@ async function handleSaveContent() {
     // Create FormData with explicit action parameter first
     const formData = new FormData();
     
-    // CRITICAL: Action must be first and exact
-    formData.append('action', 'violet_save_all_changes');
+    // CRITICAL: Use correct action and payload
+    formData.append('action', 'violet_batch_save_fallback');
     formData.append('changes', JSON.stringify(changes));
     
     // Add debugging parameters
     formData.append('debug', 'true');
     formData.append('timestamp', Date.now().toString());
     
-    // Add nonce if available
-    const wpNonce = (window as any).wpApiSettings?.nonce || 
-                   (window as any).ajaxurl_nonce || 
-                   document.querySelector('meta[name="wp-nonce"]')?.getAttribute('content') || '';
-    
-    if (wpNonce) {
-        formData.append('_wpnonce', wpNonce);
-        console.log('🔑 Using nonce:', wpNonce.substring(0, 10) + '...');
+    // Add nonce as 'nonce'
+    const nonce = window.violetAjax ? window.violetAjax.nonce : '';
+    if (nonce) {
+        formData.append('nonce', nonce);
+        console.log('🔑 Using nonce:', nonce.substring(0, 10) + '...');
     }
     
     // Debug the FormData contents
@@ -98,10 +95,10 @@ async function handleSaveContentURLEncoded() {
     
     const editableElements = document.querySelectorAll('[data-violet-editable]');
     const changes = Array.from(editableElements).map((el) => {
-        const element = el as HTMLElement;
+        const element = el;
         return {
             field_name: element.dataset.violetFieldType || 'generic_content',
-            field_value: element.innerHTML,
+            content: element.innerHTML,
             format: 'rich',
             editor: 'rich',
         };
@@ -109,13 +106,13 @@ async function handleSaveContentURLEncoded() {
     
     // Use URLSearchParams instead of FormData
     const params = new URLSearchParams();
-    params.append('action', 'violet_save_all_changes');
+    params.append('action', 'violet_batch_save_fallback');
     params.append('changes', JSON.stringify(changes));
     params.append('debug', 'true');
     
-    const wpNonce = (window as any).wpApiSettings?.nonce || '';
-    if (wpNonce) {
-        params.append('_wpnonce', wpNonce);
+    const nonce = window.violetAjax ? window.violetAjax.nonce : '';
+    if (nonce) {
+        params.append('nonce', nonce);
     }
     
     console.log('📤 URL-encoded body:', params.toString());

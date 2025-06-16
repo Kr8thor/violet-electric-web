@@ -13,8 +13,8 @@ add_action('admin_init', function() {
 // 2. More aggressive AJAX handler registration
 add_action('wp_loaded', function() {
     // Re-register our handlers with higher priority
-    add_action('wp_ajax_violet_save_all_changes', 'violet_aggressive_save_handler', 1);
-    add_action('wp_ajax_nopriv_violet_save_all_changes', 'violet_aggressive_save_handler', 1);
+    // add_action('wp_ajax_violet_save_all_changes', 'violet_aggressive_save_handler', 1);
+    // add_action('wp_ajax_nopriv_violet_save_all_changes', 'violet_aggressive_save_handler', 1);
     
     error_log('🔥 Aggressive AJAX handlers registered on wp_loaded');
 });
@@ -48,11 +48,9 @@ add_action('init', function() {
     if (defined('DOING_AJAX') && DOING_AJAX && isset($_POST['action'])) {
         error_log('🔍 AJAX ACTION DETECTED: ' . $_POST['action']);
         
-        if ($_POST['action'] === 'violet_save_all_changes') {
-            error_log('✅ Our action detected! Handler should run...');
-        } else {
-            error_log('❌ Different action: ' . $_POST['action']);
-        }
+        // if (
+        //   $_POST['action'] === 'violet_save_all_changes'
+        // ) { /* legacy handler code */ }
     }
 });
 

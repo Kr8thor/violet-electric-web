@@ -473,25 +473,23 @@ const WordPressRichEditor: React.FC = () => {
         const element = el as HTMLElement;
         return {
           field_name: element.dataset.violetFieldType || 'generic_content',
-          field_value: element.innerHTML,
+          content: element.innerHTML,
           format: 'rich',
           editor: 'rich',
         };
       });
       console.log('📝 Changes to save:', changes);
-      // Enhanced FormData with debugging
+      // Use FormData for admin-ajax.php
       const formData = new FormData();
-      formData.append('action', 'violet_save_all_changes');
+      formData.append('action', 'violet_batch_save_fallback');
       formData.append('changes', JSON.stringify(changes));
-      // Add multiple nonce sources for debugging
-      const wpNonce = (window as any).wpApiSettings?.nonce ||
-        (window as any).ajaxurl_nonce ||
-        document.querySelector('meta[name="wp-nonce"]')?.getAttribute('content') || '';
+      // Use nonce from window.violetAjax (localized by WordPress)
+      const wpNonce = (window as any).violetAjax?.nonce || '';
       if (wpNonce) {
-        formData.append('_wpnonce', wpNonce);
+        formData.append('nonce', wpNonce);
         console.log('🔑 Using nonce:', wpNonce.substring(0, 10) + '...');
       } else {
-        console.warn('⚠️ No nonce found');
+        console.warn('⚠️ No nonce found in window.violetAjax');
       }
       // Debug the FormData
       console.log('📤 Form data being sent:');
@@ -504,7 +502,6 @@ const WordPressRichEditor: React.FC = () => {
           credentials: 'include',
           body: formData,
           headers: {
-            // Don't set Content-Type - let browser set it for FormData
             'X-Requested-With': 'XMLHttpRequest'
           }
         });

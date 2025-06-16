@@ -1,4 +1,3 @@
-
 import React, { useState, useCallback, useEffect, useRef, useMemo } from 'react';
 import { InlineEditor } from './InlineEditor';
 import { SaveStatusIndicator, useUnsavedChangesWarning } from './SaveStatusIndicator';
@@ -319,69 +318,86 @@ export const EditingOverlay: React.FC = () => {
     };
   }, [config.isEnabled, editingState.editModeActive, handleFieldClick, handleFieldHover]);
 
-  // WordPress message handling
+  // Enhanced WordPress message handling
   useEffect(() => {
-    const handleEnableEditing = () => {
-      console.log('✅ WordPress editing mode enabled');
-      setEditingState(prev => ({
-        ...prev,
-        editModeActive: true,
-        wordPressConnected: true
-      }));
-      setConfig(prev => ({ ...prev, isEnabled: true }));
-    };
-
-    const handleDisableEditing = () => {
-      console.log('🔒 WordPress editing mode disabled');
-      setEditingState(prev => ({
-        ...prev,
-        editModeActive: false,
-        activeField: null,
-        inlineEditor: null,
-        hoveredField: null
-      }));
-      setConfig(prev => ({ ...prev, isEnabled: false }));
-    };
-
-    const handleContentUpdated = (data: any) => {
-      const { field, newValue } = data;
-      fieldElementsRef.current.forEach((element) => {
-        const detection = detectFieldType(element, element.textContent || '');
-        if (detection.type === field) {
-          element.textContent = newValue;
-        }
-      });
-    };
-
-    const messageHandlerFn = messageHandlerRef.current?.createMessageHandler(
-      handleEnableEditing,
-      handleDisableEditing,
-      handleContentUpdated
-    );
-
-    if (messageHandlerFn) {
-      window.addEventListener('message', messageHandlerFn);
-      messageHandlerRef.current?.sendReadySignal();
-    }
-
-    return () => {
-      if (messageHandlerFn) {
-        window.removeEventListener('message', messageHandlerFn);
+    const handleMessage = (event: MessageEvent) => {
+      // Enhanced security check
+      const allowedDomains = ['violetrainwater.com', 'wp.violetrainwater.com'];
+      const originDomain = event.origin.replace(/^https?:\/\//, '');
+      
+      if (!allowedDomains.some(domain => originDomain.includes(domain))) {
+        return;
+      }
+      
+      if (config.debugMode) {
+        console.log('📨 Received from WordPress:', event.data);
+      }
+      
+      switch (event.data.type) {
+        case 'violet-enable-editing':
+          console.log('✏️ WordPress enabled editing mode');
+          setEditingState(prev => ({
+            ...prev,
+            editModeActive: true,
+            wordPressConnected: true
+          }));
+          setConfig(prev => ({ ...prev, isEnabled: true }));
+          break;
+        
+        case 'violet-disable-editing':
+          console.log('🔒 WordPress disabled editing mode');
+          setEditingState(prev => ({
+            ...prev,
+            editModeActive: false,
+            activeField: null,
+            inlineEditor: null,
+            hoveredField: null
+          }));
+          setConfig(prev => ({ ...prev, isEnabled: false }));
+          break;
+        
+        case 'violet-test-access':
+          event.source?.postMessage({
+            type: 'violet-access-confirmed',
+            success: true,
+            timestamp: new Date().toISOString(),
+            capabilities: [
+              'enhanced-field-detection',
+              'inline-editing',
+              'visual-indicators',
+              'optimistic-updates'
+            ]
+          }, event.origin);
+          break;
+        
+        case 'violet-content-updated':
+          // Handle content updates from WordPress
+          const { field, newValue } = event.data;
+          // Update any matching elements
+          fieldElementsRef.current.forEach((element) => {
+            const detection = detectFieldType(element, element.textContent || '');
+            if (detection.type === field) {
+              element.textContent = newValue;
+            }
+          });
+          break;
       }
     };
-  }, [setConfig, setEditingState, detectFieldType]);
+    window.addEventListener('message', handleMessage);
+    return () => {
+      window.removeEventListener('message', handleMessage);
+    };
+  }, [setConfig, setEditingState, detectFieldType, config.debugMode]);
 
   // Manual toggle for testing
   const toggleEditMode = useCallback(() => {
     const newEditMode = !editingState.editModeActive;
     console.log(`🔄 Manually toggling edit mode: ${newEditMode}`);
-    
     setEditingState(prev => ({
       ...prev,
       editModeActive: newEditMode,
       wordPressConnected: newEditMode
     }));
-    
     setConfig(prev => ({ ...prev, isEnabled: newEditMode }));
   }, [editingState.editModeActive, setEditingState, setConfig]);
 

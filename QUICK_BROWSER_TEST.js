@@ -3,12 +3,19 @@
     console.log('🧪 Quick AJAX Test Starting...');
     
     const formData = new FormData();
-    formData.append('action', 'violet_save_all_changes');
-    formData.append('changes', JSON.stringify([{
-        field_name: 'test_field',
-        field_value: 'test_value',
-        format: 'rich'
-    }]));
+    formData.append('action', 'violet_batch_save_fallback');
+    formData.append('changes', JSON.stringify([
+        {
+            field_name: 'test_field',
+            content: 'test_value',
+            format: 'rich',
+            editor: 'rich'
+        }
+    ]));
+    const nonce = window.violetAjax ? window.violetAjax.nonce : '';
+    if (nonce) {
+        formData.append('nonce', nonce);
+    }
     
     fetch('https://wp.violetrainwater.com/wp-admin/admin-ajax.php', {
         method: 'POST',

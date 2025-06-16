@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { useContentField } from '@/contexts/ContentContext';
 import { cn } from '@/lib/utils';
@@ -8,7 +7,25 @@ interface EditableTextProps extends React.AllHTMLAttributes<HTMLElement> {
   defaultValue: string;
   as?: keyof JSX.IntrinsicElements;
   children?: React.ReactNode;
+  href?: string; // Add support for href when using as="a"
+  target?: string; // Add support for target when using as="a"
+  rel?: string; // Add support for rel when using as="a"
 }
+
+/**
+ * Helper function to strip HTML tags from content
+ * This prevents saved HTML markup from displaying as text
+ */
+const stripHtmlTags = (html: string): string => {
+  // Create a temporary div to parse the HTML
+  if (typeof window !== 'undefined') {
+    const temp = document.createElement('div');
+    temp.innerHTML = html;
+    return temp.textContent || temp.innerText || '';
+  }
+  // Fallback for SSR - basic regex strip
+  return html.replace(/<[^>]*>/g, '');
+};
 
 /**
  * Editable text component that uses persisted content from WordPress
@@ -17,30 +34,11 @@ export const EditableText = React.forwardRef<HTMLElement, EditableTextProps>(
   ({ field, defaultValue, as: Component = 'span', className, children, ...props }, ref) => {
     const value = useContentField(field, defaultValue);
     
-    // CRITICAL FIX: Strip HTML tags and editing attributes from stored content
-    // Only use clean text content, ignore any HTML markup or editing attributes
-    let displayValue = defaultValue;
-    
-    if (value && value.trim() !== '') {
-      // If the stored value contains HTML tags or editing attributes, extract only the text content
-      if (value.includes('<') || value.includes('data-violet')) {
-        // Create a temporary element to extract text content only
-        const tempDiv = document.createElement('div');
-        tempDiv.innerHTML = value;
-        const textContent = tempDiv.textContent || tempDiv.innerText || '';
-        
-        // Use extracted text if it's not empty and different from editing artifacts
-        if (textContent && 
-            textContent.trim() !== '' && 
-            !textContent.includes('data-violet') &&
-            !textContent.includes('contenteditable') &&
-            textContent !== '🐛 Debug Content') {
-          displayValue = textContent.trim();
-        }
-      } else {
-        // Use the stored value if it's clean text
-        displayValue = value;
-      }
+    // Use saved value if it exists, otherwise use defaultValue
+    let displayValue = value && value.trim() !== '' ? value : defaultValue;
+    // Always strip HTML tags from the value before display
+    if (displayValue && displayValue.includes('<')) {
+      displayValue = stripHtmlTags(displayValue);
     }
     
     return React.createElement(

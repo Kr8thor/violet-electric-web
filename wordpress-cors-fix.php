@@ -53,27 +53,8 @@ function violet_send_cors_headers() {
 }
 
 // Also handle AJAX requests specifically  
-add_action('wp_ajax_violet_save_all_changes', 'violet_cors_ajax_handler', 1);
-add_action('wp_ajax_nopriv_violet_save_all_changes', 'violet_cors_ajax_handler', 1);
-
-function violet_cors_ajax_handler() {
-    // Add CORS headers to AJAX responses
-    $origin = get_http_origin();
-    $allowed_origins = array(
-        'https://lustrous-dolphin-447351.netlify.app',
-        'https://violetrainwater.com',
-        'https://www.violetrainwater.com'
-    );
-    
-    if ($origin && in_array($origin, $allowed_origins, true)) {
-        header('Access-Control-Allow-Origin: ' . $origin);
-        header('Access-Control-Allow-Credentials: true');
-    }
-    
-    // Continue to the actual handler
-    remove_action('wp_ajax_violet_save_all_changes', 'violet_cors_ajax_handler', 1);
-    remove_action('wp_ajax_nopriv_violet_save_all_changes', 'violet_cors_ajax_handler', 1);
-}
+// add_action('wp_ajax_violet_save_all_changes', 'violet_cors_ajax_handler', 1);
+// add_action('wp_ajax_nopriv_violet_save_all_changes', 'violet_cors_ajax_handler', 1);
 
 // Emergency debug for CORS issues
 add_action('init', function() {
