@@ -606,7 +606,9 @@ export const EditingOverlay: React.FC = () => {
           break;
           
         case 'violet-test-access':
-          event.source?.postMessage({
+          // Fix: Remove the problematic WindowPostMessageOptions parameter
+          const source = event.source as Window;
+          source?.postMessage({
             type: 'violet-access-confirmed',
             success: true,
             timestamp: new Date().toISOString(),

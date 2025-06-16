@@ -1,8 +1,9 @@
+
 import React from 'react';
 import { useContentField } from '@/contexts/ContentContext';
 import { cn } from '@/lib/utils';
 
-interface EditableTextProps extends React.HTMLAttributes<HTMLElement> {
+interface EditableTextProps extends React.AllHTMLAttributes<HTMLElement> {
   field: string;
   defaultValue: string;
   as?: keyof JSX.IntrinsicElements;
