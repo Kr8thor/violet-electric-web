@@ -17,10 +17,31 @@ export const EditableText = React.forwardRef<HTMLElement, EditableTextProps>(
   ({ field, defaultValue, as: Component = 'span', className, children, ...props }, ref) => {
     const value = useContentField(field, defaultValue);
     
-    // CRITICAL FIX: Use saved value if it exists, otherwise use defaultValue
-    // The value from useContentField already handles this, but we need to ensure
-    // empty strings don't override defaultValue
-    const displayValue = value && value.trim() !== '' ? value : defaultValue;
+    // CRITICAL FIX: Strip HTML tags and editing attributes from stored content
+    // Only use clean text content, ignore any HTML markup or editing attributes
+    let displayValue = defaultValue;
+    
+    if (value && value.trim() !== '') {
+      // If the stored value contains HTML tags or editing attributes, extract only the text content
+      if (value.includes('<') || value.includes('data-violet')) {
+        // Create a temporary element to extract text content only
+        const tempDiv = document.createElement('div');
+        tempDiv.innerHTML = value;
+        const textContent = tempDiv.textContent || tempDiv.innerText || '';
+        
+        // Use extracted text if it's not empty and different from editing artifacts
+        if (textContent && 
+            textContent.trim() !== '' && 
+            !textContent.includes('data-violet') &&
+            !textContent.includes('contenteditable') &&
+            textContent !== '🐛 Debug Content') {
+          displayValue = textContent.trim();
+        }
+      } else {
+        // Use the stored value if it's clean text
+        displayValue = value;
+      }
+    }
     
     return React.createElement(
       Component,
