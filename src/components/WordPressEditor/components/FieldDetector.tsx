@@ -1,3 +1,4 @@
+
 import React, { useCallback } from 'react';
 
 // Local FieldDetection interface
@@ -28,9 +29,12 @@ export const FieldDetector: React.FC<FieldDetectorProps> = ({
     const classes = element.className.toLowerCase();
     const id = element.id.toLowerCase();
     
-    // Hero section detection
-    if (tagName === 'h1' || textLower.includes('change the channel') || 
-        textLower.includes('violet rainwater') || classes.includes('hero')) {
+    // Hero section detection - more specific patterns
+    if (tagName === 'h1' || tagName === 'span' && classes.includes('gradient') ||
+        textLower.includes('change the channel') || 
+        textLower.includes('violet rainwater') || 
+        classes.includes('hero') ||
+        element.closest('h1')) {
       return {
         type: 'hero_title',
         confidence: 0.95,
@@ -42,7 +46,9 @@ export const FieldDetector: React.FC<FieldDetectorProps> = ({
     
     if (textLower.includes('transform your potential') || 
         textLower.includes('neuroscience-backed') ||
-        (classes.includes('hero') && tagName === 'p')) {
+        textLower.includes('change your life') ||
+        (classes.includes('hero') && tagName === 'p') ||
+        (tagName === 'span' && textLower.includes('change your life'))) {
       return {
         type: 'hero_subtitle',
         confidence: 0.9,
@@ -108,10 +114,21 @@ export const FieldDetector: React.FC<FieldDetectorProps> = ({
       };
     }
     
+    // Any text that looks editable
+    if (text.length > 3 && text.length < 300) {
+      return {
+        type: 'generic_text',
+        confidence: 0.6,
+        priority: 'low',
+        editStrategy: 'inline',
+        description: 'General text content'
+      };
+    }
+    
     // Default fallback
     return {
       type: 'generic_text',
-      confidence: 0.6,
+      confidence: 0.5,
       priority: 'low',
       editStrategy: 'inline',
       description: 'General text content'
@@ -119,17 +136,27 @@ export const FieldDetector: React.FC<FieldDetectorProps> = ({
   }, []);
 
   const scanForFields = useCallback(() => {
-    if (!isEnabled) return;
+    if (!isEnabled || !editModeActive) {
+      console.log('🚫 Field scanning disabled:', { isEnabled, editModeActive });
+      return;
+    }
 
     try {
+      console.log('🔍 Starting comprehensive field scan...');
+      
+      // More comprehensive selectors to catch more elements
       const selectors = [
         'h1', 'h2', 'h3', 'h4', 'h5', 'h6',
         'p:not(.violet-ignore)',
         'span:not(.icon):not([class*="icon"]):not(.violet-ignore)',
         'a:not(.violet-ignore)',
         'button:not(.violet-ignore)',
+        'div:not(.violet-ignore)', // Include divs with text
         '[data-editable="true"]',
-        '.editable-text'
+        '.editable-text',
+        '[data-violet-field]', // Existing violet fields
+        '.bg-gradient-to-r', // Specific to hero title
+        '.text-white' // Specific to subtitle
       ];
       
       const newFieldMap = new Map<HTMLElement, FieldDetection>();
@@ -139,17 +166,25 @@ export const FieldDetector: React.FC<FieldDetectorProps> = ({
       
       selectors.forEach(selector => {
         const elements = document.querySelectorAll(selector);
+        console.log(`📍 Found ${elements.length} elements for selector: ${selector}`);
+        
         elements.forEach((element: Element) => {
           const htmlElement = element as HTMLElement;
           const text = htmlElement.textContent?.trim() || '';
           
+          // More permissive filtering
           if (text && 
               text.length > 2 && 
-              text.length < 500 && 
-              !htmlElement.querySelector('img, svg, iframe, video') &&
+              text.length < 1000 && // Allow longer text
+              !htmlElement.querySelector('img, svg, iframe, video, input, textarea') &&
               !htmlElement.closest('script, style, noscript, .violet-ignore, .violet-editing-indicator') &&
               !htmlElement.dataset.violetEditable &&
-              !htmlElement.classList.contains('violet-ignore')) {
+              !htmlElement.classList.contains('violet-ignore') &&
+              // Skip if it's a container with other text elements
+              (htmlElement.children.length === 0 || 
+               Array.from(htmlElement.children).every(child => 
+                 child.tagName.toLowerCase() === 'br' || 
+                 child.tagName.toLowerCase() === 'span'))) {
             
             const detection = detectFieldType(htmlElement, text);
             
@@ -160,22 +195,33 @@ export const FieldDetector: React.FC<FieldDetectorProps> = ({
               htmlElement.dataset.violetFieldId = fieldId;
               htmlElement.dataset.violetEditable = 'true';
               fieldIndex++;
+              
+              console.log(`✅ Added field: ${detection.type} - "${text.substring(0, 30)}..." (confidence: ${detection.confidence})`);
             }
           }
         });
       });
 
+      console.log(`🎯 Field scan complete: ${newFieldMap.size} fields detected`);
+      
       onFieldsDetected(newFieldMap);
       onFieldElementsUpdated(fieldElements);
-
-      console.log(`✅ Detected ${newFieldMap.size} editable fields`);
 
     } catch (error) {
       console.error('❌ Field detection error:', error);
     }
-  }, [isEnabled, detectFieldType, onFieldsDetected, onFieldElementsUpdated]);
+  }, [isEnabled, editModeActive, detectFieldType, onFieldsDetected, onFieldElementsUpdated]);
 
-  // Auto-scan when conditions change
+  // Auto-scan when conditions change with a slight delay to ensure DOM is ready
+  React.useEffect(() => {
+    if (isEnabled && editModeActive) {
+      console.log('⏰ Scheduling field scan...');
+      const timer = setTimeout(scanForFields, 500); // Small delay to ensure DOM is fully rendered
+      return () => clearTimeout(timer);
+    }
+  }, [isEnabled, editModeActive, scanForFields]);
+
+  // Also scan on mount and when the component updates
   React.useEffect(() => {
     if (isEnabled && editModeActive) {
       scanForFields();

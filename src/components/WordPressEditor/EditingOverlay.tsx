@@ -43,7 +43,7 @@ export const EditingOverlay: React.FC = () => {
   // WordPress message handler
   const messageHandlerRef = useRef<WordPressMessageHandler>();
 
-  // Initialize message handler
+  // Initialize message handler and auto-enable editing in development
   useEffect(() => {
     messageHandlerRef.current = new WordPressMessageHandler(config.debugMode);
     
@@ -51,22 +51,41 @@ export const EditingOverlay: React.FC = () => {
     if (typeof window !== 'undefined') {
       const isInIframe = window.parent !== window.self;
       const hasEditParam = new URLSearchParams(window.location.search).has('edit_mode');
+      const isDev = import.meta.env?.DEV || false;
       
       console.log('🎨 Violet Editor: Enhanced EditingOverlay initialized', {
         isInIframe,
         hasEditParam,
+        isDev,
         url: window.location.href,
         timestamp: new Date().toISOString()
       });
       
-      setConfig(prev => ({ ...prev, debugMode: isInIframe || hasEditParam }));
+      // AUTO-ENABLE EDITING IN DEVELOPMENT OR WITH URL PARAMETER
+      const shouldAutoEnable = isDev || hasEditParam || window.location.search.includes('edit=1');
+      
+      setConfig(prev => ({ 
+        ...prev, 
+        debugMode: isInIframe || hasEditParam || isDev,
+        isEnabled: shouldAutoEnable 
+      }));
+      
+      if (shouldAutoEnable) {
+        console.log('✅ Auto-enabling edit mode for development');
+        setEditingState(prev => ({
+          ...prev,
+          editModeActive: true,
+          wordPressConnected: true
+        }));
+      }
     }
-  }, [setConfig]);
+  }, [setConfig, setEditingState]);
 
   const messageHandler = messageHandlerRef.current!;
 
   // Field detection callback
   const handleFieldsDetected = useCallback((fields: Map<HTMLElement, FieldDetection>) => {
+    console.log(`🎯 Fields detected: ${fields.size}`);
     setConfig(prev => ({
       ...prev,
       detectedFields: fields,
@@ -75,17 +94,23 @@ export const EditingOverlay: React.FC = () => {
   }, [setConfig]);
 
   const handleFieldElementsUpdated = useCallback((elements: Map<string, HTMLElement>) => {
+    console.log(`📍 Field elements updated: ${elements.size}`);
     fieldElementsRef.current = elements;
   }, [fieldElementsRef]);
 
-  // Field detection utility
+  // Enhanced field detection utility
   const detectFieldType = useCallback((element: HTMLElement, text: string): FieldDetection => {
     const tagName = element.tagName.toLowerCase();
     const textLower = text.toLowerCase();
     const classes = element.className.toLowerCase();
+    const id = element.id.toLowerCase();
 
-    // Hero title detection
-    if (tagName === 'h1' || textLower.includes('change the channel')) {
+    console.log('🔍 Detecting field type:', { tagName, text: text.substring(0, 50), classes });
+
+    // Hero title detection - more specific
+    if ((tagName === 'h1' || tagName === 'span') && 
+        (textLower.includes('change the channel') || classes.includes('gradient') || 
+         element.closest('h1') || classes.includes('hero'))) {
       return {
         type: 'hero_title',
         confidence: 0.95,
@@ -98,6 +123,7 @@ export const EditingOverlay: React.FC = () => {
     // Hero subtitle detection
     if (textLower.includes('transform your potential') || 
         textLower.includes('neuroscience-backed') ||
+        textLower.includes('change your life') ||
         (classes.includes('hero') && tagName === 'p')) {
       return {
         type: 'hero_subtitle',
@@ -130,6 +156,17 @@ export const EditingOverlay: React.FC = () => {
       };
     }
 
+    // Generic text content
+    if (text.length > 5 && text.length < 200) {
+      return {
+        type: 'generic_text',
+        confidence: 0.7,
+        priority: 'low',
+        editStrategy: 'inline',
+        description: 'General text content'
+      };
+    }
+
     // Default fallback
     return {
       type: 'generic_text',
@@ -149,7 +186,10 @@ export const EditingOverlay: React.FC = () => {
   }, [setEditingState]);
 
   const handleFieldClick = useCallback((fieldId: string, element: HTMLElement) => {
-    if (!editingState.editModeActive) return;
+    if (!editingState.editModeActive) {
+      console.log('❌ Edit mode not active, cannot edit field');
+      return;
+    }
     
     const text = element.textContent?.trim() || '';
     const detection = detectFieldType(element, text);
@@ -158,7 +198,8 @@ export const EditingOverlay: React.FC = () => {
       fieldId, 
       type: detection.type, 
       text: text.substring(0, 50) + '...',
-      confidence: detection.confidence 
+      confidence: detection.confidence,
+      element: element.tagName
     });
     
     const rect = element.getBoundingClientRect();
@@ -239,6 +280,8 @@ export const EditingOverlay: React.FC = () => {
   useEffect(() => {
     if (!config.isEnabled || !editingState.editModeActive) return;
 
+    console.log('📱 Setting up event listeners for editing');
+
     const handleClick = (e: MouseEvent) => {
       const target = e.target as HTMLElement;
       
@@ -246,6 +289,7 @@ export const EditingOverlay: React.FC = () => {
         if (element === target || element.contains(target)) {
           e.preventDefault();
           e.stopPropagation();
+          console.log('🎯 Click intercepted for field:', fieldId);
           handleFieldClick(fieldId, element);
           return;
         }
@@ -327,6 +371,20 @@ export const EditingOverlay: React.FC = () => {
     };
   }, [setConfig, setEditingState, detectFieldType]);
 
+  // Manual toggle for testing
+  const toggleEditMode = useCallback(() => {
+    const newEditMode = !editingState.editModeActive;
+    console.log(`🔄 Manually toggling edit mode: ${newEditMode}`);
+    
+    setEditingState(prev => ({
+      ...prev,
+      editModeActive: newEditMode,
+      wordPressConnected: newEditMode
+    }));
+    
+    setConfig(prev => ({ ...prev, isEnabled: newEditMode }));
+  }, [editingState.editModeActive, setEditingState, setConfig]);
+
   // Status metrics
   const statusMetrics = useMemo(() => ({
     totalFields: fieldElementsRef.current.size,
@@ -387,19 +445,25 @@ export const EditingOverlay: React.FC = () => {
         />
       )}
 
-      {/* Enhanced Edit Mode Indicator */}
-      {config.isEnabled && editingState.editModeActive && (
-        <div className="fixed bottom-4 left-4 z-50 bg-blue-600 text-white px-4 py-2 rounded-lg shadow-lg">
-          <div className="flex items-center gap-2">
-            <span className="animate-pulse">✏️</span>
-            <span className="font-medium">WordPress Editing Active</span>
-          </div>
-          <div className="text-xs mt-1 opacity-90">
-            {statusMetrics.totalFields} fields • {statusMetrics.isConnected ? 'Connected' : 'Disconnected'}
-            {statusMetrics.hasUnsavedChanges && ` • ${statusMetrics.optimisticUpdates + statusMetrics.pendingSaves} pending`}
-          </div>
+      {/* Enhanced Edit Mode Indicator with Manual Toggle */}
+      <div className="fixed bottom-4 left-4 z-50 bg-blue-600 text-white px-4 py-2 rounded-lg shadow-lg">
+        <div className="flex items-center gap-2">
+          <span className={editingState.editModeActive ? "animate-pulse" : ""}>✏️</span>
+          <span className="font-medium">
+            {editingState.editModeActive ? 'Edit Mode Active' : 'Edit Mode Disabled'}
+          </span>
+          <button 
+            onClick={toggleEditMode}
+            className="ml-2 px-2 py-1 bg-white/20 rounded text-xs hover:bg-white/30"
+          >
+            {editingState.editModeActive ? 'Disable' : 'Enable'}
+          </button>
         </div>
-      )}
+        <div className="text-xs mt-1 opacity-90">
+          {statusMetrics.totalFields} fields • {statusMetrics.isConnected ? 'Connected' : 'Disconnected'}
+          {statusMetrics.hasUnsavedChanges && ` • ${statusMetrics.optimisticUpdates + statusMetrics.pendingSaves} pending`}
+        </div>
+      </div>
 
       {/* Debug Info (only in debug mode) */}
       {config.debugMode && (
@@ -409,6 +473,7 @@ export const EditingOverlay: React.FC = () => {
           <div>Connected: {statusMetrics.isConnected ? '✅' : '❌'}</div>
           <div>Edit Mode: {statusMetrics.editModeActive ? '✅' : '❌'}</div>
           <div>In iframe: {window.parent !== window.self ? '✅' : '❌'}</div>
+          <div>Enabled: {config.isEnabled ? '✅' : '❌'}</div>
         </div>
       )}
     </>
