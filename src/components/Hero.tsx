@@ -79,7 +79,7 @@ const Hero = () => {
           <h1 className="text-4xl md:text-6xl lg:text-7xl font-bold mb-6 leading-tight text-white">
             <EditableText 
               field="hero_title"
-              defaultValue="Change The Channel."
+              defaultValue="Change The Channel"
               className="bg-gradient-to-r from-luminous-300 to-blush-300 bg-clip-text text-transparent"
               as="span"
             />
