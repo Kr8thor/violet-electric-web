@@ -1,6 +1,13 @@
-
 import React, { useCallback } from 'react';
-import { FieldDetection } from '../EnhancedFieldDetector';
+
+// Local FieldDetection interface
+export interface FieldDetection {
+  type: string;
+  confidence: number;
+  priority: 'high' | 'medium' | 'low';
+  editStrategy: 'inline' | 'modal' | 'specialized';
+  description: string;
+}
 
 interface FieldDetectorProps {
   isEnabled: boolean;

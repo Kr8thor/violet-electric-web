@@ -1,6 +1,5 @@
 
 import React, { useState, useCallback, useEffect, useRef, useMemo } from 'react';
-import { EnhancedFieldDetector, FieldDetection } from './EnhancedFieldDetector';
 import { InlineEditor } from './InlineEditor';
 import { SaveStatusIndicator, useUnsavedChangesWarning } from './SaveStatusIndicator';
 import { useContentEditorPerformance } from './PerformanceHooks';
@@ -8,6 +7,15 @@ import { useEditingState } from './hooks/useEditingState';
 import { FieldDetector } from './components/FieldDetector';
 import { VisualIndicators } from './components/VisualIndicators';
 import { WordPressMessageHandler } from './utils/wordPressMessageHandler';
+
+// Import the FieldDetection type directly since we removed the full class
+export interface FieldDetection {
+  type: string;
+  confidence: number;
+  priority: 'high' | 'medium' | 'low';
+  editStrategy: 'inline' | 'modal' | 'specialized';
+  description: string;
+}
 
 export const EditingOverlay: React.FC = () => {
   const {
@@ -34,7 +42,6 @@ export const EditingOverlay: React.FC = () => {
 
   // WordPress message handler
   const messageHandlerRef = useRef<WordPressMessageHandler>();
-  const observerRef = useRef<MutationObserver>();
 
   // Initialize message handler
   useEffect(() => {
@@ -45,7 +52,7 @@ export const EditingOverlay: React.FC = () => {
       const isInIframe = window.parent !== window.self;
       const hasEditParam = new URLSearchParams(window.location.search).has('edit_mode');
       
-      console.log('🎨 Violet Editor: Component initialized', {
+      console.log('🎨 Violet Editor: Enhanced EditingOverlay initialized', {
         isInIframe,
         hasEditParam,
         url: window.location.href,
@@ -54,7 +61,7 @@ export const EditingOverlay: React.FC = () => {
       
       setConfig(prev => ({ ...prev, debugMode: isInIframe || hasEditParam }));
     }
-  }, []);
+  }, [setConfig]);
 
   const messageHandler = messageHandlerRef.current!;
 
@@ -77,7 +84,7 @@ export const EditingOverlay: React.FC = () => {
     const textLower = text.toLowerCase();
     const classes = element.className.toLowerCase();
 
-    // Use the same detection logic as before
+    // Hero title detection
     if (tagName === 'h1' || textLower.includes('change the channel')) {
       return {
         type: 'hero_title',
@@ -88,6 +95,42 @@ export const EditingOverlay: React.FC = () => {
       };
     }
 
+    // Hero subtitle detection
+    if (textLower.includes('transform your potential') || 
+        textLower.includes('neuroscience-backed') ||
+        (classes.includes('hero') && tagName === 'p')) {
+      return {
+        type: 'hero_subtitle',
+        confidence: 0.9,
+        priority: 'high',
+        editStrategy: 'inline',
+        description: 'Hero subtitle text'
+      };
+    }
+
+    // Navigation items
+    if (element.closest('nav') || classes.includes('nav')) {
+      return {
+        type: 'navigation_item',
+        confidence: 0.8,
+        priority: 'medium',
+        editStrategy: 'inline',
+        description: 'Navigation menu item'
+      };
+    }
+
+    // Section headings
+    if (tagName.match(/^h[1-6]$/) && !textLower.includes('change the channel')) {
+      return {
+        type: 'section_heading',
+        confidence: 0.75,
+        priority: 'medium',
+        editStrategy: 'inline',
+        description: 'Section heading'
+      };
+    }
+
+    // Default fallback
     return {
       type: 'generic_text',
       confidence: 0.6,
@@ -235,6 +278,7 @@ export const EditingOverlay: React.FC = () => {
   // WordPress message handling
   useEffect(() => {
     const handleEnableEditing = () => {
+      console.log('✅ WordPress editing mode enabled');
       setEditingState(prev => ({
         ...prev,
         editModeActive: true,
@@ -244,6 +288,7 @@ export const EditingOverlay: React.FC = () => {
     };
 
     const handleDisableEditing = () => {
+      console.log('🔒 WordPress editing mode disabled');
       setEditingState(prev => ({
         ...prev,
         editModeActive: false,
@@ -264,20 +309,20 @@ export const EditingOverlay: React.FC = () => {
       });
     };
 
-    const messageHandler = messageHandlerRef.current?.createMessageHandler(
+    const messageHandlerFn = messageHandlerRef.current?.createMessageHandler(
       handleEnableEditing,
       handleDisableEditing,
       handleContentUpdated
     );
 
-    if (messageHandler) {
-      window.addEventListener('message', messageHandler);
+    if (messageHandlerFn) {
+      window.addEventListener('message', messageHandlerFn);
       messageHandlerRef.current?.sendReadySignal();
     }
 
     return () => {
-      if (messageHandler) {
-        window.removeEventListener('message', messageHandler);
+      if (messageHandlerFn) {
+        window.removeEventListener('message', messageHandlerFn);
       }
     };
   }, [setConfig, setEditingState, detectFieldType]);

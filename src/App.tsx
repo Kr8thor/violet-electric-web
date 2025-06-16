@@ -1,3 +1,4 @@
+
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
@@ -31,6 +32,9 @@ import { initializeWordPressSync } from "./utils/wordpressContentSync";
 
 // WordPress Communication Handler - INITIALIZE IMMEDIATELY
 import "./utils/WordPressCommunication";
+
+// NEW: Import the enhanced editing overlay
+import EditingOverlay from "./components/WordPressEditor/EditingOverlay";
 
 const queryClient = new QueryClient();
 
@@ -81,6 +85,9 @@ const App = () => {
           
           {/* Rich Text Editor - Enhanced editing capabilities */}
           <WordPressRichEditor />
+
+          {/* NEW: Enhanced Editing Overlay - Inline editing system */}
+          <EditingOverlay />
 
           {/* Debug status - remove in production */}
           {/* <div className="fixed bottom-4 right-4 z-50">
