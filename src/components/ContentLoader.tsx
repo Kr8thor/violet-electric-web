@@ -71,3 +71,6 @@ export const ContentLoader: React.FC = () => {
 
   return null;
 };
+
+// Add default export
+export default ContentLoader;

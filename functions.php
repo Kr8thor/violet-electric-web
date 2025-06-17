@@ -1,6 +1,4 @@
 <?php
-// DEBUG: Confirm functions.php is loaded
-error_log('Violet: functions.php loaded at ' . date('c'));
 /**
  * 🎯 ULTIMATE WORDPRESS-REACT RICH TEXT EDITING SYSTEM
  * Version 2.0 - With Quill & Lexical Support
@@ -217,6 +215,54 @@ function violet_unified_cors_setup() {
         }
         return $served;
     }, 10, 4);
+}
+
+// ============================================================================
+// ADMIN-AJAX URL FIX FOR EDITING MODE  
+// ============================================================================
+
+/**
+ * Fix incorrect admin-ajax URLs for editing mode
+ */
+add_action('wp_head', 'violet_fix_admin_ajax_urls');
+function violet_fix_admin_ajax_urls() {
+    if (isset($_GET['edit_mode']) && $_GET['edit_mode'] == '1') {
+        ?>
+        <script>
+        // Ensure AJAX URLs point to WordPress, not Netlify
+        if (typeof window.ajaxurl === 'undefined') {
+            window.ajaxurl = '<?php echo admin_url('admin-ajax.php'); ?>';
+        }
+        
+        // Override any incorrect AJAX URLs
+        (function() {
+            const correctAjaxUrl = '<?php echo admin_url('admin-ajax.php'); ?>';
+            
+            // Fix global ajaxurl
+            if (window.ajaxurl && window.ajaxurl !== correctAjaxUrl) {
+                console.log('🔧 Fixed ajaxurl from', window.ajaxurl, 'to', correctAjaxUrl);
+                window.ajaxurl = correctAjaxUrl;
+            }
+            
+            // Intercept jQuery AJAX if it exists
+            if (typeof jQuery !== 'undefined') {
+                jQuery(document).ready(function($) {
+                    $.ajaxSetup({
+                        beforeSend: function(xhr, settings) {
+                            if (settings.url && settings.url.includes('admin-ajax.php')) {
+                                if (!settings.url.includes('wp.violetrainwater.com')) {
+                                    settings.url = correctAjaxUrl;
+                                    console.log('🔧 Redirected jQuery AJAX to correct URL');
+                                }
+                            }
+                        }
+                    });
+                });
+            }
+        })();
+        </script>
+        <?php
+    }
 }
 
 // ============================================================================
@@ -2325,15 +2371,260 @@ function violet_modal_javascript_functions() {
 
 add_action('rest_api_init', 'violet_register_rich_text_endpoints');
 function violet_register_rich_text_endpoints() {
-    // ... existing code ...
-    // Add debug log for registration
-    error_log('Violet: Registering /violet/v1/content endpoint (main)');
+    
+    // Enhanced content endpoint with rich text support
+    register_rest_route('violet/v1', '/rich-content', array(
+        'methods' => 'GET',
+        'callback' => 'violet_get_rich_content_for_frontend',
+        'permission_callback' => '__return_true'
+    ));
+
+    // Rich text content save endpoint
+    register_rest_route('violet/v1', '/rich-content/save', array(
+        'methods' => 'POST',
+        'callback' => 'violet_save_rich_text_content',
+        'permission_callback' => function($request) {
+            // Check if request is from our React app
+            $origin = $_SERVER['HTTP_ORIGIN'] ?? '';
+            $referer = $_SERVER['HTTP_REFERER'] ?? '';
+            $allowed_origins = array(
+                'https://lustrous-dolphin-447351.netlify.app',
+                'https://violetrainwater.com',
+                'https://www.violetrainwater.com'
+            );
+            // Allow from trusted origins (our React app)
+            if (in_array($origin, $allowed_origins) || strpos($referer, 'wp.violetrainwater.com/wp-admin') !== false) {
+                return true;
+            }
+            // Fallback to WordPress authentication
+            return current_user_can('edit_posts');
+        },
+        'args' => array(
+            'field_name' => array(
+                'required' => true,
+                'type' => 'string',
+                'validate_callback' => function($param) {
+                    return !empty($param) && is_string($param);
+                },
+                'sanitize_callback' => 'sanitize_key'
+            ),
+            'content' => array(
+                'required' => true,
+                'type' => 'string',
+                'validate_callback' => function($param) {
+                    return is_string($param);
+                }
+            ),
+            'format' => array(
+                'required' => false,
+                'type' => 'string',
+                'default' => 'rich',
+                'enum' => array('rich', 'plain', 'markdown'),
+                'sanitize_callback' => 'sanitize_text_field'
+            ),
+            'editor' => array(
+                'required' => false,
+                'type' => 'string',
+                'default' => 'auto',
+                'enum' => array('quill', 'lexical', 'plain', 'auto'),
+                'sanitize_callback' => 'sanitize_text_field'
+            )
+        )
+    ));
+
+    // Batch rich text save endpoint
+    register_rest_route('violet/v1', '/rich-content/save-batch', array(
+        'methods' => 'POST',
+        'callback' => 'violet_save_batch_rich_text_content',
+        'permission_callback' => function($request) {
+            // Check if request is from our React app
+            $origin = $_SERVER['HTTP_ORIGIN'] ?? '';
+            $referer = $_SERVER['HTTP_REFERER'] ?? '';
+            $allowed_origins = array(
+                'https://lustrous-dolphin-447351.netlify.app',
+                'https://violetrainwater.com',
+                'https://www.violetrainwater.com'
+            );
+            // Allow from trusted origins (our React app)
+            if (in_array($origin, $allowed_origins) || strpos($referer, 'wp.violetrainwater.com/wp-admin') !== false) {
+                return true;
+            }
+            // Fallback to WordPress authentication
+            return current_user_can('edit_posts');
+        },
+        'args' => array(
+            'changes' => array(
+                'required' => true,
+                'type' => 'array',
+                'validate_callback' => function($param) {
+                    return is_array($param) && !empty($param);
+                }
+            )
+        )
+    ));
+
+    // Editor preferences endpoint
+    register_rest_route('violet/v1', '/editor-preferences', array(
+        'methods' => array('GET', 'POST'),
+        'callback' => 'violet_handle_editor_preferences',
+        'permission_callback' => function() {
+            return is_user_logged_in();
+        },
+        'args' => array(
+            'preferences' => array(
+                'required' => false,
+                'type' => 'object',
+                'validate_callback' => function($param) {
+                    return is_array($param) || is_object($param);
+                }
+            )
+        )
+    ));
+
+    // Auto-save endpoint
+    register_rest_route('violet/v1', '/auto-save', array(
+        'methods' => 'POST',
+        'callback' => 'violet_handle_auto_save',
+        'permission_callback' => function() {
+            return is_user_logged_in();
+        },
+        'args' => array(
+            'field_name' => array(
+                'required' => true,
+                'type' => 'string',
+                'sanitize_callback' => 'sanitize_key'
+            ),
+            'content' => array(
+                'required' => true,
+                'type' => 'string'
+            ),
+            'editor' => array(
+                'required' => true,
+                'type' => 'string',
+                'enum' => array('quill', 'lexical', 'plain')
+            )
+        )
+    ));
+
+    // Get auto-save endpoint
+    register_rest_route('violet/v1', '/auto-save/(?P<field_name>[a-zA-Z0-9_-]+)', array(
+        'methods' => 'GET',
+        'callback' => 'violet_get_auto_save',
+        'permission_callback' => function() {
+            return is_user_logged_in();
+        }
+    ));
+
+    // Content validation endpoint
+    register_rest_route('violet/v1', '/validate-content', array(
+        'methods' => 'POST',
+        'callback' => 'violet_validate_content_endpoint',
+        'permission_callback' => function() {
+            return current_user_can('edit_posts');
+        },
+        'args' => array(
+            'content' => array(
+                'required' => true,
+                'type' => 'string'
+            ),
+            'field_name' => array(
+                'required' => true,
+                'type' => 'string',
+                'sanitize_callback' => 'sanitize_key'
+            )
+        )
+    ));
+
+    // Rich text preview endpoint
+    register_rest_route('violet/v1', '/preview', array(
+        'methods' => 'POST',
+        'callback' => 'violet_generate_content_preview',
+        'permission_callback' => function() {
+            return current_user_can('edit_posts');
+        },
+        'args' => array(
+            'content' => array(
+                'required' => true,
+                'type' => 'string'
+            ),
+            'format' => array(
+                'required' => false,
+                'type' => 'string',
+                'default' => 'rich'
+            )
+        )
+    ));
+
+    // Export rich text content
+    register_rest_route('violet/v1', '/export', array(
+        'methods' => 'GET',
+        'callback' => 'violet_export_rich_text_endpoint',
+        'permission_callback' => function() {
+            return current_user_can('export');
+        },
+        'args' => array(
+            'format' => array(
+                'required' => false,
+                'type' => 'string',
+                'default' => 'json',
+                'enum' => array('json', 'xml', 'html')
+            )
+        )
+    ));
+
+    // Import rich text content
+    register_rest_route('violet/v1', '/import', array(
+        'methods' => 'POST',
+        'callback' => 'violet_import_rich_text_endpoint',
+        'permission_callback' => function() {
+            return current_user_can('import');
+        },
+        'args' => array(
+            'data' => array(
+                'required' => true,
+                'type' => 'string'
+            ),
+            'format' => array(
+                'required' => false,
+                'type' => 'string',
+                'default' => 'json',
+                'enum' => array('json', 'xml')
+            )
+        )
+    ));
+
+    // Collaboration endpoints
+    register_rest_route('violet/v1', '/collaboration/(?P<field_name>[a-zA-Z0-9_-]+)/start', array(
+        'methods' => 'POST',
+        'callback' => 'violet_start_collaboration_endpoint',
+        'permission_callback' => function() {
+            return is_user_logged_in();
+        }
+    ));
+
+    register_rest_route('violet/v1', '/collaboration/(?P<field_name>[a-zA-Z0-9_-]+)/end', array(
+        'methods' => 'POST',
+        'callback' => 'violet_end_collaboration_endpoint',
+        'permission_callback' => function() {
+            return is_user_logged_in();
+        }
+    ));
+
+    // Enhanced debug endpoint
+    register_rest_route('violet/v1', '/debug/rich-text', array(
+        'methods' => 'GET',
+        'callback' => 'violet_debug_rich_text_system',
+        'permission_callback' => function() {
+            return current_user_can('manage_options') && defined('WP_DEBUG') && WP_DEBUG;
+        }
+    ));
+
+    // Basic content endpoint (MISSING - this is what React app needs)
     register_rest_route('violet/v1', '/content', array(
         'methods' => 'GET',
         'callback' => 'violet_get_basic_content_for_frontend',
         'permission_callback' => '__return_true'
     ));
-    // ... existing code ...
 }
 
 /**
@@ -4837,16 +5128,31 @@ function violet_get_basic_content_for_frontend() {
     try {
         $unified_content = get_option('violet_all_content', array());
         $basic_content = array();
+        
+        // Return simple key-value pairs for React app
         foreach ($unified_content as $field_name => $field_data) {
             if (is_array($field_data) && isset($field_data['content'])) {
+                // Rich text field - extract just the content
                 $basic_content[$field_name] = $field_data['content'];
             } else {
+                // Plain text field
                 $basic_content[$field_name] = $field_data;
             }
         }
-        // Add debug log
-        error_log('Violet: /violet/v1/content endpoint called. Returning fields: ' . implode(', ', array_keys($basic_content)));
+        
+        // Add individual options as fallback
+        global $wpdb;
+        $violet_options = $wpdb->get_results("SELECT option_name, option_value FROM {$wpdb->options} WHERE option_name LIKE 'violet_%' AND option_name NOT LIKE 'violet_all_content'");
+        
+        foreach ($violet_options as $option) {
+            $field_name = str_replace('violet_', '', $option->option_name);
+            if (!isset($basic_content[$field_name])) {
+                $basic_content[$field_name] = $option->option_value;
+            }
+        }
+        
         return rest_ensure_response($basic_content);
+
     } catch (Exception $e) {
         error_log('Violet: Get basic content error - ' . $e->getMessage());
         return rest_ensure_response(array(
@@ -5138,29 +5444,515 @@ function violet_electric_enqueue_scripts() {
 add_action('wp_enqueue_scripts', 'violet_electric_enqueue_scripts');
 // ... existing code ...
 
-// Ensure the /violet/v1/content endpoint is registered for React hydration
-add_action('rest_api_init', function() {
+// === MISSING VIOLET ENDPOINTS ===
+add_action('rest_api_init', 'violet_add_missing_endpoints');
+function violet_add_missing_endpoints() {
+    // Content endpoint for React app
     register_rest_route('violet/v1', '/content', array(
         'methods' => 'GET',
-        'callback' => 'violet_get_basic_content_for_frontend',
+        'callback' => 'violet_get_content_for_react',
         'permission_callback' => '__return_true'
     ));
-});
+    // Save endpoint for React app
+    register_rest_route('violet/v1', '/save-batch', array(
+        'methods' => 'POST',
+        'callback' => 'violet_save_batch_for_react',
+        'permission_callback' => function() {
+            return current_user_can('edit_posts');
+        }
+    ));
+    error_log('Violet: Missing endpoints registered successfully');
+}
 
-// 1. Add debug log at registration
-add_action('rest_api_init', function() {
-    error_log('Violet: Registering /violet/v1/content endpoint (anonymous)');
-});
+function violet_get_content_for_react() {
+    $content = get_option('violet_all_content', array());
+    // If empty, create default content
+    if (empty($content)) {
+        $content = array(
+            'hero_title' => 'Change The Channel!',
+            'hero_subtitle' => 'Transforming potential with neuroscience and heart',
+            'hero_cta' => 'Book Violet',
+            'intro_description' => 'Transforming potential with neuroscience and heart. Change the channel. Change your life.',
+            'status' => 'default_content_loaded'
+        );
+        update_option('violet_all_content', $content);
+    }
+    return new WP_REST_Response($content, 200);
+}
 
-// Add admin notice if registration fails
-add_action('admin_notices', function() {
-    global $wp_rest_server;
-    if (!isset($wp_rest_server)) {
-        $wp_rest_server = rest_get_server();
+function violet_save_batch_for_react($request) {
+    $changes = $request->get_param('changes');
+    if (empty($changes)) {
+        return new WP_REST_Response(array(
+            'success' => false, 
+            'message' => 'No changes provided'
+        ), 400);
     }
-    $routes = $wp_rest_server->get_routes();
-    if (!isset($routes['/violet/v1/content'])) {
-        echo '<div class="notice notice-error"><p>Violet: /violet/v1/content endpoint is NOT registered. Check functions.php and error logs.</p></div>';
+    $saved_count = 0;
+    $content = get_option('violet_all_content', array());
+    $results = array();
+    foreach ($changes as $change) {
+        if (isset($change['field_name']) && isset($change['field_value'])) {
+            $field = sanitize_key($change['field_name']);
+            $value = wp_kses_post($change['field_value']);
+            // Save to unified content
+            $content[$field] = $value;
+            // Also save individual option for compatibility
+            update_option('violet_' . $field, $value);
+            $saved_count++;
+            $results[$field] = array(
+                'success' => true,
+                'value' => $value
+            );
+        }
+    }
+    // Save unified content
+    update_option('violet_all_content', $content);
+    return new WP_REST_Response(array(
+        'success' => true,
+        'saved_count' => $saved_count,
+        'message' => "Successfully saved $saved_count fields",
+        'results' => $results,
+        'timestamp' => current_time('mysql')
+    ), 200);
+}
+// === END MISSING ENDPOINTS ===
+
+/*
+Write-Host "🔄 Testing WordPress after restoration..." -ForegroundColor Cyan
+
+# Test 1: Homepage should work now
+try {
+    $homeResponse = Invoke-WebRequest -Uri "https://wp.violetrainwater.com/" -ErrorAction Stop
+    Write-Host "✅ Homepage Status: $($homeResponse.StatusCode)" -ForegroundColor Green
+    if ($homeResponse.Content -match "Parse error|Fatal error|syntax error") {
+        Write-Host "❌ Still has PHP errors" -ForegroundColor Red
+    } else {
+        Write-Host "✅ No PHP errors detected" -ForegroundColor Green
+    }
+} catch {
+    Write-Host "❌ Homepage still broken: $($_.Exception.Message)" -ForegroundColor Red
+}
+
+# Test 2: WordPress Admin
+try {
+    $adminResponse = Invoke-WebRequest -Uri "https://wp.violetrainwater.com/wp-admin/" -ErrorAction Stop
+    Write-Host "✅ WordPress Admin Status: $($adminResponse.StatusCode)" -ForegroundColor Green
+} catch {
+    Write-Host "❌ WordPress Admin broken: $($_.Exception.Message)" -ForegroundColor Red
+}
+
+# Test 3: WordPress API
+try {
+    $apiResponse = Invoke-RestMethod -Uri "https://wp.violetrainwater.com/wp-json/" -ErrorAction Stop
+    Write-Host "✅ WordPress API working" -ForegroundColor Green
+    Write-Host "Available namespaces: $($apiResponse.namespaces -join ', ')" -ForegroundColor Yellow
+    
+    # Check if violet namespace exists (shouldn't after restoration)
+    if ($apiResponse.namespaces -contains "violet/v1") {
+        Write-Host "✅ violet/v1 namespace still exists!" -ForegroundColor Green
+    } else {
+        Write-Host "ℹ️ violet/v1 namespace missing (expected after restoration)" -ForegroundColor Yellow
+    }
+} catch {
+    Write-Host "❌ WordPress API broken: $($_.Exception.Message)" -ForegroundColor Red
+}
+*/
+
+// ============================================================================
+// CRITICAL CONTENT ENDPOINT FIX - ADD TO FUNCTIONS.PHP
+// ============================================================================
+
+/**
+ * Register the basic content endpoint that React needs
+ * This MUST be separate from the rich text endpoints to avoid conflicts
+ */
+add_action('rest_api_init', 'violet_register_basic_content_endpoint', 5); // Priority 5 to run early
+function violet_register_basic_content_endpoint() {
+    // Register the critical /content endpoint
+    register_rest_route('violet/v1', '/content', array(
+        'methods' => 'GET',
+        'callback' => 'violet_get_basic_content_response',
+        'permission_callback' => '__return_true', // Public endpoint
+        'args' => array(
+            'format' => array(
+                'required' => false,
+                'type' => 'string',
+                'default' => 'basic',
+                'enum' => array('basic', 'detailed')
+            )
+        )
+    ));
+    
+    error_log('Violet: Basic content endpoint registered successfully');
+}
+
+/**
+ * Get basic content for React app (simplified and reliable)
+ */
+function violet_get_basic_content_response($request) {
+    try {
+        error_log('Violet: Basic content endpoint called');
+        
+        // Get unified content
+        $unified_content = get_option('violet_all_content', array());
+        $basic_content = array();
+        
+        // Process content for React app
+        if (!empty($unified_content)) {
+            foreach ($unified_content as $field_name => $field_data) {
+                if (is_array($field_data) && isset($field_data['content'])) {
+                    // Rich text field - extract just the content
+                    $basic_content[$field_name] = $field_data['content'];
+                } else {
+                    // Plain text field
+                    $basic_content[$field_name] = $field_data;
+                }
+            }
+        }
+        
+        // Fallback: get individual violet_* options
+        if (empty($basic_content)) {
+            global $wpdb;
+            $violet_options = $wpdb->get_results(
+                "SELECT option_name, option_value FROM {$wpdb->options} 
+                 WHERE option_name LIKE 'violet_%' 
+                 AND option_name != 'violet_all_content'"
+            );
+            
+            foreach ($violet_options as $option) {
+                $field_name = str_replace('violet_', '', $option->option_name);
+                $basic_content[$field_name] = $option->option_value;
+            }
+        }
+        
+        // Ensure we have some content
+        if (empty($basic_content)) {
+            $basic_content = array(
+                'hero_title' => 'Change The Channel!',
+                'hero_subtitle' => 'Transforming potential with neuroscience and heart.',
+                'hero_cta' => 'Book Violet',
+                'status' => 'default_content_loaded'
+            );
+        }
+        
+        // Add metadata
+        $response_data = array(
+            'success' => true,
+            'data' => $basic_content,
+            'count' => count($basic_content),
+            'timestamp' => current_time('mysql'),
+            'source' => !empty($unified_content) ? 'unified_content' : 'individual_options',
+            'endpoint' => 'basic_content'
+        );
+        
+        error_log('Violet: Returning ' . count($basic_content) . ' content fields');
+        
+        return rest_ensure_response($response_data);
+        
+    } catch (Exception $e) {
+        error_log('Violet: Content endpoint error - ' . $e->getMessage());
+        
+        return rest_ensure_response(array(
+            'success' => false,
+            'error' => 'Failed to load content',
+            'message' => $e->getMessage(),
+            'data' => array(),
+            'timestamp' => current_time('mysql')
+        ));
+    }
+}
+
+/**
+ * Test the content endpoint manually
+ * Call this function to debug: violet_test_content_endpoint()
+ */
+function violet_test_content_endpoint() {
+    $request = new WP_REST_Request('GET', '/violet/v1/content');
+    $response = violet_get_basic_content_response($request);
+    $data = $response->get_data();
+    
+    error_log('Violet: Content endpoint test result: ' . json_encode($data));
+    
+    if (is_admin()) {
+        echo '<div class="notice notice-info">';
+        echo '<h3>Content Endpoint Test Results:</h3>';
+        echo '<pre>' . json_encode($data, JSON_PRETTY_PRINT) . '</pre>';
+        echo '</div>';
+    }
+    
+    return $data;
+}
+// ============================================================================
+// END CRITICAL CONTENT ENDPOINT FIX
+// ============================================================================
+
+// ============================================================================
+// REBUILD BUTTON FIX - AJAX HANDLERS (Inserted at ~line 2500)
+// ============================================================================
+
+// Add AJAX handler for rebuild trigger
+add_action('wp_ajax_violet_trigger_rebuild', 'violet_ajax_trigger_rebuild');
+add_action('wp_ajax_nopriv_violet_trigger_rebuild', 'violet_ajax_trigger_rebuild');
+
+function violet_ajax_trigger_rebuild() {
+    // Verify nonce for security
+    if (!wp_verify_nonce($_POST['nonce'] ?? '', 'violet_rebuild_nonce')) {
+        wp_send_json_error(array(
+            'message' => 'Security verification failed. Please refresh the page and try again.'
+        ));
+        return;
+    }
+
+    // Check user permissions
+    if (!current_user_can('edit_posts')) {
+        wp_send_json_error(array(
+            'message' => 'You do not have permission to trigger site rebuilds.'
+        ));
+        return;
+    }
+
+    try {
+        // Get Netlify build hook URL
+        $hook_url = get_option('violet_netlify_hook');
+        
+        if (empty($hook_url)) {
+            wp_send_json_error(array(
+                'message' => 'Netlify build hook not configured. Please check your settings.'
+            ));
+            return;
+        }
+
+        // Validate URL
+        if (!filter_var($hook_url, FILTER_VALIDATE_URL)) {
+            wp_send_json_error(array(
+                'message' => 'Invalid Netlify build hook URL configured.'
+            ));
+            return;
+        }
+
+        // Trigger Netlify rebuild
+        $response = wp_remote_post($hook_url, array(
+            'method' => 'POST',
+            'timeout' => 30,
+            'headers' => array(
+                'Content-Type' => 'application/json',
+                'User-Agent' => 'WordPress-Violet-Editor/1.0'
+            ),
+            'body' => json_encode(array(
+                'trigger' => 'wordpress_manual_rebuild',
+                'timestamp' => current_time('mysql'),
+                'user_id' => get_current_user_id(),
+                'user_login' => wp_get_current_user()->user_login
+            ))
+        ));
+
+        // Check for errors
+        if (is_wp_error($response)) {
+            wp_send_json_error(array(
+                'message' => 'Failed to trigger rebuild: ' . $response->get_error_message()
+            ));
+            return;
+        }
+
+        // Check response code
+        $response_code = wp_remote_retrieve_response_code($response);
+        $response_body = wp_remote_retrieve_body($response);
+
+        if ($response_code >= 200 && $response_code < 300) {
+            // Success
+            wp_send_json_success(array(
+                'message' => 'Site rebuild triggered successfully!',
+                'response_code' => $response_code,
+                'netlify_response' => json_decode($response_body, true),
+                'timestamp' => current_time('mysql'),
+                'build_url' => 'https://app.netlify.com/sites/lustrous-dolphin-447351/deploys'
+            ));
+        } else {
+            // Netlify returned an error
+            wp_send_json_error(array(
+                'message' => "Netlify rebuild failed with status: {$response_code}",
+                'response_code' => $response_code,
+                'response_body' => $response_body
+            ));
+        }
+
+    } catch (Exception $e) {
+        wp_send_json_error(array(
+            'message' => 'Server error: ' . $e->getMessage()
+        ));
+    }
+}
+
+// Enhanced save and rebuild combined action
+add_action('wp_ajax_violet_save_and_rebuild', 'violet_ajax_save_and_rebuild');
+add_action('wp_ajax_nopriv_violet_save_and_rebuild', 'violet_ajax_save_and_rebuild');
+
+function violet_ajax_save_and_rebuild() {
+    // Verify nonce
+    if (!wp_verify_nonce($_POST['nonce'] ?? '', 'violet_save_nonce')) {
+        wp_send_json_error(array('message' => 'Security verification failed'));
+        return;
+    }
+
+    // Check permissions
+    if (!current_user_can('edit_posts')) {
+        wp_send_json_error(array('message' => 'Insufficient permissions'));
+        return;
+    }
+
+    try {
+        // First, save the changes
+        $changes = json_decode(stripslashes($_POST['changes'] ?? '[]'), true);
+        
+        if (!is_array($changes) || empty($changes)) {
+            wp_send_json_error(array('message' => 'No changes to save'));
+            return;
+        }
+
+        $saved_count = 0;
+        $current_content = get_option('violet_all_content', array());
+
+        foreach ($changes as $change) {
+            if (!isset($change['field_name']) || !isset($change['field_value'])) {
+                continue;
+            }
+
+            $field_name = sanitize_key($change['field_name']);
+            $field_value = wp_kses_post($change['field_value']);
+
+            $current_content[$field_name] = $field_value;
+            update_option('violet_' . $field_name, $field_value);
+            $saved_count++;
+        }
+
+        // Save unified content
+        update_option('violet_all_content', $current_content);
+        wp_cache_flush();
+
+        // Then trigger rebuild
+        $hook_url = get_option('violet_netlify_hook');
+        $rebuild_triggered = false;
+        $rebuild_message = '';
+
+        if (!empty($hook_url) && filter_var($hook_url, FILTER_VALIDATE_URL)) {
+            $rebuild_response = wp_remote_post($hook_url, array(
+                'method' => 'POST',
+                'timeout' => 15,
+                'blocking' => false, // Don't wait for response
+                'body' => json_encode(array(
+                    'trigger' => 'wordpress_save_and_rebuild',
+                    'changes_count' => $saved_count
+                ))
+            ));
+
+            if (!is_wp_error($rebuild_response)) {
+                $rebuild_triggered = true;
+                $rebuild_message = 'Site rebuild triggered automatically';
+            } else {
+                $rebuild_message = 'Save successful, but rebuild failed: ' . $rebuild_response->get_error_message();
+            }
+        } else {
+            $rebuild_message = 'Save successful, but no rebuild hook configured';
+        }
+
+        wp_send_json_success(array(
+            'message' => "Saved {$saved_count} changes. {$rebuild_message}",
+            'saved_count' => $saved_count,
+            'rebuild_triggered' => $rebuild_triggered,
+            'rebuild_message' => $rebuild_message
+        ));
+
+    } catch (Exception $e) {
+        wp_send_json_error(array(
+            'message' => 'Error: ' . $e->getMessage()
+        ));
+    }
+}
+
+// Add nonce generation for frontend use
+add_action('wp_ajax_violet_get_nonces', 'violet_ajax_get_nonces');
+add_action('wp_ajax_nopriv_violet_get_nonces', 'violet_ajax_get_nonces');
+
+function violet_ajax_get_nonces() {
+    wp_send_json_success(array(
+        'save_nonce' => wp_create_nonce('violet_save_nonce'),
+        'rebuild_nonce' => wp_create_nonce('violet_rebuild_nonce'),
+        'timestamp' => current_time('mysql')
+    ));
+}
+// ============================================================================
+// END REBUILD BUTTON FIX - AJAX HANDLERS
+// ============================================================================
+
+// ============================================================================
+// TEMPORARY FIX FOR REBUILD BUTTON - NO GITHUB ACCESS
+// ============================================================================
+
+function violet_manual_deployment_instructions() {
+    ?>
+    <script>
+    // Replace rebuild button functionality with manual deployment instructions
+    document.addEventListener('DOMContentLoaded', function() {
+        const rebuildBtn = document.getElementById('violet-rebuild-btn');
+        if (rebuildBtn) {
+            rebuildBtn.onclick = function(e) {
+                e.preventDefault();
+                
+                const instructions = `
+🚀 MANUAL DEPLOYMENT INSTRUCTIONS
+
+Since GitHub auto-deploy is not available, use manual deployment:
+
+OPTION 1: Use the batch file
+1. Open: C:\\Users\\Leo\\violet-electric-web\\deploy-to-netlify.bat
+2. Double-click to run
+3. Wait for completion
+
+OPTION 2: Command line
+1. Open Command Prompt in: C:\\Users\\Leo\\violet-electric-web
+2. Run: npm run build
+3. Run: netlify deploy --prod --dir=dist
+
+✅ Your site will be updated at: https://violetrainwater.com
+✅ Changes will be live in 2-3 minutes
+
+Note: The rebuild button will work automatically once GitHub access is restored.
+                `;
+                
+                alert(instructions);
+                
+                // Also update the status
+                const status = document.getElementById('violet-rich-status');
+                if (status) {
+                    status.textContent = '📋 Manual deployment required';
+                    status.style.color = '#f56500';
+                }
+            };
+            
+            // Update button text and style to indicate manual mode
+            rebuildBtn.innerHTML = '📋 Manual Deploy Instructions';
+            rebuildBtn.style.background = '#f56500 !important';
+            rebuildBtn.style.borderColor = '#f56500 !important';
+        }
+    });
+    </script>
+    <?php
+}
+
+// Hook it to admin pages
+add_action('admin_footer', 'violet_manual_deployment_instructions');
+
+// ============================================================================
+// NETLIFY REBUILD FIX - DISABLE MANUAL DEPLOYMENT OVERRIDE
+// ============================================================================
+
+// Remove the manual deployment function hook to enable direct Netlify rebuilds
+remove_action('admin_footer', 'violet_manual_deployment_instructions');
+
+// Re-enable the proper rebuild functionality
+add_action('wp_footer', function() {
+    if (is_admin()) {
+        echo '<script>console.log("✅ Direct Netlify rebuilds enabled");</script>';
     }
 });
-?>

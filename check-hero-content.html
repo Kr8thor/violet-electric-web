@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Check Hero Content</title>
+</head>
+<body>
+    <h1>Current Hero Content in WordPress</h1>
+    <div id="content"></div>
+    
+    <script>
+    fetch('https://wp.violetrainwater.com/wp-json/violet/v1/content')
+        .then(response => response.json())
+        .then(data => {
+            const container = document.getElementById('content');
+            
+            // Show hero-related fields
+            const heroFields = ['hero_title', 'hero_subtitle_line2', 'hero_subtitle'];
+            
+            heroFields.forEach(field => {
+                if (data[field]) {
+                    const div = document.createElement('div');
+                    div.innerHTML = `<h3>${field}:</h3><p>${data[field]}</p>`;
+                    container.appendChild(div);
+                }
+            });
+            
+            // Show all content for debugging
+            const pre = document.createElement('pre');
+            pre.textContent = JSON.stringify(data, null, 2);
+            container.appendChild(pre);
+        })
+        .catch(error => {
+            document.getElementById('content').innerHTML = 'Error: ' + error;
+        });
+    </script>
+</body>
+</html>

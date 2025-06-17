@@ -87,6 +87,9 @@ const WordPressRichEditor: React.FC = () => {
         console.log('📝 Rich text modal requested for field:', event.data.field);
         // Handle rich text modal opening
         // handleRichTextModalRequest(event.data);
+      } else if (type === 'violet-trigger-rebuild') {
+        console.log('🚀 Triggering direct Netlify rebuild...');
+        handleNetlifyRebuild();
       }
     };
 
@@ -231,6 +234,51 @@ const WordPressRichEditor: React.FC = () => {
     // Limit undo stack size
     if (undoStack.length > 50) {
       setUndoStack(prev => prev.slice(-50));
+    }
+  };
+
+  const handleNetlifyRebuild = async () => {
+    try {
+      console.log('🚀 Requesting Netlify rebuild...');
+      
+      // Get fresh nonce
+      const nonceResponse = await fetch(`${wpApiBase}wp-admin/admin-ajax.php?action=violet_get_nonces`);
+      const nonceData = await nonceResponse.json();
+      
+      if (!nonceData.success) {
+        throw new Error('Failed to get rebuild nonce');
+      }
+      
+      // Trigger rebuild
+      const rebuildResponse = await fetch(`${wpApiBase}wp-admin/admin-ajax.php`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/x-www-form-urlencoded',
+        },
+        body: new URLSearchParams({
+          action: 'violet_trigger_rebuild',
+          nonce: nonceData.data.rebuild_nonce
+        })
+      });
+      
+      const rebuildResult = await rebuildResponse.json();
+      
+      if (rebuildResult.success) {
+        console.log('✅ Netlify rebuild triggered successfully');
+        wordPressCommunication.sendToWordPress({
+          type: 'violet-rebuild-success',
+          data: { message: 'Rebuild triggered successfully' }
+        });
+      } else {
+        throw new Error(rebuildResult.data?.message || 'Rebuild failed');
+      }
+      
+    } catch (error) {
+      console.error('❌ Netlify rebuild failed:', error);
+      wordPressCommunication.sendToWordPress({
+        type: 'violet-rebuild-error',
+        data: { message: error.message }
+      });
     }
   };
 

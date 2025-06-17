@@ -1,78 +1,203 @@
-import React from 'react';
-import { useContentField } from '@/contexts/ContentContext';
-import { cn } from '@/lib/utils';
+// File: src/components/EditableText.tsx
+// Updated to load content from WordPress instead of hardcoded values
 
-interface EditableTextProps extends React.AllHTMLAttributes<HTMLElement> {
+import React, { useState, useEffect, useRef } from 'react';
+
+interface EditableTextProps {
   field: string;
-  defaultValue: string;
-  as?: keyof JSX.IntrinsicElements;
+  defaultValue?: string;
+  className?: string;
+  style?: React.CSSProperties;
   children?: React.ReactNode;
-  href?: string; // Add support for href when using as="a"
-  target?: string; // Add support for target when using as="a"
-  rel?: string; // Add support for rel when using as="a"
+  as?: keyof JSX.IntrinsicElements;
+  placeholder?: string;
 }
 
-/**
- * Helper function to strip HTML tags from content
- * This prevents saved HTML markup from displaying as text
- */
-const stripHtmlTags = (html: string): string => {
-  // Create a temporary div to parse the HTML
-  if (typeof window !== 'undefined') {
-    const temp = document.createElement('div');
-    temp.innerHTML = html;
-    return temp.textContent || temp.innerText || '';
-  }
-  // Fallback for SSR - basic regex strip
-  return html.replace(/<[^>]*>/g, '');
-};
+export function EditableText({ 
+  field, 
+  defaultValue = '', 
+  className = '', 
+  style = {}, 
+  children,
+  as: Component = 'span',
+  placeholder = 'Click to edit...'
+}: EditableTextProps) {
+  const [content, setContent] = useState<string>(defaultValue);
+  const [isEditing, setIsEditing] = useState(false);
+  const [isInEditMode, setIsInEditMode] = useState(false);
+  const elementRef = useRef<HTMLElement>(null);
 
-/**
- * Editable text component that uses persisted content from WordPress
- */
-export const EditableText = React.forwardRef<HTMLElement, EditableTextProps>(
-  ({ field, defaultValue, as: Component = 'span', className, children, ...props }, ref) => {
-    const value = useContentField(field, defaultValue);
-    
-    // Use saved value if it exists, otherwise use defaultValue
-    let displayValue = value && value.trim() !== '' ? value : defaultValue;
-    // Always strip HTML tags from the value before display
-    if (displayValue && displayValue.includes('<')) {
-      displayValue = stripHtmlTags(displayValue);
+  // Load content from WordPress on mount
+  useEffect(() => {
+    const loadContent = () => {
+      // Try to get content from global WordPress content
+      const getContent = (window as any).violetGetContent;
+      
+      if (getContent && typeof getContent === 'function') {
+        const wordpressContent = getContent(field, defaultValue);
+        if (wordpressContent && wordpressContent !== defaultValue) {
+          setContent(wordpressContent);
+          console.log(`📝 Loaded content for ${field}:`, wordpressContent.substring(0, 50) + '...');
+          return;
+        }
+      }
+
+      // Fallback: Try localStorage
+      const fallbackContent = localStorage.getItem('violet-wordpress-content');
+      if (fallbackContent) {
+        try {
+          const parsedContent = JSON.parse(fallbackContent);
+          if (parsedContent[field]) {
+            setContent(parsedContent[field]);
+            console.log(`📦 Loaded fallback content for ${field}`);
+            return;
+          }
+        } catch (error) {
+          console.error('Error parsing fallback content:', error);
+        }
+      }
+
+      // Final fallback: children or defaultValue
+      if (children && typeof children === 'string') {
+        setContent(children);
+      } else if (defaultValue) {
+        setContent(defaultValue);
+      }
+    };
+
+    // Load immediately
+    loadContent();
+
+    // Also load when WordPress content becomes available
+    const checkInterval = setInterval(() => {
+      if ((window as any).violetGetContent && !content.includes('Default') && content === defaultValue) {
+        loadContent();
+        clearInterval(checkInterval);
+      }
+    }, 500);
+
+    // Clean up interval after 10 seconds
+    setTimeout(() => clearInterval(checkInterval), 10000);
+
+    return () => clearInterval(checkInterval);
+  }, [field, defaultValue, children]);
+
+  // Check if we're in WordPress edit mode
+  useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const editMode = urlParams.get('edit_mode') === '1';
+    setIsInEditMode(editMode);
+
+    if (editMode) {
+      // Listen for edit mode changes
+      const handleMessage = (event: MessageEvent) => {
+        if (event.data?.type === 'violet-enable-editing') {
+          setIsInEditMode(true);
+        } else if (event.data?.type === 'violet-disable-editing') {
+          setIsInEditMode(false);
+          setIsEditing(false);
+        }
+      };
+
+      window.addEventListener('message', handleMessage);
+      return () => window.removeEventListener('message', handleMessage);
     }
+  }, []);
+
+  const handleClick = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+
+    if (!isInEditMode) return;
+
+    setIsEditing(true);
     
-    return React.createElement(
-      Component,
-      {
-        ref,
-        className: cn(className),
-        'data-violet-field': field,
-        ...props
-      },
-      displayValue || children
-    );
-  }
+    // Send edit request to WordPress
+    if (window.parent && window.parent !== window) {
+      window.parent.postMessage({
+        type: 'violet-edit-request',
+        field: field,
+        currentValue: content,
+        fieldType: 'text'
+      }, '*');
+    }
+  };
+
+  const applyEditingStyles = () => {
+    if (!isInEditMode) return {};
+
+    return {
+      outline: isEditing ? '2px solid #00a32a' : '2px dashed #0073aa',
+      outlineOffset: '2px',
+      cursor: 'text',
+      transition: 'all 0.2s ease',
+      backgroundColor: isEditing ? 'rgba(0, 163, 42, 0.05)' : 'transparent',
+      transform: isEditing ? 'translateY(-1px)' : 'none',
+      boxShadow: isEditing ? '0 2px 8px rgba(0, 115, 170, 0.15)' : 'none',
+      direction: 'ltr' as const,
+      textAlign: 'left' as const,
+      unicodeBidi: 'normal' as const,
+      ...style
+    };
+  };
+
+  // Listen for content updates from WordPress
+  useEffect(() => {
+    const handleMessage = (event: MessageEvent) => {
+      if (event.data?.type === 'violet-content-updated' && event.data?.field === field) {
+        setContent(event.data.content);
+        setIsEditing(false);
+        console.log(`✅ Content updated for ${field}:`, event.data.content);
+      }
+    };
+
+    window.addEventListener('message', handleMessage);
+    return () => window.removeEventListener('message', handleMessage);
+  }, [field]);
+
+  return (
+    <Component
+      ref={elementRef}
+      className={`violet-editable ${className}`}
+      style={applyEditingStyles()}
+      onClick={handleClick}
+      data-violet-field={field}
+      data-violet-editable={isInEditMode}
+      data-violet-editing={isEditing}
+      data-violet-original={defaultValue}
+      data-violet-field-type="text"
+      suppressContentEditableWarning={true}
+      // Don't make it contentEditable in React - let WordPress handle editing
+    >
+      {content || placeholder}
+    </Component>
+  );
+}
+
+// Named exports for convenience
+export default EditableText;
+
+// Convenient components for common HTML elements  
+export const EditableH1 = (props: Omit<EditableTextProps, 'as'>) => (
+  <EditableText {...props} as="h1" />
 );
 
-EditableText.displayName = 'EditableText';
-
-// Convenience components for common use cases
-export const EditableH1: React.FC<Omit<EditableTextProps, 'as'>> = (props) => (
-  <EditableText as="h1" {...props} />
+export const EditableH2 = (props: Omit<EditableTextProps, 'as'>) => (
+  <EditableText {...props} as="h2" />
 );
 
-export const EditableH2: React.FC<Omit<EditableTextProps, 'as'>> = (props) => (
-  <EditableText as="h2" {...props} />
+export const EditableH3 = (props: Omit<EditableTextProps, 'as'>) => (
+  <EditableText {...props} as="h3" />
 );
 
-export const EditableP: React.FC<Omit<EditableTextProps, 'as'>> = (props) => (
-  <EditableText as="p" {...props} />
+export const EditableP = (props: Omit<EditableTextProps, 'as'>) => (
+  <EditableText {...props} as="p" />
 );
 
-export const EditableButton: React.FC<Omit<EditableTextProps, 'as'>> = (props) => (
-  <EditableText as="button" {...props} />
+export const EditableSpan = (props: Omit<EditableTextProps, 'as'>) => (
+  <EditableText {...props} as="span" />
 );
 
-export const EditableSpan: React.FC<Omit<EditableTextProps, 'as'>> = (props) => (
-  <EditableText as="span" {...props} />
+export const EditableDiv = (props: Omit<EditableTextProps, 'as'>) => (
+  <EditableText {...props} as="div" />
 );

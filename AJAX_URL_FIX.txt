@@ -1,0 +1,79 @@
+# 🚨 AJAX URL CONFIGURATION FIX
+# React app is using wrong domain for WordPress AJAX calls
+
+## ISSUE:
+React app tries to POST to:
+https://lustrous-dolphin-447351.netlify.app/wp-admin/admin-ajax.php (❌ Wrong domain)
+
+Should POST to:
+https://wp.violetrainwater.com/wp-admin/admin-ajax.php (✅ WordPress domain)
+
+## ROOT CAUSE:
+The React app has incorrect WordPress URL configuration
+
+## IMMEDIATE FIXES:
+
+### Fix 1: Update WordPress Communication Configuration
+File: src/utils/WordPressCommunication.ts
+
+FIND:
+```typescript
+const WORDPRESS_URL = 'https://lustrous-dolphin-447351.netlify.app'; // ❌ WRONG
+```
+
+REPLACE WITH:
+```typescript
+const WORDPRESS_URL = 'https://wp.violetrainwater.com'; // ✅ CORRECT
+```
+
+### Fix 2: Update AJAX URL in App Components
+File: src/contexts/VioletRuntimeContentFixed.tsx or similar
+
+FIND:
+```typescript
+const ajaxUrl = 'https://lustrous-dolphin-447351.netlify.app/wp-admin/admin-ajax.php';
+```
+
+REPLACE WITH:
+```typescript
+const ajaxUrl = 'https://wp.violetrainwater.com/wp-admin/admin-ajax.php';
+```
+
+### Fix 3: Use REST API Instead (BETTER SOLUTION)
+FIND any admin-ajax.php calls and REPLACE WITH:
+```typescript
+// OLD (admin-ajax.php):
+fetch('https://wp.violetrainwater.com/wp-admin/admin-ajax.php', {
+  method: 'POST',
+  // ...
+});
+
+// NEW (REST API):
+fetch('https://wp.violetrainwater.com/wp-json/violet/v1/save-batch', {
+  method: 'POST',
+  headers: {
+    'Content-Type': 'application/json',
+  },
+  body: JSON.stringify({
+    changes: [...] 
+  })
+});
+```
+
+## SEARCH THESE FILES FOR INCORRECT URLs:
+- src/utils/WordPressCommunication.ts
+- src/contexts/VioletRuntimeContentFixed.tsx  
+- src/hooks/useWordPressContent.ts
+- src/App.tsx
+- Any file with 'admin-ajax.php' or 'lustrous-dolphin' WordPress references
+
+## QUICK SEARCH COMMAND:
+grep -r "lustrous-dolphin.*wp-admin" src/
+grep -r "admin-ajax.php" src/
+grep -r "wp.violetrainwater.com" src/
+
+## TESTING AFTER FIX:
+1. npm run dev (test locally)
+2. Make an edit in WordPress admin
+3. Check browser Network tab - should POST to wp.violetrainwater.com
+4. Verify save works without 400 errors
