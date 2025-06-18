@@ -104,7 +104,21 @@ export function VioletContentProvider({ children }: { children: React.ReactNode 
       setIsLoading(true);
       
       // Try to load from WordPress API
-      const response = await fetch('/wp-json/violet/v1/content');
+      const apiKey = import.meta.env.VITE_VIOLET_API_KEY;
+      const headers: Record<string, string> = {
+        'Accept': 'application/json',
+        'Content-Type': 'application/json'
+      };
+
+      // Add API key if available
+      if (apiKey) {
+        headers['X-Violet-API-Key'] = apiKey;
+      }
+
+      const response = await fetch('/wp-json/violet/v1/content', {
+        method: 'GET',
+        headers
+      });
       
       if (response.ok) {
         const data = await response.json();

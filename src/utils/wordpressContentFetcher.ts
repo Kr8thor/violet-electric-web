@@ -53,13 +53,21 @@ class WordPressContentFetcher {
     try {
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 8000);
+      const apiKey = import.meta.env.VITE_VIOLET_API_KEY;
+
+      const headers: Record<string, string> = {
+        'Accept': 'application/json',
+        'Content-Type': 'application/json',
+      };
+
+      // Add API key if available
+      if (apiKey) {
+        headers['X-Violet-API-Key'] = apiKey;
+      }
 
       const response = await fetch('https://wp.violetrainwater.com/wp-json/violet/v1/content', {
         method: 'GET',
-        headers: {
-          'Accept': 'application/json',
-          'Content-Type': 'application/json',
-        },
+        headers,
         credentials: 'include',
         signal: controller.signal
       });

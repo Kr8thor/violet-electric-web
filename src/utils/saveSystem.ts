@@ -119,15 +119,21 @@ export class VioletSaveSystem {
     triggerRebuild: boolean = false
   ): Promise<SaveResult> {
     const nonce = window.violet?.nonce || window.wpApiSettings?.nonce;
+    const apiKey = import.meta.env.VITE_VIOLET_API_KEY;
     
     if (!nonce) {
       throw new Error('WordPress nonce not available - please refresh the page');
+    }
+
+    if (!apiKey) {
+      throw new Error('API key not configured - please check environment variables');
     }
 
     const response = await fetch(`${this.apiUrl}/save-batch`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
+        'X-Violet-API-Key': apiKey,
         'X-WP-Nonce': nonce,
         'X-Requested-With': 'XMLHttpRequest'
       },

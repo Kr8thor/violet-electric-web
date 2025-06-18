@@ -1,0 +1,19 @@
+# Emergency Netlify Proxy Configuration
+# Add this to netlify.toml if WordPress CORS can't be fixed
+
+[[redirects]]
+  from = "/api/wordpress/*"
+  to = "https://wp.violetrainwater.com/wp-json/violet/v1/:splat"
+  status = 200
+  force = true
+  headers = {X-From = "Netlify"}
+  
+[[redirects]]
+  from = "/wp-json/*"
+  to = "https://wp.violetrainwater.com/wp-json/:splat"
+  status = 200
+  force = true
+  headers = {X-From = "Netlify"}
+
+# Then update your React app to use:
+# fetch('/api/wordpress/save-batch') instead of direct WordPress URL
