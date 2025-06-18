@@ -30,6 +30,15 @@ interface HistoryEntry {
   timestamp: number;
 }
 
+const VIOLET_API_KEY = import.meta.env.VITE_VIOLET_API_KEY || (window as any).VIOLET_API_KEY || '';
+if (!VIOLET_API_KEY) {
+  console.warn('⚠️ VIOLET_API_KEY is missing! Saving will fail unless authenticated.');
+}
+
+// Define correct AJAX and REST base URLs
+const WP_AJAX_URL = 'https://wp.violetrainwater.com/wp-admin/admin-ajax.php';
+const WP_REST_BASE = 'https://wp.violetrainwater.com/wp-json/violet/v1';
+
 const WordPressRichEditor: React.FC = () => {
   const [editorState, setEditorState] = useState<EditorState>({
     isEditMode: false,
@@ -240,17 +249,14 @@ const WordPressRichEditor: React.FC = () => {
   const handleNetlifyRebuild = async () => {
     try {
       console.log('🚀 Requesting Netlify rebuild...');
-      
-      // Get fresh nonce
-      const nonceResponse = await fetch(`${wpApiBase}wp-admin/admin-ajax.php?action=violet_get_nonces`);
+      // Get fresh nonce from AJAX endpoint (not REST)
+      const nonceResponse = await fetch(`${WP_AJAX_URL}?action=violet_get_nonces`);
       const nonceData = await nonceResponse.json();
-      
       if (!nonceData.success) {
         throw new Error('Failed to get rebuild nonce');
       }
-      
-      // Trigger rebuild
-      const rebuildResponse = await fetch(`${wpApiBase}wp-admin/admin-ajax.php`, {
+      // Trigger rebuild via AJAX endpoint
+      const rebuildResponse = await fetch(WP_AJAX_URL, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/x-www-form-urlencoded',
@@ -260,9 +266,7 @@ const WordPressRichEditor: React.FC = () => {
           nonce: nonceData.data.rebuild_nonce
         })
       });
-      
       const rebuildResult = await rebuildResponse.json();
-      
       if (rebuildResult.success) {
         console.log('✅ Netlify rebuild triggered successfully');
         wordPressCommunication.sendToWordPress({
@@ -272,7 +276,6 @@ const WordPressRichEditor: React.FC = () => {
       } else {
         throw new Error(rebuildResult.data?.message || 'Rebuild failed');
       }
-      
     } catch (error) {
       console.error('❌ Netlify rebuild failed:', error);
       wordPressCommunication.sendToWordPress({
@@ -521,37 +524,20 @@ const WordPressRichEditor: React.FC = () => {
         const element = el as HTMLElement;
         return {
           field_name: element.dataset.violetFieldType || 'generic_content',
-          content: element.innerHTML,
+          field_value: element.innerHTML,
           format: 'rich',
           editor: 'rich',
         };
       });
       console.log('📝 Changes to save:', changes);
-      // Use FormData for admin-ajax.php
-      const formData = new FormData();
-      formData.append('action', 'violet_batch_save_fallback');
-      formData.append('changes', JSON.stringify(changes));
-      // Use nonce from window.violetAjax (localized by WordPress)
-      const wpNonce = (window as any).violetAjax?.nonce || '';
-      if (wpNonce) {
-        formData.append('nonce', wpNonce);
-        console.log('🔑 Using nonce:', wpNonce.substring(0, 10) + '...');
-      } else {
-        console.warn('⚠️ No nonce found in window.violetAjax');
-      }
-      // Debug the FormData
-      console.log('📤 Form data being sent:');
-      for (let [key, value] of formData.entries()) {
-        console.log(`  ${key}:`, value);
-      }
       try {
-        const res = await fetch('https://wp.violetrainwater.com/wp-admin/admin-ajax.php', {
+        const res = await fetch('https://wp.violetrainwater.com/wp-json/violet/v1/save-batch', {
           method: 'POST',
-          credentials: 'include',
-          body: formData,
           headers: {
-            'X-Requested-With': 'XMLHttpRequest'
-          }
+            'Content-Type': 'application/json',
+            'X-Violet-API-Key': VIOLET_API_KEY
+          },
+          body: JSON.stringify({ changes })
         });
         console.log('📡 Response status:', res.status);
         console.log('📡 Response headers:', Object.fromEntries(res.headers.entries()));
@@ -568,7 +554,7 @@ const WordPressRichEditor: React.FC = () => {
           console.error('❌ Failed to parse JSON response:', parseError);
         }
       } catch (error) {
-        console.error('🚨 AJAX request failed:', error);
+        console.error('🚨 REST API request failed:', error);
       }
     }
 
@@ -580,7 +566,7 @@ const WordPressRichEditor: React.FC = () => {
         const formData = new FormData();
         formData.append('action', 'violet_trigger_rebuild');
         formData.append('nonce', nonce);
-        const res = await fetch('/wp-admin/admin-ajax.php', {
+        const res = await fetch(WP_AJAX_URL, {
           method: 'POST',
           credentials: 'same-origin',
           body: formData

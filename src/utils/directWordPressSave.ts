@@ -1,10 +1,14 @@
 import { getJwtToken } from './wpJwtToken';
 
 const WORDPRESS_API_URL = 'https://wp.violetrainwater.com/wp-json/violet/v1';
+const VIOLET_API_KEY = import.meta.env.VITE_VIOLET_API_KEY || (window as any).VIOLET_API_KEY || '';
+if (!VIOLET_API_KEY) {
+  console.warn('⚠️ VIOLET_API_KEY is missing! Saving will fail unless authenticated.');
+}
 
 interface SaveChange {
   field_name: string;
-  content: string;
+  field_value: string;
   format?: string;
   editor?: string;
 }
@@ -16,7 +20,8 @@ export const saveToWordPressAPI = async (changes: SaveChange[]): Promise<{ succe
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${getJwtToken()}`
+        'Authorization': `Bearer ${getJwtToken()}`,
+        'X-Violet-API-Key': VIOLET_API_KEY
       },
       body: JSON.stringify({ changes })
     });
@@ -50,7 +55,7 @@ export const elementToSaveChange = (element: HTMLElement): SaveChange => {
                    `element_${Date.now()}`;
   return {
     field_name: fieldName,
-    content: element.innerHTML,
+    field_value: element.innerHTML,
     format: 'rich',
     editor: 'direct_api'
   };
@@ -62,7 +67,8 @@ export const testWordPressAPI = async (): Promise<{ success: boolean; message: s
     const response = await fetch(`${WORDPRESS_API_URL}/debug-test`, {
       method: 'GET',
       headers: {
-        'Authorization': `Bearer ${getJwtToken()}`
+        'Authorization': `Bearer ${getJwtToken()}`,
+        'X-Violet-API-Key': VIOLET_API_KEY
       }
     });
     if (!response.ok) {
@@ -89,4 +95,4 @@ export const testWordPressAPI = async (): Promise<{ success: boolean; message: s
 
 export function isUserAuthenticated(): boolean {
   return !!getJwtToken();
-} 
+}

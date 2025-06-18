@@ -5453,14 +5453,7 @@ function violet_add_missing_endpoints() {
         'callback' => 'violet_get_content_for_react',
         'permission_callback' => '__return_true'
     ));
-    // Save endpoint for React app
-    register_rest_route('violet/v1', '/save-batch', array(
-        'methods' => 'POST',
-        'callback' => 'violet_save_batch_for_react',
-        'permission_callback' => function() {
-            return current_user_can('edit_posts');
-        }
-    ));
+    // (Removed duplicate /save-batch registration; see API key version at end of file)
     error_log('Violet: Missing endpoints registered successfully');
 }
 
@@ -5956,3 +5949,229 @@ add_action('wp_footer', function() {
         echo '<script>console.log("✅ Direct Netlify rebuilds enabled");</script>';
     }
 });
+
+/**
+ * Violet API Key Authentication
+ * Checks for API key in header (X-Violet-API-Key) or POST param (api_key)
+ */
+function violet_check_api_key($request = null) {
+    $provided = null;
+    // Check header (for REST)
+    if (function_exists('getallheaders')) {
+        $headers = getallheaders();
+        if (isset($headers['X-Violet-API-Key'])) {
+            $provided = $headers['X-Violet-API-Key'];
+        }
+    }
+    // Check param (for AJAX fallback)
+    if (!$provided && isset($_POST['api_key'])) {
+        $provided = $_POST['api_key'];
+    }
+    // Get stored key
+    $expected = defined('VIOLET_API_KEY') ? VIOLET_API_KEY : get_option('violet_api_key');
+    // Debug logging for API key issues
+    if (defined('WP_DEBUG') && WP_DEBUG) {
+        error_log('Violet API Key Debug: Provided="' . $provided . '" (len=' . strlen($provided) . ') | Expected="' . $expected . '" (len=' . strlen($expected) . ')');
+        if ($provided !== $expected) {
+            // Show character-by-character diff
+            $diff = '';
+            $maxlen = max(strlen($provided), strlen($expected));
+            for ($i = 0; $i < $maxlen; $i++) {
+                $p = $provided[$i] ?? '';
+                $e = $expected[$i] ?? '';
+                $diff .= ($p === $e) ? $p : '[' . $p . '|' . $e . ']';
+            }
+            error_log('Violet API Key Debug: Char diff: ' . $diff);
+        }
+    }
+    return $provided && $expected && hash_equals($expected, $provided);
+}
+
+// Patch REST save endpoints
+add_filter('rest_pre_dispatch', function($result, $server, $request) {
+    $route = $request->get_route();
+    if (strpos($route, '/violet/v1/save-batch') !== false || strpos($route, '/violet/v1/save-batch-for-react') !== false) {
+        if (!violet_check_api_key($request)) {
+            return new WP_Error('forbidden', 'Invalid API key', array('status' => 403));
+        }
+    }
+    return $result;
+}, 10, 3);
+
+// Patch AJAX fallback endpoint
+add_action('admin_post_nopriv_violet_batch_save_fallback', function() {
+    if (!violet_check_api_key()) {
+        wp_send_json_error(array('message' => 'Invalid API key'), 403);
+    }
+});
+add_action('wp_ajax_nopriv_violet_batch_save_fallback', function() {
+    if (!violet_check_api_key()) {
+        wp_send_json_error(array('message' => 'Invalid API key'), 403);
+    }
+});
+
+// ===================== VIOLET API KEY MANAGEMENT INTERFACE =====================
+add_action('admin_menu', 'violet_add_api_key_menu');
+function violet_add_api_key_menu() {
+    add_options_page(
+        'Violet API Key',
+        'Violet API Key',
+        'manage_options',
+        'violet-api-key',
+        'violet_api_key_admin_page'
+    );
+}
+
+function violet_api_key_admin_page() {
+    // Save API key if form submitted
+    if (isset($_POST['save_api_key']) && wp_verify_nonce($_POST['_wpnonce'], 'violet_api_key')) {
+        $new_key = sanitize_text_field($_POST['api_key']);
+        update_option('violet_api_key', $new_key);
+        echo '<div class="updated"><p><strong>✅ API Key saved successfully!</strong></p></div>';
+    }
+    $current_key = get_option('violet_api_key', '');
+    $has_key = !empty($current_key);
+    ?>
+    <div class="wrap">
+        <h1>🔑 Violet API Key Settings</h1>
+        <?php if (!$has_key): ?>
+        <div class="notice notice-warning">
+            <p><strong>⚠️ No API key set!</strong> Your React app won\'t be able to save content.</p>
+        </div>
+        <?php endif; ?>
+        <div class="card" style="max-width: 600px;">
+            <h2>API Key Configuration</h2>
+            <form method="post" action="">
+                <?php wp_nonce_field('violet_api_key'); ?>
+                <table class="form-table">
+                    <tr>
+                        <th scope="row">
+                            <label for="api_key">API Key</label>
+                        </th>
+                        <td>
+                            <input type="text" 
+                                   id="api_key" 
+                                   name="api_key" 
+                                   value="<?php echo esc_attr($current_key); ?>" 
+                                   class="regular-text code" 
+                                   placeholder="Enter 32-character API key" />
+                            <br>
+                            <button type="button" 
+                                    class="button button-secondary" 
+                                    onclick="generateRandomKey()" 
+                                    style="margin-top: 5px;">
+                                🎲 Generate New Key
+                            </button>
+                            <p class="description">
+                                This authenticates your React app for content saving.
+                            </p>
+                        </td>
+                    </tr>
+                </table>
+                <p class="submit">
+                    <input type="submit" 
+                           name="save_api_key" 
+                           class="button button-primary" 
+                           value="💾 Save API Key" />
+                </p>
+            </form>
+            <?php if ($has_key): ?>
+            <div style="background: #f0f8f0; padding: 15px; border-radius: 5px; margin-top: 20px;">
+                <h3>✅ Status: API Key Active</h3>
+                <p><strong>Your key:</strong> <code><?php echo esc_html($current_key); ?></code></p>
+                <p>Add this to your React app\'s save requests as header: <code>X-Violet-API-Key</code></p>
+            </div>
+            <?php endif; ?>
+        </div>
+    </div>
+    <script>
+    function generateRandomKey() {
+        const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+        let result = '';
+        for (let i = 0; i < 32; i++) {
+            result += chars.charAt(Math.floor(Math.random() * chars.length));
+        }
+        document.getElementById('api_key').value = result;
+        // Visual feedback
+        const button = event.target;
+        button.textContent = '✅ Generated!';
+        setTimeout(() => {
+            button.textContent = '🎲 Generate New Key';
+        }, 2000);
+    }
+    </script>
+    <?php
+}
+// Admin notice if no API key is set
+add_action('admin_notices', function() {
+    if (!get_option('violet_api_key') && current_user_can('manage_options')) {
+        echo '<div class="notice notice-warning is-dismissible">';
+        echo '<p><strong>🔑 Violet API Key Required:</strong> ';
+        echo '<a href="' . admin_url('options-general.php?page=violet-api-key') . '">Set up your API key</a> ';
+        echo 'to enable React app content saving.</p>';
+        echo '</div>';
+    }
+});
+// ... existing code ...
+
+// ... existing code ...
+// Enhanced batch save endpoint with API key support
+add_action('rest_api_init', function() {
+    register_rest_route('violet/v1', '/save-batch', array(
+        'methods' => 'POST',
+        'callback' => function($request) {
+            // API key authentication
+            $api_key_header = $request->get_header('X-Violet-API-Key');
+            $configured_key = get_option('violet_api_key', ''); // Set this in WP admin or hardcode for now
+            $hardcoded_fallback = defined('VIOLET_API_KEY') ? VIOLET_API_KEY : '';
+            $valid_key = $configured_key ?: $hardcoded_fallback;
+            if ($api_key_header && $valid_key && hash_equals($valid_key, $api_key_header)) {
+                // Authenticated via API key
+                return violet_save_batch_for_react($request);
+            }
+            // Fallback: require logged-in user with edit_posts
+            if (!current_user_can('edit_posts')) {
+                return new WP_REST_Response(array(
+                    'success' => false,
+                    'message' => 'Forbidden: Not logged in or invalid API key',
+                ), 403);
+            }
+            return violet_save_batch_for_react($request);
+        },
+        'permission_callback' => '__return_true', // We handle auth in callback
+    ));
+});
+// ... existing code ...
+
+// ... existing code ...
+// === VIOLET /save-batch ENDPOINT (API KEY AUTH ONLY) ===
+add_action('rest_api_init', function() {
+    register_rest_route('violet/v1', '/save-batch', array(
+        'methods' => 'POST',
+        'callback' => function($request) {
+            // API key authentication only
+            $api_key_header = $request->get_header('X-Violet-API-Key');
+            $configured_key = get_option('violet_api_key', '');
+            $hardcoded_fallback = defined('VIOLET_API_KEY') ? VIOLET_API_KEY : '';
+            $valid_key = $configured_key ?: $hardcoded_fallback;
+            if ($api_key_header && $valid_key && hash_equals($valid_key, $api_key_header)) {
+                // Authenticated via API key
+                return violet_save_batch_for_react($request);
+            }
+            return new WP_REST_Response(array(
+                'success' => false,
+                'message' => 'Forbidden: Invalid API key',
+            ), 403);
+        },
+        'permission_callback' => '__return_true', // We handle auth in callback
+    ));
+});
+// ... existing code ...
+// Remove the rest_pre_dispatch filter for /save-batch (if present)
+// ... existing code ...
+
+// === VIOLET API KEY (HARDCODED FOR UNIVERSAL EDITING SYSTEM) ===
+if (!defined('VIOLET_API_KEY')) {
+    define('VIOLET_API_KEY', '3Tr2PwndilEui9rgb55XbRzQECupVGKr');
+}
+// ... existing code ...

@@ -1,142 +1,332 @@
-import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+// Updated VioletContentProvider with integrated save system
+import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
+import VioletSaveSystem, { SaveResult } from '../utils/saveSystem';
+import useSave from '../hooks/useSave';
 
-// Types for content management
-interface VioletContent {
-  [key: string]: any;
-}
-
-interface VioletContentContextType {
-  content: VioletContent;
+export interface VioletContentContextType {
+  // Content management
+  content: Record<string, any>;
+  getContent: (field: string, defaultValue?: any) => any;
   updateContent: (field: string, value: any) => void;
-  saveContent: () => Promise<boolean>;
-  loading: boolean;
+  
+  // Save operations
+  save: (triggerRebuild?: boolean) => Promise<SaveResult>;
+  saveAndRebuild: () => Promise<SaveResult>;
+  
+  // State
+  isLoading: boolean;
+  isSaving: boolean;
+  isAutoSaving: boolean;
+  isDirty: boolean;
+  isEditing: boolean;
   error: string | null;
-  getField: (field: string, defaultValue?: any) => any;
+  
+  // Save info
+  lastSaveTime: number | null;
+  saveCount: number;
+  
+  // Editing mode
+  enableEditing: () => void;
+  disableEditing: () => void;
+  
+  // Utilities
+  clearError: () => void;
+  hasUnsavedChanges: boolean;
 }
 
-// Create context
-const VioletContentContext = createContext<VioletContentContextType | undefined>(undefined);
+const VioletContentContext = createContext<VioletContentContextType | null>(null);
 
-// Provider component
-export function VioletContentProvider({ children }: { children: ReactNode }) {
-  const [content, setContent] = useState<VioletContent>({});
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+export function VioletContentProvider({ children }: { children: React.ReactNode }) {
+  const [content, setContent] = useState<Record<string, any>>({});
+  const [isLoading, setIsLoading] = useState(true);
+  const [isEditing, setIsEditing] = useState(false);
+  
+  // Use the save hook
+  const {
+    isSaving,
+    isAutoSaving,
+    isDirty,
+    lastSaveTime,
+    error,
+    saveCount,
+    updateContent: updateContentInSaveSystem,
+    save: saveContent,
+    saveAndRebuild: saveAndRebuildContent,
+    clearError,
+    hasPendingChanges
+  } = useSave({
+    autoSave: true,
+    autoSaveInterval: 30000,
+    showNotifications: true
+  });
 
-  // Load WordPress content on initialization
+  // Load content from WordPress on mount
   useEffect(() => {
-    loadWordPressContent();
+    loadContent();
   }, []);
 
-  // Load content from WordPress REST API
-  const loadWordPressContent = async () => {
+  // Set up cross-origin communication
+  useEffect(() => {
+    const handleMessage = (event: MessageEvent) => {
+      // Validate origin
+      const allowedOrigins = [
+        'https://wp.violetrainwater.com',
+        'https://lustrous-dolphin-447351.netlify.app',
+        'https://violetrainwater.com'
+      ];
+      
+      if (!allowedOrigins.includes(event.origin)) {
+        return;
+      }
+
+      // Handle WordPress messages
+      if (event.data?.type?.startsWith('violet-')) {
+        handleWordPressMessage(event.data);
+      }
+    };
+
+    window.addEventListener('message', handleMessage);
+    
+    // Send ready message to WordPress
+    window.parent.postMessage({
+      type: 'violet-iframe-ready',
+      timestamp: Date.now(),
+      capabilities: ['editing', 'saving', 'content-management']
+    }, '*');
+
+    return () => {
+      window.removeEventListener('message', handleMessage);
+    };
+  }, []);
+
+  const loadContent = async () => {
     try {
-      setLoading(true);
-      setError(null);
-
-      const response = await fetch('/wp-json/violet/v1/content', {
-        method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-      });
-
+      setIsLoading(true);
+      
+      // Try to load from WordPress API
+      const response = await fetch('/wp-json/violet/v1/content');
+      
       if (response.ok) {
         const data = await response.json();
         setContent(data);
-        console.log('✅ WordPress content loaded:', Object.keys(data).length, 'fields');
+        console.log('✅ Content loaded from WordPress API');
       } else {
-        throw new Error(`Failed to load content: ${response.statusText}`);
+        // Fallback to recovered content
+        const recovered = VioletSaveSystem.recoverUnsavedContent();
+        if (recovered) {
+          setContent(recovered);
+          console.log('📂 Loaded recovered content');
+        }
       }
-    } catch (err) {
-      console.warn('⚠️ Could not load WordPress content:', err);
-      setError(err instanceof Error ? err.message : 'Unknown error');
-      // Load from localStorage as fallback
-      loadFromLocalStorage();
+    } catch (error) {
+      console.error('❌ Failed to load content:', error);
+      
+      // Try to recover from local storage
+      const recovered = VioletSaveSystem.recoverUnsavedContent();
+      if (recovered) {
+        setContent(recovered);
+        console.log('📂 Loaded recovered content from local storage');
+      }
     } finally {
-      setLoading(false);
+      setIsLoading(false);
     }
   };
 
-  // Load content from localStorage fallback
-  const loadFromLocalStorage = () => {
-    try {
-      const stored = localStorage.getItem('violet-content');
-      if (stored) {
-        const parsedContent = JSON.parse(stored);
-        setContent(parsedContent);
-        console.log('📦 Loaded content from localStorage');
-      }
-    } catch (err) {
-      console.warn('Could not load from localStorage:', err);
+  const handleWordPressMessage = (data: any) => {
+    switch (data.type) {
+      case 'violet-enable-editing':
+        setIsEditing(true);
+        console.log('✏️ Editing mode enabled');
+        break;
+        
+      case 'violet-disable-editing':
+        setIsEditing(false);
+        console.log('👁️ Editing mode disabled');
+        break;
+        
+      case 'violet-save-content':
+        handleSaveRequest(data.payload);
+        break;
+        
+      case 'violet-update-content':
+        if (data.payload?.field && data.payload?.value !== undefined) {
+          updateContent(data.payload.field, data.payload.value);
+        }
+        break;
     }
   };
 
-  // Update content field
-  const updateContent = (field: string, value: any) => {
-    setContent(prev => {
-      const updated = { ...prev, [field]: value };
-      // Save to localStorage immediately
-      localStorage.setItem('violet-content', JSON.stringify(updated));
-      return updated;
-    });
-  };
-
-  // Save content to WordPress
-  const saveContent = async (): Promise<boolean> => {
+  const handleSaveRequest = async (payload: any) => {
     try {
-      setLoading(true);
-      setError(null);
-
-      const response = await fetch('/wp-json/violet/v1/save-batch', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
+      const result = await saveContent(payload?.triggerRebuild || false);
+      
+      // Send save result back to WordPress
+      window.parent.postMessage({
+        type: 'violet-save-result',
+        payload: {
+          success: result.success,
+          savedCount: result.savedCount,
+          errors: result.errors,
+          timestamp: result.timestamp
         },
-        body: JSON.stringify({
-          changes: Object.entries(content).map(([field, value]) => ({
-            field_name: field,
-            field_value: value,
-          })),
-        }),
-      });
-
-      if (response.ok) {
-        const result = await response.json();
-        console.log('✅ Content saved to WordPress:', result);
-        return true;
-      } else {
-        throw new Error(`Failed to save: ${response.statusText}`);
-      }
-    } catch (err) {
-      console.error('❌ Save failed:', err);
-      setError(err instanceof Error ? err.message : 'Save failed');
-      return false;
-    } finally {
-      setLoading(false);
+        timestamp: Date.now()
+      }, '*');
+      
+    } catch (error) {
+      window.parent.postMessage({
+        type: 'violet-save-result',
+        payload: {
+          success: false,
+          error: error.message,
+          timestamp: new Date().toISOString()
+        },
+        timestamp: Date.now()
+      }, '*');
     }
   };
 
-  // Get field value with fallback
-  const getField = (field: string, defaultValue: any = '') => {
+  const getContent = useCallback((field: string, defaultValue: any = '') => {
     return content[field] !== undefined ? content[field] : defaultValue;
-  };
-
-  // Expose globally for debugging and WordPress integration
-  useEffect(() => {
-    (window as any).violetContent = content;
-    (window as any).violetUpdateContent = updateContent;
-    (window as any).violetSaveContent = saveContent;
-    (window as any).violetGetField = getField;
   }, [content]);
 
+  const updateContent = useCallback((field: string, value: any) => {
+    // Update local state
+    setContent(prev => ({
+      ...prev,
+      [field]: value
+    }));
+    
+    // Update in save system
+    updateContentInSaveSystem(field, value);
+    
+    // Notify WordPress of change
+    window.parent.postMessage({
+      type: 'violet-content-changed',
+      payload: {
+        field,
+        value,
+        timestamp: Date.now()
+      }
+    }, '*');
+    
+    console.log(`📝 Content updated: ${field}`);
+  }, [updateContentInSaveSystem]);
+
+  const enableEditing = useCallback(() => {
+    setIsEditing(true);
+    
+    // Add editing classes to body
+    document.body.classList.add('violet-editing-mode');
+    
+    // Enhance editable elements
+    setTimeout(() => {
+      enhanceEditableElements();
+    }, 100);
+  }, []);
+
+  const disableEditing = useCallback(() => {
+    setIsEditing(false);
+    
+    // Remove editing classes
+    document.body.classList.remove('violet-editing-mode');
+    
+    // Remove editing enhancements
+    removeEditingEnhancements();
+  }, []);
+
+  const enhanceEditableElements = () => {
+    const elements = document.querySelectorAll('[data-violet-field]');
+    
+    elements.forEach(element => {
+      const field = element.getAttribute('data-violet-field');
+      if (!field) return;
+      
+      // Add editing class
+      element.classList.add('violet-editable');
+      
+      // Add click handler
+      const handleClick = (e: Event) => {
+        e.preventDefault();
+        e.stopPropagation();
+        
+        // Send edit request to WordPress
+        window.parent.postMessage({
+          type: 'violet-edit-request',
+          payload: {
+            field,
+            currentValue: element.textContent || '',
+            elementType: element.tagName.toLowerCase(),
+            timestamp: Date.now()
+          }
+        }, '*');
+      };
+      
+      element.addEventListener('click', handleClick);
+      
+      // Store handler for cleanup
+      (element as any).__violetClickHandler = handleClick;
+      
+      // Add hover effects
+      element.addEventListener('mouseenter', () => {
+        element.classList.add('violet-hover');
+      });
+      
+      element.addEventListener('mouseleave', () => {
+        element.classList.remove('violet-hover');
+      });
+    });
+    
+    console.log(`✨ Enhanced ${elements.length} editable elements`);
+  };
+
+  const removeEditingEnhancements = () => {
+    const elements = document.querySelectorAll('[data-violet-field]');
+    
+    elements.forEach(element => {
+      // Remove classes
+      element.classList.remove('violet-editable', 'violet-hover');
+      
+      // Remove click handler
+      const handler = (element as any).__violetClickHandler;
+      if (handler) {
+        element.removeEventListener('click', handler);
+        delete (element as any).__violetClickHandler;
+      }
+    });
+    
+    console.log('🧹 Removed editing enhancements');
+  };
+
+  // Provide context value
   const contextValue: VioletContentContextType = {
+    // Content management
     content,
+    getContent,
     updateContent,
-    saveContent,
-    loading,
+    
+    // Save operations
+    save: saveContent,
+    saveAndRebuild: saveAndRebuildContent,
+    
+    // State
+    isLoading,
+    isSaving,
+    isAutoSaving,
+    isDirty,
+    isEditing,
     error,
-    getField,
+    
+    // Save info
+    lastSaveTime,
+    saveCount,
+    
+    // Editing mode
+    enableEditing,
+    disableEditing,
+    
+    // Utilities
+    clearError,
+    hasUnsavedChanges: hasPendingChanges
   };
 
   return (
@@ -146,14 +336,15 @@ export function VioletContentProvider({ children }: { children: ReactNode }) {
   );
 }
 
-// Hook to use the context
-export function useVioletContent() {
+// Hook to use the content context
+export function useVioletContent(): VioletContentContextType {
   const context = useContext(VioletContentContext);
-  if (context === undefined) {
+  
+  if (!context) {
     throw new Error('useVioletContent must be used within a VioletContentProvider');
   }
+  
   return context;
 }
 
-// Export for compatibility
 export default VioletContentProvider;

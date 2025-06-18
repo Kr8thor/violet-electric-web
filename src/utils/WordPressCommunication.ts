@@ -10,7 +10,7 @@ interface WordPressMessage {
 
 interface ContentChange {
   field_name: string;
-  content: string;
+  field_value: string;
   format?: string;
   editor?: string;
 }
@@ -403,13 +403,13 @@ class WordPressCommunication {
       let fieldName = change.field_name;
       // Always extract from content if generic_content or missing
       if (!fieldName || fieldName === 'generic_content') {
-        fieldName = WordPressCommunication.extractFieldName(change.content);
+        fieldName = WordPressCommunication.extractFieldName(change.field_value);
         if (!fieldName) {
           console.warn('Skipping change with unknown field:', change);
           continue;
         }
       }
-      let value = change.content;
+      let value = change.field_value;
       let format = change.format;
       let editor = change.editor;
       if (WordPressCommunication.isSimpleField(fieldName)) {
@@ -431,7 +431,7 @@ class WordPressCommunication {
       }
       cleaned[fieldName] = {
         field_name: fieldName,
-        content: value,
+        field_value: value,
         format,
         editor
       };
@@ -447,7 +447,7 @@ class WordPressCommunication {
     if (!window.violetChanges) window.violetChanges = new Map();
     // Always use robust extraction and cleaning
     const fieldName = WordPressCommunication.extractFieldName(field) || field;
-    const change: ContentChange = { field_name: fieldName, content: value };
+    const change: ContentChange = { field_name: fieldName, field_value: value };
     const cleaned = this.prepareChangesForSave([change]);
     if (cleaned.length > 0) {
       window.violetChanges.set(cleaned[0].field_name, cleaned[0]);
@@ -481,13 +481,17 @@ class WordPressCommunication {
     // Debug log
     console.log('🟣 [Violet] Saving cleaned changes:', cleaned);
     try {
+      const VIOLET_API_KEY = import.meta.env.VITE_VIOLET_API_KEY || (window as any).VIOLET_API_KEY || '';
+      if (!VIOLET_API_KEY) {
+        console.warn('⚠️ VIOLET_API_KEY is missing! Saving will fail unless authenticated.');
+      }
       const response = await fetch('https://wp.violetrainwater.com/wp-json/violet/v1/save-batch', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          'X-Violet-API-Key': VIOLET_API_KEY,
           'X-WP-Nonce': (window as any).wpApiSettings?.nonce || ''
         },
-        credentials: 'include',
         body: JSON.stringify({ changes: cleaned })
       });
       const result = await response.json();

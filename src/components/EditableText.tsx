@@ -30,7 +30,7 @@ export function EditableText({
   // Load content from WordPress on mount
   useEffect(() => {
     const loadContent = () => {
-      // Try to get content from global WordPress content
+      // Use the new global content fetcher
       const getContent = (window as any).violetGetContent;
       
       if (getContent && typeof getContent === 'function') {
@@ -38,7 +38,18 @@ export function EditableText({
         if (wordpressContent && wordpressContent !== defaultValue) {
           setContent(wordpressContent);
           console.log(`📝 Loaded content for ${field}:`, wordpressContent.substring(0, 50) + '...');
-          return;
+          return true;
+        }
+      }
+
+      // If content fetcher is available, try to get content directly
+      const contentFetcher = (window as any).violetContentFetcher;
+      if (contentFetcher) {
+        const wordpressContent = contentFetcher.getContent(field, defaultValue);
+        if (wordpressContent && wordpressContent !== defaultValue) {
+          setContent(wordpressContent);
+          console.log(`📝 Loaded content via fetcher for ${field}:`, wordpressContent.substring(0, 50) + '...');
+          return true;
         }
       }
 
@@ -50,7 +61,7 @@ export function EditableText({
           if (parsedContent[field]) {
             setContent(parsedContent[field]);
             console.log(`📦 Loaded fallback content for ${field}`);
-            return;
+            return true;
           }
         } catch (error) {
           console.error('Error parsing fallback content:', error);
@@ -63,18 +74,29 @@ export function EditableText({
       } else if (defaultValue) {
         setContent(defaultValue);
       }
+      return false;
     };
 
     // Load immediately
     loadContent();
 
-    // Also load when WordPress content becomes available
+    // Set up content loading callback if available
+    const contentFetcher = (window as any).violetContentFetcher;
+    if (contentFetcher && contentFetcher.onContentLoaded) {
+      contentFetcher.onContentLoaded((allContent: any) => {
+        if (allContent[field]) {
+          setContent(allContent[field]);
+          console.log(`🔄 Content updated for ${field}:`, allContent[field].substring(0, 50) + '...');
+        }
+      });
+    }
+
+    // Backup: Also try periodic loading for initial content
     const checkInterval = setInterval(() => {
-      if ((window as any).violetGetContent && !content.includes('Default') && content === defaultValue) {
-        loadContent();
+      if (loadContent()) {
         clearInterval(checkInterval);
       }
-    }, 500);
+    }, 1000);
 
     // Clean up interval after 10 seconds
     setTimeout(() => clearInterval(checkInterval), 10000);

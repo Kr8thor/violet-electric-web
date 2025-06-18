@@ -145,11 +145,16 @@ export const ConnectivityTest = () => {
     // Test 4: Save Endpoint (dry run)
     try {
       console.log('📡 Testing Save endpoint...');
+      const VIOLET_API_KEY = import.meta.env.VITE_VIOLET_API_KEY || (window as any).VIOLET_API_KEY || '';
+      if (!VIOLET_API_KEY) {
+        console.warn('⚠️ VIOLET_API_KEY is missing! Save endpoint test will fail unless authenticated.');
+      }
       const saveResponse = await fetch('https://wp.violetrainwater.com/wp-json/violet/v1/content/save-batch', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           'Accept': 'application/json',
+          'X-Violet-API-Key': VIOLET_API_KEY
         },
         body: JSON.stringify({
           changes: [
