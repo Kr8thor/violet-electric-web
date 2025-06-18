@@ -1,5 +1,58 @@
 <?php
 /**
+ * URGENT: CORS Fix for Violet React App
+ * This MUST be at the top of functions.php
+ */
+
+// Fix CORS headers immediately
+add_action('init', 'violet_urgent_cors_fix', 1);
+function violet_urgent_cors_fix() {
+    $allowed_origins = array(
+        'https://lustrous-dolphin-447351.netlify.app',
+        'https://violetrainwater.com',
+        'https://www.violetrainwater.com'
+    );
+    
+    $origin = get_http_origin();
+    
+    if ($origin && in_array($origin, $allowed_origins)) {
+        header('Access-Control-Allow-Origin: ' . $origin);
+        header('Access-Control-Allow-Credentials: true');
+        header('Access-Control-Allow-Methods: GET, POST, PUT, DELETE, OPTIONS');
+        header('Access-Control-Allow-Headers: Content-Type, Authorization, X-WP-Nonce, X-Requested-With, X-Violet-API-Key');
+        header('Access-Control-Max-Age: 86400');
+    }
+    
+    // Handle preflight OPTIONS requests
+    if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
+        status_header(200);
+        exit();
+    }
+}
+
+// Additional REST API CORS fix
+add_filter('rest_pre_serve_request', 'violet_rest_cors_headers', 10, 4);
+function violet_rest_cors_headers($served, $result, $request, $server) {
+    $allowed_origins = array(
+        'https://lustrous-dolphin-447351.netlify.app',
+        'https://violetrainwater.com',
+        'https://www.violetrainwater.com'
+    );
+    
+    $origin = get_http_origin();
+    
+    if ($origin && in_array($origin, $allowed_origins)) {
+        header('Access-Control-Allow-Origin: ' . $origin);
+        header('Access-Control-Allow-Credentials: true'); 
+        header('Access-Control-Allow-Methods: GET, POST, PUT, DELETE, OPTIONS');
+        header('Access-Control-Allow-Headers: Content-Type, Authorization, X-WP-Nonce, X-Requested-With, X-Violet-API-Key');
+    }
+    
+    return $served;
+}
+
+// Your existing functions.php code continues below...
+/**
  * 🎯 ULTIMATE WORDPRESS-REACT RICH TEXT EDITING SYSTEM
  * Version 2.0 - With Quill & Lexical Support
  * Enhanced Universal Editor with Professional Rich Text Capabilities
@@ -6170,8 +6223,140 @@ add_action('rest_api_init', function() {
 // Remove the rest_pre_dispatch filter for /save-batch (if present)
 // ... existing code ...
 
-// === VIOLET API KEY (HARDCODED FOR UNIVERSAL EDITING SYSTEM) ===
-if (!defined('VIOLET_API_KEY')) {
-    define('VIOLET_API_KEY', '3Tr2PwndilEui9rgb55XbRzQECupVGKr');
+// === VIOLET DEBUG & FIX FOR 403 FORBIDDEN ERROR ===
+// Debug endpoint to check API key authentication
+add_action('rest_api_init', function() {
+    register_rest_route('violet/v1', '/debug-auth', array(
+        'methods' => array('GET', 'POST', 'OPTIONS'),
+        'callback' => 'violet_debug_auth_endpoint',
+        'permission_callback' => '__return_true'
+    ));
+});
+
+function violet_debug_auth_endpoint($request) {
+    $headers = getallheaders();
+    $api_key_header = isset($headers['X-Violet-API-Key']) ? $headers['X-Violet-API-Key'] : 'NOT FOUND';
+    $stored_api_key = get_option('violet_api_key', '3Tr2PwndilEui9rgb55XbRzQECupVGKr');
+    return new WP_REST_Response(array(
+        'success' => true,
+        'debug_info' => array(
+            'request_method' => $_SERVER['REQUEST_METHOD'],
+            'api_key_received' => $api_key_header,
+            'api_key_stored' => $stored_api_key,
+            'keys_match' => ($api_key_header === $stored_api_key),
+            'all_headers' => $headers,
+            'user_logged_in' => is_user_logged_in(),
+            'user_can_edit' => current_user_can('edit_posts'),
+            'timestamp' => current_time('c'),
+            'wordpress_user' => is_user_logged_in() ? wp_get_current_user()->user_login : 'Not logged in'
+        )
+    ), 200);
 }
-// ... existing code ...
+
+// Fixed Save Batch Endpoint with Better Error Handling
+add_action('rest_api_init', function() {
+    register_rest_route('violet/v1', '/save-batch', array(
+        'methods' => array('POST', 'OPTIONS'),
+        'callback' => 'violet_save_batch_fixed',
+        'permission_callback' => 'violet_validate_api_key',
+        'args' => array(
+            'changes' => array(
+                'required' => true,
+                'type' => 'array'
+            )
+        )
+    ));
+});
+
+function violet_validate_api_key($request) {
+    $headers = getallheaders();
+    $provided_key = isset($headers['X-Violet-API-Key']) ? $headers['X-Violet-API-Key'] : '';
+    $stored_key = get_option('violet_api_key', '3Tr2PwndilEui9rgb55XbRzQECupVGKr');
+    if (defined('WP_DEBUG') && WP_DEBUG) {
+        error_log('Violet API Key Debug:');
+        error_log('Provided: ' . $provided_key);
+        error_log('Stored: ' . $stored_key);
+        error_log('Match: ' . ($provided_key === $stored_key ? 'YES' : 'NO'));
+    }
+    if ($provided_key === $stored_key) {
+        return true;
+    }
+    return new WP_Error(
+        'invalid_api_key',
+        'Invalid or missing API key',
+        array('status' => 403)
+    );
+}
+
+function violet_save_batch_fixed($request) {
+    try {
+        $changes = $request->get_param('changes');
+        if (empty($changes) || !is_array($changes)) {
+            return new WP_Error(
+                'invalid_changes',
+                'Changes parameter is required and must be an array',
+                array('status' => 400)
+            );
+        }
+        $saved_count = 0;
+        $failed_count = 0;
+        $errors = array();
+        $current_content = get_option('violet_all_content', array());
+        foreach ($changes as $change) {
+            if (!is_array($change) || !isset($change['field_name']) || !isset($change['field_value'])) {
+                $errors[] = 'Invalid change format';
+                $failed_count++;
+                continue;
+            }
+            $field_name = sanitize_text_field($change['field_name']);
+            $field_value = $change['field_value'];
+            try {
+                $sanitized_value = is_string($field_value) ? sanitize_text_field($field_value) : $field_value;
+                $current_content[$field_name] = $sanitized_value;
+                update_option("violet_{$field_name}", $sanitized_value);
+                $saved_count++;
+            } catch (Exception $e) {
+                $errors[] = "Field '{$field_name}': " . $e->getMessage();
+                $failed_count++;
+            }
+        }
+        if ($saved_count > 0) {
+            update_option('violet_all_content', $current_content);
+            update_option('violet_last_save', current_time('mysql'));
+        }
+        return new WP_REST_Response(array(
+            'success' => true,
+            'saved_count' => $saved_count,
+            'failed_count' => $failed_count,
+            'errors' => $errors,
+            'timestamp' => current_time('c')
+        ), 200);
+    } catch (Exception $e) {
+        return new WP_Error(
+            'save_failed',
+            'Save operation failed: ' . $e->getMessage(),
+            array('status' => 500)
+        );
+    }
+}
+
+// Ensure API key is set in WordPress options
+add_action('init', function() {
+    if (!get_option('violet_api_key')) {
+        update_option('violet_api_key', '3Tr2PwndilEui9rgb55XbRzQECupVGKr');
+    }
+});
+
+// Polyfill for getallheaders()
+if (!function_exists('getallheaders')) {
+    function getallheaders() {
+        $headers = array();
+        foreach ($_SERVER as $name => $value) {
+            if (substr($name, 0, 5) == 'HTTP_') {
+                $headers[str_replace(' ', '-', ucwords(strtolower(str_replace('_', ' ', substr($name, 5)))))] = $value;
+            }
+        }
+        return $headers;
+    }
+}
+// === END VIOLET DEBUG & FIX ===
