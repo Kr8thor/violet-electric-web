@@ -121,6 +121,12 @@ export class VioletSaveSystem {
     const nonce = window.violet?.nonce || window.wpApiSettings?.nonce;
     const apiKey = import.meta.env.VITE_VIOLET_API_KEY;
     
+    // Debug logging
+    console.log('🔍 Save System Debug:');
+    console.log('   API Key from env:', apiKey ? `${apiKey.substring(0, 8)}...` : 'UNDEFINED');
+    console.log('   API Key length:', apiKey?.length || 0);
+    console.log('   Nonce available:', !!nonce);
+    
     if (!nonce) {
       throw new Error('WordPress nonce not available - please refresh the page');
     }
