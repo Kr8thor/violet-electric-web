@@ -71,7 +71,7 @@ export function VioletContentProvider({ children }: { children: React.ReactNode 
       // Validate origin
       const allowedOrigins = [
         'https://wp.violetrainwater.com',
-        'https://lustrous-dolphin-447351.netlify.app',
+        'https://fd299bc9-2363-4f3e-bed8-c4808e8505be.netlify.app',
         'https://violetrainwater.com'
       ];
       

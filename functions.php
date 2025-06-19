@@ -8,7 +8,7 @@
 add_action('init', 'violet_urgent_cors_fix', 1);
 function violet_urgent_cors_fix() {
     $allowed_origins = array(
-        'https://lustrous-dolphin-447351.netlify.app',
+        'https://fd299bc9-2363-4f3e-bed8-c4808e8505be.netlify.app',
         'https://violetrainwater.com',
         'https://www.violetrainwater.com'
     );
@@ -34,7 +34,7 @@ function violet_urgent_cors_fix() {
 add_filter('rest_pre_serve_request', 'violet_rest_cors_headers', 10, 4);
 function violet_rest_cors_headers($served, $result, $request, $server) {
     $allowed_origins = array(
-        'https://lustrous-dolphin-447351.netlify.app',
+        'https://fd299bc9-2363-4f3e-bed8-c4808e8505be.netlify.app',
         'https://violetrainwater.com',
         'https://www.violetrainwater.com'
     );
@@ -4914,7 +4914,7 @@ function violet_rich_text_head_scripts() {
 
 // Add the main editor interface callback for the admin menu
 function violet_rich_text_editor_interface() {
-    $netlify_url = get_option('violet_netlify_url', 'https://lustrous-dolphin-447351.netlify.app');
+    $netlify_url = get_option('violet_netlify_url', 'https://fd299bc9-2363-4f3e-bed8-c4808e8505be.netlify.app');
     $editing_params = '?edit_mode=1&wp_admin=1&rich_text=1&wp_origin=' . urlencode(admin_url());
     // Add a page/slug selector for multi-page editing
     $available_pages = array(
@@ -5102,7 +5102,7 @@ function violet_editor_settings_page() {
         update_option('violet_netlify_hook', esc_url_raw($_POST['netlify_hook']));
         echo '<div class="updated notice"><p>Settings saved.</p></div>';
     }
-    $netlify_url = get_option('violet_netlify_url', 'https://lustrous-dolphin-447351.netlify.app');
+    $netlify_url = get_option('violet_netlify_url', 'https://fd299bc9-2363-4f3e-bed8-c4808e8505be.netlify.app');
     $netlify_hook = get_option('violet_netlify_hook', 'https://api.netlify.com/build_hooks/684054a7aed5fdf9f3793a0f');
     ?>
     <div class="wrap">
