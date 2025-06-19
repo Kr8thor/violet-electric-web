@@ -6360,3 +6360,51 @@ if (!function_exists('getallheaders')) {
     }
 }
 // === END VIOLET DEBUG & FIX ===
+
+// ... existing code ...
+// === VIOLET: Localize Nonce and API Info for React Iframe ===
+function violet_localize_nonce_script() {
+    if (is_admin()) {
+        wp_localize_script('wp-api', 'violet', array(
+            'nonce' => wp_create_nonce('wp_rest'),
+            'api_url' => rest_url('violet/v1/'),
+            'user_can_edit' => current_user_can('edit_posts')
+        ));
+        // Also add it directly to window object for immediate access
+        echo '<script>' .
+            'window.violet = {' .
+                'nonce: "' . wp_create_nonce('wp_rest') . '",' .
+                'api_url: "' . rest_url('violet/v1/') . '",' .
+                'user_can_edit: ' . (current_user_can('edit_posts') ? 'true' : 'false') .
+            '};' .
+        '</script>';
+    }
+}
+add_action('admin_enqueue_scripts', 'violet_localize_nonce_script');
+// ... existing code ...
+// === END VIOLET DEBUG & FIX ===
+
+// ... existing code ...
+// === VIOLET: Debug API Key Storage (Temporary) ===
+function violet_debug_api_key_storage() {
+    if (current_user_can('manage_options')) {
+        $stored_key = get_option('violet_api_key', '');
+        $all_content = get_option('violet_all_content', array());
+        echo '<div class="notice notice-info">';
+        echo '<h3>🔍 API Key Debug Info</h3>';
+        echo '<p><strong>Stored API Key:</strong> [' . esc_html($stored_key) . ']</p>';
+        echo '<p><strong>Key Length:</strong> ' . strlen($stored_key) . '</p>';
+        echo '<p><strong>Expected Key:</strong> [3Tr2PwndilEui9rgb55XbRzQECupVGKr]</p>';
+        echo '<p><strong>Expected Length:</strong> 32</p>';
+        echo '<p><strong>Keys Match:</strong> ' . ($stored_key === '3Tr2PwndilEui9rgb55XbRzQECupVGKr' ? 'YES' : 'NO') . '</p>';
+        if ($stored_key !== '3Tr2PwndilEui9rgb55XbRzQECupVGKr') {
+            echo '<p style="color: red;"><strong>🚨 KEY MISMATCH DETECTED!</strong></p>';
+            echo '<p>Stored first 10 chars: [' . substr($stored_key, 0, 10) . ']</p>';
+            echo '<p>Expected first 10 chars: [3Tr2PwndilE]</p>';
+        }
+        echo '</div>';
+    }
+}
+add_action('admin_notices', 'violet_debug_api_key_storage');
+// ... existing code ...
+// === END VIOLET DEBUG & FIX ===
